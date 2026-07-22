@@ -3,11 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/negocio_repository.dart';
 import '../../providers/negocio_provider.dart';
+import '../../../../core/constants/roles.dart';
+import '../../../auth/providers/auth_provider.dart';
 
 /// Si el permiso [permisoKey] está activado y hay una clave especial configurada,
 /// pide la clave antes de continuar. Si no está activado (o no hay clave configurada),
-/// retorna true de inmediato sin mostrar nada.
+/// retorna true de inmediato sin mostrar nada. El Administrador nunca la pide: es el
+/// único rol que puede hacer todo sin restricciones.
 Future<bool> verificarAccesoEspecial(BuildContext context, WidgetRef ref, String permisoKey) async {
+  if (ref.read(authProvider).usuario?.rol == Roles.administrador) return true;
   final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
   if (!negocio.tieneClaveEspecial || !negocio.tienePermiso(permisoKey)) {
     return true;

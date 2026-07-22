@@ -198,7 +198,7 @@ class _UsuarioFormDialogState extends ConsumerState<UsuarioFormDialog> {
               DropdownButtonFormField<String>(
                 initialValue: _rol,
                 decoration: _decoracion('Rol'),
-                items: [Roles.administrador, Roles.empleado]
+                items: Roles.todos
                     .map((r) => DropdownMenuItem(value: r, child: Text(r, style: GoogleFonts.poppins(fontSize: 13))))
                     .toList(),
                 onChanged: (v) => setState(() => _rol = v ?? Roles.empleado),

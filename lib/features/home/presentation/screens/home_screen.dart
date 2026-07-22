@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../../core/constants/roles.dart';
 import '../../../../core/providers/tabs_provider.dart';
 import '../../../../core/models/tab_item.dart';
 import '../../../../core/data/modulos_menu.dart';
@@ -23,8 +24,8 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  void _manejarTap(BuildContext context, WidgetRef ref, ModuloMenu modulo, bool esAdmin) {
-    final disponibles = modulo.subModulos.where((s) => esAdmin || !s.soloAdmin).toList();
+  void _manejarTap(BuildContext context, WidgetRef ref, ModuloMenu modulo, String rolUsuario) {
+    final disponibles = modulo.subModulos.where((s) => Roles.cumpleNivel(rolUsuario, s.nivelMinimo)).toList();
     if (disponibles.isEmpty) return;
     if (disponibles.length == 1) {
       _abrirSubModulo(ref, disponibles.first);
@@ -71,10 +72,10 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final usuario = authState.usuario;
-    final esAdmin = usuario?.rol == 'Administrador';
+    final rolUsuario = usuario?.rol ?? Roles.empleado;
 
     final modulosVisibles = obtenerModulos().where((m) {
-      return m.subModulos.any((s) => esAdmin || !s.soloAdmin);
+      return m.subModulos.any((s) => Roles.cumpleNivel(rolUsuario, s.nivelMinimo));
     }).toList();
 
     return Container(
@@ -107,7 +108,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     itemBuilder: (context, index) {
                       final modulo = modulosVisibles[index];
-                      return _tarjetaModulo(context, ref, modulo, esAdmin, esMovil);
+                      return _tarjetaModulo(context, ref, modulo, rolUsuario, esMovil);
                     },
                   ),
                 ],
@@ -119,13 +120,13 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _tarjetaModulo(BuildContext context, WidgetRef ref, ModuloMenu modulo, bool esAdmin, bool esMovil) {
+  Widget _tarjetaModulo(BuildContext context, WidgetRef ref, ModuloMenu modulo, String rolUsuario, bool esMovil) {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => _manejarTap(context, ref, modulo, esAdmin),
+        onTap: () => _manejarTap(context, ref, modulo, rolUsuario),
         child: Container(
           padding: EdgeInsets.all(esMovil ? 14 : 22),
           decoration: BoxDecoration(
@@ -152,7 +153,7 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '${modulo.subModulos.where((s) => esAdmin || !s.soloAdmin).length} opciones',
+                '${modulo.subModulos.where((s) => Roles.cumpleNivel(rolUsuario, s.nivelMinimo)).length} opciones',
                 style: GoogleFonts.poppins(fontSize: 10.5, color: Colors.grey.shade500),
               ),
             ],

@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import '../constants/roles.dart';
 
 class SubModulo {
   final String titulo;
   final IconData icono;
   final String moduleKey;
-  final bool soloAdmin;
+  final String nivelMinimo;
 
   SubModulo({
     required this.titulo,
     required this.icono,
     required this.moduleKey,
-    this.soloAdmin = false,
+    this.nivelMinimo = Roles.empleado,
   });
 }
 
@@ -35,7 +36,7 @@ List<ModuloMenu> obtenerModulos() {
       icono: Icons.people_alt_outlined,
       color: const Color(0xFFFFE000),
       subModulos: [
-        SubModulo(titulo: 'Usuarios', icono: Icons.people_alt_outlined, moduleKey: 'usuarios', soloAdmin: true),
+        SubModulo(titulo: 'Usuarios', icono: Icons.people_alt_outlined, moduleKey: 'usuarios', nivelMinimo: Roles.administrador),
       ],
     ),
     ModuloMenu(
@@ -43,9 +44,9 @@ List<ModuloMenu> obtenerModulos() {
       icono: Icons.settings_outlined,
       color: const Color(0xFF0EA5A4),
       subModulos: [
-        SubModulo(titulo: 'Categorías', icono: Icons.category_outlined, moduleKey: 'categorias', soloAdmin: true),
-        SubModulo(titulo: 'Inventario', icono: Icons.inventory_2_outlined, moduleKey: 'inventario', soloAdmin: true),
-        SubModulo(titulo: 'Negocio', icono: Icons.store_outlined, moduleKey: 'negocio', soloAdmin: true),
+        SubModulo(titulo: 'Categorías', icono: Icons.category_outlined, moduleKey: 'categorias', nivelMinimo: Roles.semiAdministrador),
+        SubModulo(titulo: 'Inventario', icono: Icons.inventory_2_outlined, moduleKey: 'inventario', nivelMinimo: Roles.semiAdministrador),
+        SubModulo(titulo: 'Negocio', icono: Icons.store_outlined, moduleKey: 'negocio', nivelMinimo: Roles.administrador),
         SubModulo(titulo: 'Registro de Colores', icono: Icons.palette_outlined, moduleKey: 'colores'),
       ],
     ),
@@ -65,7 +66,7 @@ List<ModuloMenu> obtenerModulos() {
       subModulos: [
         SubModulo(titulo: 'Registrar Compra', icono: Icons.add_box_outlined, moduleKey: 'compras_registrar'),
         SubModulo(titulo: 'Ver Detalle', icono: Icons.receipt_long_outlined, moduleKey: 'compras_detalle'),
-        SubModulo(titulo: 'Hacer Pedido', icono: Icons.local_shipping_outlined, moduleKey: 'compras_pedido', soloAdmin: true),
+        SubModulo(titulo: 'Hacer Pedido', icono: Icons.local_shipping_outlined, moduleKey: 'compras_pedido', nivelMinimo: Roles.semiAdministrador),
       ],
     ),
     ModuloMenu(
@@ -100,7 +101,7 @@ List<ModuloMenu> obtenerModulos() {
       subModulos: [
         SubModulo(titulo: 'Reporte de Ventas', icono: Icons.trending_up_outlined, moduleKey: 'reporte_ventas'),
         SubModulo(titulo: 'Reporte de Compras', icono: Icons.trending_down_outlined, moduleKey: 'reporte_compras'),
-        SubModulo(titulo: 'Reporte Financiero', icono: Icons.account_balance_outlined, moduleKey: 'reporte_financiero', soloAdmin: true),
+        SubModulo(titulo: 'Reporte Financiero', icono: Icons.account_balance_outlined, moduleKey: 'reporte_financiero', nivelMinimo: Roles.semiAdministrador),
         SubModulo(titulo: 'Cierre de Caja', icono: Icons.point_of_sale_outlined, moduleKey: 'cierre_caja'),
         SubModulo(titulo: 'Ingresos-Egresos', icono: Icons.swap_vert_outlined, moduleKey: 'ingresos_egresos'),
       ],
