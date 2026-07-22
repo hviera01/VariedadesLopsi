@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "228240860351",
+    "project_id": "lopsi-5eaec",
+    "storage_bucket": "lopsi-5eaec.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:228240860351:android:0726b7f0d60fe4a810d20a",
+        "android_client_info": {
+          "package_name": "com.lopsi.sistema_ventas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQvgrDPd1inqtebfHFgql1xG-lF-pNGN8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
