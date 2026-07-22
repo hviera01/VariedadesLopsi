@@ -36,7 +36,7 @@ class TotalesLibro {
 }
 
 class EgresoExportService {
-  static const _colorMarca = PdfColor.fromInt(0xFFCA8A04);
+  static const _colorMarca = PdfColor.fromInt(0xFFFFC107);
   static const _colorGrisClaro = PdfColor.fromInt(0xFFF2F3F7);
 
   Uint8List generarExcelLibro(List<MovimientoFinanciero> movimientos) {

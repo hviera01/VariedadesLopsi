@@ -164,7 +164,7 @@ class CategoriasScreen extends ConsumerWidget {
                           },
                         );
                       },
-                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFCA8A04))),
+                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107))),
                       error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
                     ),
                   ),
@@ -225,7 +225,7 @@ class CategoriasScreen extends ConsumerWidget {
       icon: const Icon(Icons.add, size: 18),
       label: Text('Nueva Categoría', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
       style: FilledButton.styleFrom(
-        backgroundColor: const Color(0xFFCA8A04),
+        backgroundColor: const Color(0xFFFFC107),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

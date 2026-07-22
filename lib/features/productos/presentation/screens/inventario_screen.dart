@@ -275,7 +275,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              _badgeInfo('${productos.length} productos', const Color(0xFFCA8A04)),
+                              _badgeInfo('${productos.length} productos', const Color(0xFFFFC107)),
                               _badgeInfo('Valor compra ${formatearMoneda(valorCompra)}', const Color(0xFF3B82F6)),
                               _badgeInfo('Valor venta (${_precioConIsv ? 'con' : 'sin'} ISV) ${formatearMoneda(valorVenta)}', const Color(0xFF16A34A)),
                             ],
@@ -330,7 +330,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                         onPressed: () => _abrirFormulario(),
                         icon: const Icon(Icons.add, size: 18),
                         label: Text('Nuevo Producto', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
-                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFFCA8A04), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                       ),
                     ],
                   ),
@@ -383,7 +383,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                           child: esMovil ? _tarjetas(lista, mapaCategorias) : _tabla(lista, mapaCategorias),
                         );
                       },
-                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFCA8A04))),
+                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107))),
                       error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
                     ),
                   ),
@@ -465,7 +465,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                 decoration: BoxDecoration(color: bajoStock ? const Color(0xFFFCE4E4) : const Color(0xFFEFF4FF), borderRadius: BorderRadius.circular(8)),
-                                child: Text(producto.stock.toString(), style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700, color: bajoStock ? const Color(0xFFCA8A04) : const Color(0xFF3B82F6))),
+                                child: Text(producto.stock.toString(), style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700, color: bajoStock ? const Color(0xFFFFC107) : const Color(0xFF3B82F6))),
                               ),
                             ),
                           ),
@@ -513,7 +513,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
           },
           child: Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: seleccionada ? const Color(0xFFFBEAEA) : Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: seleccionada ? const Color(0xFFCA8A04) : const Color(0xFFC7CBD3))),
+            decoration: BoxDecoration(color: seleccionada ? const Color(0xFFFBEAEA) : Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: seleccionada ? const Color(0xFFFFC107) : const Color(0xFFC7CBD3))),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -538,7 +538,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(color: bajoStock ? const Color(0xFFFCE4E4) : const Color(0xFFEFF4FF), borderRadius: BorderRadius.circular(8)),
-                      child: Text('Existencia: ${p.stock}', style: GoogleFonts.poppins(fontSize: 11.5, fontWeight: FontWeight.w700, color: bajoStock ? const Color(0xFFCA8A04) : const Color(0xFF3B82F6))),
+                      child: Text('Existencia: ${p.stock}', style: GoogleFonts.poppins(fontSize: 11.5, fontWeight: FontWeight.w700, color: bajoStock ? const Color(0xFFFFC107) : const Color(0xFF3B82F6))),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -587,11 +587,11 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Flexible(
-                child: Text(texto, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w700, color: activa ? const Color(0xFFCA8A04) : const Color(0xFF666A72), letterSpacing: 0.35)),
+                child: Text(texto, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w700, color: activa ? const Color(0xFFFFC107) : const Color(0xFF666A72), letterSpacing: 0.35)),
               ),
               if (columnaOrdenKey != null) ...[
                 const SizedBox(width: 4),
-                Icon(activa ? (_ordenAscendente ? Icons.arrow_upward : Icons.arrow_downward) : Icons.unfold_more, size: 13, color: activa ? const Color(0xFFCA8A04) : Colors.grey.shade400),
+                Icon(activa ? (_ordenAscendente ? Icons.arrow_upward : Icons.arrow_downward) : Icons.unfold_more, size: 13, color: activa ? const Color(0xFFFFC107) : Colors.grey.shade400),
               ],
             ],
           ),
@@ -725,7 +725,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
-            color: activo ? const Color(0xFFCA8A04) : Colors.transparent,
+            color: activo ? const Color(0xFFFFC107) : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(

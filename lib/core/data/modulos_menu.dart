@@ -33,7 +33,7 @@ List<ModuloMenu> obtenerModulos() {
     ModuloMenu(
       titulo: 'Usuarios',
       icono: Icons.people_alt_outlined,
-      color: const Color(0xFFCA8A04),
+      color: const Color(0xFFFFC107),
       subModulos: [
         SubModulo(titulo: 'Usuarios', icono: Icons.people_alt_outlined, moduleKey: 'usuarios', soloAdmin: true),
       ],

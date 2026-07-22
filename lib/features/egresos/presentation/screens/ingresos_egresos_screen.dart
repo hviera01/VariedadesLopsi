@@ -221,7 +221,7 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
   void _mostrarMensaje(String mensaje, {bool esError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensaje), backgroundColor: esError ? const Color(0xFFCA8A04) : null),
+      SnackBar(content: Text(mensaje), backgroundColor: esError ? const Color(0xFFFFC107) : null),
     );
   }
 
@@ -352,7 +352,7 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
                   onPressed: _eliminarEgreso,
                   icon: const Icon(Icons.delete_outline, size: 16),
                   label: Text('Eliminar', style: GoogleFonts.poppins(fontSize: 12.5)),
-                  style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFCA8A04), side: const BorderSide(color: Color(0xFFB6BCC7)), padding: const EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFFFC107), side: const BorderSide(color: Color(0xFFB6BCC7)), padding: const EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 ),
               ),
               const SizedBox(width: 10),
@@ -361,7 +361,7 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
                   onPressed: _registrarEgreso,
                   icon: Icon(_idEditando.isEmpty ? Icons.add : Icons.save_outlined, size: 16),
                   label: Text(_idEditando.isEmpty ? 'Registrar' : 'Guardar', style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w600)),
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFCA8A04), padding: const EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107), padding: const EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 ),
               ),
             ],
@@ -399,7 +399,7 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
       children: [
         _statChip('Ingresos', totales.ingresos, const Color(0xFF16A34A)),
         _statChip('A proveedores', totales.aProveedores, const Color(0xFFF59E0B)),
-        _statChip('Gastos negocio', totales.gastosNegocio, const Color(0xFFCA8A04)),
+        _statChip('Gastos negocio', totales.gastosNegocio, const Color(0xFFFFC107)),
         _statChip('Gastos casa', totales.gastosCasa, const Color(0xFF8B5CF6)),
         _statChip('Utilidad', totales.utilidad, const Color(0xFF1A1A1A)),
       ],
@@ -422,7 +422,7 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
   }
 
   Widget _lista(List<MovimientoFinanciero> lista) {
-    if (_cargando) return const Center(child: CircularProgressIndicator(color: Color(0xFFCA8A04)));
+    if (_cargando) return const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107)));
     if (lista.isEmpty) {
       return Center(
         child: Column(
@@ -456,7 +456,7 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
                   Expanded(flex: 2, child: Text(m.tipoMovimiento, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600))),
                   Expanded(flex: 3, child: Text(m.descripcion, style: GoogleFonts.poppins(fontSize: 12), overflow: TextOverflow.ellipsis)),
                   Expanded(flex: 2, child: Text(m.ingreso == 0 ? '' : formatearMoneda(m.ingreso), style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF16A34A), fontWeight: FontWeight.w600))),
-                  Expanded(flex: 2, child: Text(m.egreso == 0 ? '' : formatearMoneda(m.egreso), style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFFCA8A04), fontWeight: FontWeight.w600))),
+                  Expanded(flex: 2, child: Text(m.egreso == 0 ? '' : formatearMoneda(m.egreso), style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFFFFC107), fontWeight: FontWeight.w600))),
                   Expanded(flex: 2, child: Text(m.metodoPago, style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.grey.shade600))),
                 ],
               ),

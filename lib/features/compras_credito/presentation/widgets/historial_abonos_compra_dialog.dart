@@ -44,7 +44,7 @@ class HistorialAbonosCompraDialog extends ConsumerWidget {
             const SizedBox(height: 14),
             Expanded(
               child: abonosAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFCA8A04))),
+                loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107))),
                 error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
                 data: (abonos) {
                   if (abonos.isEmpty) {

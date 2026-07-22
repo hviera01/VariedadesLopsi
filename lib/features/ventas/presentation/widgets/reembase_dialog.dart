@@ -94,7 +94,7 @@ class _ReembaseDialogState extends State<ReembaseDialog> {
                   onChanged: (v) => setState(() => _tipo = v!),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  activeColor: const Color(0xFFCA8A04),
+                  activeColor: const Color(0xFFFFC107),
                   title: Text(entrada.value, style: GoogleFonts.poppins(fontSize: 12.5)),
                 )),
             const SizedBox(height: 16),
@@ -107,7 +107,7 @@ class _ReembaseDialogState extends State<ReembaseDialog> {
                   onPressed: _productoBase == null
                       ? null
                       : () => Navigator.pop(context, ReembaseResultado(productoBase: _productoBase!, tipo: _tipo)),
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFCA8A04), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   child: Text('Confirmar', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
                 ),
               ],

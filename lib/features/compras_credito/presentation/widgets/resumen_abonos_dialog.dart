@@ -165,7 +165,7 @@ class _ResumenAbonosDialogState extends ConsumerState<ResumenAbonosDialog> {
                       onPressed: _cargando ? null : _buscar,
                       icon: const Icon(Icons.search, size: 18),
                       label: Text('Buscar', style: GoogleFonts.poppins(fontSize: 13)),
-                      style: FilledButton.styleFrom(backgroundColor: const Color(0xFFCA8A04), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     ),
                     const SizedBox(width: 10),
                     OutlinedButton.icon(
@@ -182,9 +182,9 @@ class _ResumenAbonosDialogState extends ConsumerState<ResumenAbonosDialog> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFCA8A04),
+                color: const Color(0xFFFFC107),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: const Color(0xFFCA8A04).withOpacity(0.35), blurRadius: 18, offset: const Offset(0, 8))],
+                boxShadow: [BoxShadow(color: const Color(0xFFFFC107).withOpacity(0.35), blurRadius: 18, offset: const Offset(0, 8))],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -205,7 +205,7 @@ class _ResumenAbonosDialogState extends ConsumerState<ResumenAbonosDialog> {
             const SizedBox(height: 16),
             Expanded(
               child: _cargando
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFFCA8A04)))
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107)))
                   : _error != null
                       ? Center(child: Text(_error!, style: GoogleFonts.poppins(color: Colors.red)))
                       : filas.isEmpty

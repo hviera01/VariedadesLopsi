@@ -49,7 +49,7 @@ class ProductoExportService {
         header: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text('Inventario · VARIEDADES LOPSI', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFFCA8A04))),
+            pw.Text('Inventario · VARIEDADES LOPSI', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFFFFC107))),
             pw.SizedBox(height: 4),
             pw.Text('Total de productos: ${lista.length}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
             pw.SizedBox(height: 14),
@@ -71,7 +71,7 @@ class ProductoExportService {
               ];
             }).toList(),
             headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: PdfColors.white),
-            headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFCA8A04)),
+            headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFFFC107)),
             cellStyle: const pw.TextStyle(fontSize: 8.5),
             cellAlignment: pw.Alignment.centerLeft,
             cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 7),

@@ -72,7 +72,7 @@ class _CategoriaFormDialogState extends ConsumerState<CategoriaFormDialog> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancelar', style: GoogleFonts.poppins())),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFCA8A04)),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107)),
             onPressed: () => Navigator.pop(context, true),
             child: Text('Eliminar', style: GoogleFonts.poppins()),
           ),
@@ -118,10 +118,10 @@ class _CategoriaFormDialogState extends ConsumerState<CategoriaFormDialog> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFCA8A04).withOpacity(0.1),
+                    color: const Color(0xFFFFC107).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.category_outlined, color: Color(0xFFCA8A04)),
+                  child: const Icon(Icons.category_outlined, color: Color(0xFFFFC107)),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -224,9 +224,9 @@ class _CategoriaFormDialogState extends ConsumerState<CategoriaFormDialog> {
                 if (editando)
                   IconButton(
                     onPressed: _guardando ? null : _eliminar,
-                    icon: const Icon(Icons.delete_outline, color: Color(0xFFCA8A04)),
+                    icon: const Icon(Icons.delete_outline, color: Color(0xFFFFC107)),
                     style: IconButton.styleFrom(
-                      backgroundColor: const Color(0xFFCA8A04).withOpacity(0.08),
+                      backgroundColor: const Color(0xFFFFC107).withOpacity(0.08),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
@@ -239,7 +239,7 @@ class _CategoriaFormDialogState extends ConsumerState<CategoriaFormDialog> {
                 FilledButton(
                   onPressed: _guardando ? null : _guardar,
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFCA8A04),
+                    backgroundColor: const Color(0xFFFFC107),
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),

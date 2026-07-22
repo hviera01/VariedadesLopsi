@@ -247,7 +247,7 @@ class _ReporteComprasScreenState extends ConsumerState<ReporteComprasScreen> {
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.14), blurRadius: 26, offset: const Offset(0, 12))],
                 ),
                 child: _cargando
-                    ? const Center(child: CircularProgressIndicator(color: Color(0xFFCA8A04)))
+                    ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107)))
                     : _error != null
                         ? Center(child: Text(_error!, style: GoogleFonts.poppins(color: Colors.red)))
                         : lista.isEmpty
@@ -274,9 +274,9 @@ class _ReporteComprasScreenState extends ConsumerState<ReporteComprasScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFCA8A04),
+        color: const Color(0xFFFFC107),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: const Color(0xFFCA8A04).withOpacity(0.35), blurRadius: 18, offset: const Offset(0, 8))],
+        boxShadow: [BoxShadow(color: const Color(0xFFFFC107).withOpacity(0.35), blurRadius: 18, offset: const Offset(0, 8))],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

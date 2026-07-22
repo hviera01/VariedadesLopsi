@@ -139,7 +139,7 @@ class _VentasPendientesImpresionDialogState extends ConsumerState<VentasPendient
                               imprimiendo
                                   ? const Padding(
                                       padding: EdgeInsets.symmetric(horizontal: 12),
-                                      child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFCA8A04))),
+                                      child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFC107))),
                                     )
                                   : IconButton(
                                       tooltip: 'Imprimir',
@@ -154,7 +154,7 @@ class _VentasPendientesImpresionDialogState extends ConsumerState<VentasPendient
                     },
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFCA8A04))),
+                loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107))),
                 error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
               ),
             ),

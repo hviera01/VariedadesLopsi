@@ -56,7 +56,7 @@ class _ColoresScreenState extends ConsumerState<ColoresScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancelar', style: GoogleFonts.poppins())),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFCA8A04)),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107)),
             onPressed: () => Navigator.pop(context, true),
             child: Text('Eliminar', style: GoogleFonts.poppins()),
           ),
@@ -167,7 +167,7 @@ class _ColoresScreenState extends ConsumerState<ColoresScreen> {
                         icon: const Icon(Icons.add, size: 18),
                         label: Text('Nuevo Color', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFFCA8A04),
+                          backgroundColor: const Color(0xFFFFC107),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -231,7 +231,7 @@ class _ColoresScreenState extends ConsumerState<ColoresScreen> {
                   },
                   loading: () => [
                     const SliverToBoxAdapter(
-                      child: Padding(padding: EdgeInsets.symmetric(vertical: 80), child: Center(child: CircularProgressIndicator(color: Color(0xFFCA8A04)))),
+                      child: Padding(padding: EdgeInsets.symmetric(vertical: 80), child: Center(child: CircularProgressIndicator(color: Color(0xFFFFC107)))),
                     ),
                   ],
                   error: (e, st) => [
@@ -427,7 +427,7 @@ class _ColoresScreenState extends ConsumerState<ColoresScreen> {
             decoration: BoxDecoration(
               color: seleccionada ? const Color(0xFFFBEAEA) : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: seleccionada ? const Color(0xFFCA8A04) : const Color(0xFFC7CBD3)),
+              border: Border.all(color: seleccionada ? const Color(0xFFFFC107) : const Color(0xFFC7CBD3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

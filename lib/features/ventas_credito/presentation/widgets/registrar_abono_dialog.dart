@@ -135,8 +135,8 @@ class _RegistrarAbonoDialogState extends ConsumerState<RegistrarAbonoDialog> {
                   Container(
                     width: 44,
                     height: 44,
-                    decoration: BoxDecoration(color: const Color(0xFFCA8A04).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
-                    child: const Icon(Icons.payments_outlined, color: Color(0xFFCA8A04)),
+                    decoration: BoxDecoration(color: const Color(0xFFFFC107).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+                    child: const Icon(Icons.payments_outlined, color: Color(0xFFFFC107)),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -233,7 +233,7 @@ class _RegistrarAbonoDialogState extends ConsumerState<RegistrarAbonoDialog> {
                   FilledButton(
                     onPressed: _guardando ? null : _guardar,
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFCA8A04),
+                      backgroundColor: const Color(0xFFFFC107),
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

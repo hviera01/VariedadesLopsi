@@ -106,7 +106,7 @@ class _BuscarClienteDialogState extends ConsumerState<BuscarClienteDialog> {
                     },
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFCA8A04))),
+                loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107))),
                 error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
               ),
             ),

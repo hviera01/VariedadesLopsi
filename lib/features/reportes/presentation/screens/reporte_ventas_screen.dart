@@ -268,7 +268,7 @@ class _ReporteVentasScreenState extends ConsumerState<ReporteVentasScreen> {
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.14), blurRadius: 26, offset: const Offset(0, 12))],
                 ),
                 child: _cargando
-                    ? const Center(child: CircularProgressIndicator(color: Color(0xFFCA8A04)))
+                    ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107)))
                     : _error != null
                         ? Center(child: Text(_error!, style: GoogleFonts.poppins(color: Colors.red)))
                         : lista.isEmpty
@@ -295,9 +295,9 @@ class _ReporteVentasScreenState extends ConsumerState<ReporteVentasScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFCA8A04),
+        color: const Color(0xFFFFC107),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: const Color(0xFFCA8A04).withOpacity(0.35), blurRadius: 18, offset: const Offset(0, 8))],
+        boxShadow: [BoxShadow(color: const Color(0xFFFFC107).withOpacity(0.35), blurRadius: 18, offset: const Offset(0, 8))],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -405,7 +405,7 @@ class _ReporteVentasScreenState extends ConsumerState<ReporteVentasScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(color: anulada ? const Color(0xFFFCE4E4) : const Color(0xFFE8F8EE), borderRadius: BorderRadius.circular(8)),
-      child: Text(v.estado, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: anulada ? const Color(0xFFCA8A04) : const Color(0xFF16A34A))),
+      child: Text(v.estado, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: anulada ? const Color(0xFFFFC107) : const Color(0xFF16A34A))),
     );
   }
 

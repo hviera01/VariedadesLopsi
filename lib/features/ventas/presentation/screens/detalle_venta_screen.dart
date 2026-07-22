@@ -198,7 +198,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
           TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancelar', style: GoogleFonts.poppins())),
           OutlinedButton(onPressed: () => Navigator.pop(context, false), child: Text('Original', style: GoogleFonts.poppins())),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFCA8A04)),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107)),
             onPressed: () => Navigator.pop(context, true),
             child: Text('Copia', style: GoogleFonts.poppins()),
           ),
@@ -408,7 +408,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancelar', style: GoogleFonts.poppins())),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFCA8A04)),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107)),
             onPressed: () => Navigator.pop(context, true),
             child: Text('Anular', style: GoogleFonts.poppins()),
           ),
@@ -518,7 +518,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
               const SizedBox(height: 16),
               Expanded(
                 child: _cargando
-                    ? const Center(child: CircularProgressIndicator(color: Color(0xFFCA8A04)))
+                    ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107)))
                     : _error != null
                         ? Center(child: Text(_error!, style: GoogleFonts.poppins(color: Colors.red)))
                         : _venta == null
@@ -641,7 +641,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.block_outlined, size: 18),
                 label: Text(_anulando ? 'Anulando...' : 'Anular Venta', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
-                style: FilledButton.styleFrom(backgroundColor: const Color(0xFFCA8A04), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               ),
           ],
         ),
@@ -653,17 +653,17 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(color: const Color(0xFFFCE4E4), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFCA8A04))),
+      decoration: BoxDecoration(color: const Color(0xFFFCE4E4), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFFFC107))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.block_outlined, color: Color(0xFFCA8A04)),
+          const Icon(Icons.block_outlined, color: Color(0xFFFFC107)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Esta venta está anulada', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w700, color: const Color(0xFFCA8A04))),
+                Text('Esta venta está anulada', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w700, color: const Color(0xFFFFC107))),
                 if (venta.motivoAnulacion.isNotEmpty) Text('Motivo: ${venta.motivoAnulacion}', style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF7A1F1F))),
                 if (venta.usuarioAnulacion.isNotEmpty || venta.fechaAnulacion != null)
                   Text(
@@ -743,7 +743,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(color: activo ? const Color(0xFFCA8A04) : Colors.transparent, borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(color: activo ? const Color(0xFFFFC107) : Colors.transparent, borderRadius: BorderRadius.circular(10)),
           child: Text(texto, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: activo ? Colors.white : const Color(0xFF666A72))),
         ),
       );
@@ -867,7 +867,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(color: const Color(0xFFCA8A04), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: const Color(0xFFFFC107), borderRadius: BorderRadius.circular(16)),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
