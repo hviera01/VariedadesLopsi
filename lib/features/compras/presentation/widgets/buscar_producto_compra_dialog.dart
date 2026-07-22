@@ -173,8 +173,8 @@ class _BuscarProductoCompraDialogState extends ConsumerState<BuscarProductoCompr
                     icon: const Icon(Icons.add_circle_outline, size: 18),
                     label: Text('Producto Nuevo', style: GoogleFonts.poppins(fontSize: 13)),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFFFC107),
-                      side: const BorderSide(color: Color(0xFFFFC107)),
+                      foregroundColor: const Color(0xFFFFE000),
+                      side: const BorderSide(color: Color(0xFFFFE000)),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -238,7 +238,7 @@ class _BuscarProductoCompraDialogState extends ConsumerState<BuscarProductoCompr
                           ],
                         );
                       },
-                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107))),
+                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFFE000))),
                       error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
                     ),
                   ),
@@ -281,7 +281,7 @@ class _BuscarProductoCompraDialogState extends ConsumerState<BuscarProductoCompr
           decoration: BoxDecoration(
             color: seleccionada ? const Color(0xFFFBEAEA) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            border: seleccionada ? Border.all(color: const Color(0xFFFFC107), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
+            border: seleccionada ? Border.all(color: const Color(0xFFFFE000), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -342,7 +342,7 @@ class _BuscarProductoCompraDialogState extends ConsumerState<BuscarProductoCompr
           decoration: BoxDecoration(
             color: seleccionada ? const Color(0xFFFBEAEA) : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
-            border: seleccionada ? Border.all(color: const Color(0xFFFFC107), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
+            border: seleccionada ? Border.all(color: const Color(0xFFFFE000), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

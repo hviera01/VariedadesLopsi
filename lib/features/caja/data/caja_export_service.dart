@@ -8,7 +8,7 @@ import '../../../core/utils/logo_pdf.dart';
 import '../../negocio/data/negocio_model.dart';
 
 class CajaExportService {
-  static const _colorMarca = PdfColor.fromInt(0xFFFFC107);
+  static const _colorMarca = PdfColor.fromInt(0xFFFFE000);
   static const _colorGrisTexto = PdfColor.fromInt(0xFF4B4F58);
   static const _colorGrisClaro = PdfColor.fromInt(0xFFF2F3F7);
 

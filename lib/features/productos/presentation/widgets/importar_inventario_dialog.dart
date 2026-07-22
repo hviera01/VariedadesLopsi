@@ -95,8 +95,8 @@ class _ImportarInventarioDialogState extends ConsumerState<ImportarInventarioDia
                   Container(
                     width: 44,
                     height: 44,
-                    decoration: BoxDecoration(color: const Color(0xFFFFC107).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
-                    child: const Icon(Icons.upload_file_outlined, color: Color(0xFFFFC107)),
+                    decoration: BoxDecoration(color: const Color(0xFFFFE000).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+                    child: const Icon(Icons.upload_file_outlined, color: Color(0xFFFFE000)),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -147,8 +147,8 @@ class _ImportarInventarioDialogState extends ConsumerState<ImportarInventarioDia
           const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFFFFF3CC), borderRadius: BorderRadius.circular(10)),
-            child: Text(_error!, style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFFFFC107))),
+            decoration: BoxDecoration(color: const Color(0xFFFFF8CC), borderRadius: BorderRadius.circular(10)),
+            child: Text(_error!, style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFFFFE000))),
           ),
         ],
         if (_filas != null) ...[
@@ -158,7 +158,7 @@ class _ImportarInventarioDialogState extends ConsumerState<ImportarInventarioDia
             runSpacing: 8,
             children: [
               _badge('${_validas.length} listas para importar', const Color(0xFF16A34A)),
-              if (_conError.isNotEmpty) _badge('${_conError.length} con error (se omiten)', const Color(0xFFFFC107)),
+              if (_conError.isNotEmpty) _badge('${_conError.length} con error (se omiten)', const Color(0xFFFFE000)),
             ],
           ),
           const SizedBox(height: 14),
@@ -184,7 +184,7 @@ class _ImportarInventarioDialogState extends ConsumerState<ImportarInventarioDia
       child: SingleChildScrollView(
         child: Column(
           children: filas.map((f) {
-            final color = f.valido ? const Color(0xFF1A1A1A) : const Color(0xFFFFC107);
+            final color = f.valido ? const Color(0xFF1A1A1A) : const Color(0xFFFFE000);
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
@@ -205,7 +205,7 @@ class _ImportarInventarioDialogState extends ConsumerState<ImportarInventarioDia
                           f.valido
                               ? 'Código: ${f.codigo.isEmpty ? '(auto)' : f.codigo} · Categoría: ${f.categoria} · Stock: ${f.stock} · Venta: ${f.precioVenta} · Compra: ${f.precioCompra}'
                               : f.error!,
-                          style: GoogleFonts.poppins(fontSize: 11.5, color: f.valido ? Colors.grey.shade600 : const Color(0xFFFFC107)),
+                          style: GoogleFonts.poppins(fontSize: 11.5, color: f.valido ? Colors.grey.shade600 : const Color(0xFFFFE000)),
                         ),
                       ],
                     ),
@@ -258,7 +258,7 @@ class _ImportarInventarioDialogState extends ConsumerState<ImportarInventarioDia
         width: double.infinity,
         child: FilledButton(
           onPressed: () => Navigator.pop(context),
-          style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE000), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
           child: Text('Cerrar', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),
         ),
       );
@@ -276,7 +276,7 @@ class _ImportarInventarioDialogState extends ConsumerState<ImportarInventarioDia
         Expanded(
           child: FilledButton(
             onPressed: (_importando || _validas.isEmpty) ? null : _importar,
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE000), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             child: _importando
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : Text('Importar (${_validas.length})', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),

@@ -110,8 +110,8 @@ class _UnirFacturasDialogState extends ConsumerState<UnirFacturasDialog> {
                   Container(
                     width: 44,
                     height: 44,
-                    decoration: BoxDecoration(color: const Color(0xFFFFC107).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
-                    child: const Icon(Icons.call_merge_outlined, color: Color(0xFFFFC107)),
+                    decoration: BoxDecoration(color: const Color(0xFFFFE000).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+                    child: const Icon(Icons.call_merge_outlined, color: Color(0xFFFFE000)),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -243,7 +243,7 @@ class _UnirFacturasDialogState extends ConsumerState<UnirFacturasDialog> {
                   FilledButton(
                     onPressed: _guardando ? null : _unir,
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFC107),
+                      backgroundColor: const Color(0xFFFFE000),
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

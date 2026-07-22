@@ -56,7 +56,7 @@ class CompraCreditoExportService {
         header: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text('Compras a Crédito', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFFFFC107))),
+            pw.Text('Compras a Crédito', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFFFFE000))),
             pw.SizedBox(height: 4),
             pw.Text('Total de créditos: ${lista.length}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
             pw.SizedBox(height: 14),
@@ -79,7 +79,7 @@ class CompraCreditoExportService {
               ];
             }).toList(),
             headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: PdfColors.white),
-            headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFFFC107)),
+            headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFFFE000)),
             cellStyle: const pw.TextStyle(fontSize: 8.5),
             cellAlignment: pw.Alignment.centerLeft,
             cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 7),

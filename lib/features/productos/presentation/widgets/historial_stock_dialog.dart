@@ -90,7 +90,7 @@ class _HistorialStockDialogState extends ConsumerState<HistorialStockDialog> {
             const SizedBox(height: 14),
             Expanded(
               child: historialAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107))),
+                loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFFE000))),
                 error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
                 data: (data) {
                   final registros = _filtrar(data);
@@ -112,7 +112,7 @@ class _HistorialStockDialogState extends ConsumerState<HistorialStockDialog> {
                             children: [
                               Row(
                                 children: [
-                                  Icon(subio ? Icons.arrow_upward : Icons.arrow_downward, size: 15, color: subio ? const Color(0xFF16A34A) : const Color(0xFFFFC107)),
+                                  Icon(subio ? Icons.arrow_upward : Icons.arrow_downward, size: 15, color: subio ? const Color(0xFF16A34A) : const Color(0xFFFFE000)),
                                   const SizedBox(width: 6),
                                   Text('${r.stockAnterior} → ${r.stockNuevo}', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700)),
                                   const Spacer(),
@@ -165,7 +165,7 @@ class _HistorialStockDialogState extends ConsumerState<HistorialStockDialog> {
                                       flex: 2,
                                       child: Row(
                                         children: [
-                                          Icon(subio ? Icons.arrow_upward : Icons.arrow_downward, size: 13, color: subio ? const Color(0xFF16A34A) : const Color(0xFFFFC107)),
+                                          Icon(subio ? Icons.arrow_upward : Icons.arrow_downward, size: 13, color: subio ? const Color(0xFF16A34A) : const Color(0xFFFFE000)),
                                           const SizedBox(width: 4),
                                           Text(r.stockNuevo.toString(), style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600)),
                                         ],

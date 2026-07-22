@@ -135,7 +135,7 @@ class _HistorialMovimientosDialogState extends ConsumerState<HistorialMovimiento
   Widget _contenidoVentas(DateFormat formatoFecha) {
     final async = ref.watch(historialVentasProductoProvider(widget.producto.id));
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107))),
+      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFFE000))),
       error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
       data: (data) {
         final filas = _filtrar(data
@@ -156,7 +156,7 @@ class _HistorialMovimientosDialogState extends ConsumerState<HistorialMovimiento
   Widget _contenidoCompras(DateFormat formatoFecha) {
     final async = ref.watch(historialPreciosCompraProvider(widget.producto.id));
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107))),
+      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFFE000))),
       error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
       data: (data) {
         final filas = _filtrar(data
@@ -230,7 +230,7 @@ class _HistorialMovimientosDialogState extends ConsumerState<HistorialMovimiento
                               width: 48,
                               child: IconButton(
                                 tooltip: 'Ver detalle',
-                                icon: const Icon(Icons.receipt_long_outlined, size: 18, color: Color(0xFFFFC107)),
+                                icon: const Icon(Icons.receipt_long_outlined, size: 18, color: Color(0xFFFFE000)),
                                 onPressed: () => _verDetalle(r),
                               ),
                             ),

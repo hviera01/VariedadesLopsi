@@ -123,7 +123,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text('No', style: GoogleFonts.poppins())),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107)),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE000)),
             onPressed: () => Navigator.pop(context, true),
             child: Text('Sí', style: GoogleFonts.poppins()),
           ),
@@ -561,9 +561,9 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
                     children: [
                       Text(
                         _datosExpandidos ? 'Ver menos' : 'Más datos',
-                        style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFFFFC107)),
+                        style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFFFFE000)),
                       ),
-                      Icon(_datosExpandidos ? Icons.expand_less : Icons.expand_more, size: 20, color: const Color(0xFFFFC107)),
+                      Icon(_datosExpandidos ? Icons.expand_less : Icons.expand_more, size: 20, color: const Color(0xFFFFE000)),
                     ],
                   ),
                 ),
@@ -699,7 +699,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
                         onPressed: _agregarProductoDesdeBusqueda,
                         icon: const Icon(Icons.add, size: 18),
                         label: Text('Agregar Producto', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
-                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE000), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                       ),
                     ),
                   ],
@@ -712,7 +712,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
                       onPressed: _agregarProductoDesdeBusqueda,
                       icon: const Icon(Icons.add, size: 18),
                       label: Text('Agregar Producto', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
-                      style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE000), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     ),
                   ],
                 ),
@@ -859,7 +859,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
               Expanded(flex: 2, child: Text(formatearMoneda(item.subtotal as double), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700))),
               SizedBox(
                 width: 40,
-                child: IconButton(icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFFFC107)), onPressed: () => _quitarItem(index)),
+                child: IconButton(icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFFFE000)), onPressed: () => _quitarItem(index)),
               ),
             ],
           ),
@@ -906,7 +906,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
                   ],
                 ),
               ),
-              IconButton(icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFFFC107)), onPressed: () => _quitarItem(index)),
+              IconButton(icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFFFE000)), onPressed: () => _quitarItem(index)),
             ],
           ),
           const SizedBox(height: 10),
@@ -964,7 +964,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(color: const Color(0xFFFFC107), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: const Color(0xFFFFE000), borderRadius: BorderRadius.circular(16)),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

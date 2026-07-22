@@ -5,9 +5,9 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../data/reporte_financiero_model.dart';
 import '../../../../core/utils/formato_moneda.dart';
 
-const colorVentasFinanciero = Color(0xFFFFC107);
+const colorVentasFinanciero = Color(0xFFFFE000);
 const colorComprasFinanciero = Color(0xFFF59E0B);
-const _paletaUsuarios = [Color(0xFFFFC107), Color(0xFF0EA5A4), Color(0xFF3B82F6), Color(0xFF8B5CF6), Color(0xFFEC4899), Color(0xFF22C55E)];
+const _paletaUsuarios = [Color(0xFFFFE000), Color(0xFF0EA5A4), Color(0xFF3B82F6), Color(0xFF8B5CF6), Color(0xFFEC4899), Color(0xFF22C55E)];
 const _colorOtros = Color(0xFF64748B);
 
 String formatoCantidadFinanciero(double cantidad) {
@@ -102,7 +102,7 @@ Widget seccionUtilidad(ReporteFinancieroData data, bool esMovil) {
       _flechaOperacion(Icons.remove),
       _stat('Gastos (Egresos)', data.gastosPeriodo, const Color(0xFF64748B)),
       _flechaOperacion(Icons.drag_handle),
-      _stat('Utilidad Neta', data.utilidadNeta, data.utilidadNeta >= 0 ? const Color(0xFF16A34A) : const Color(0xFFFFC107)),
+      _stat('Utilidad Neta', data.utilidadNeta, data.utilidadNeta >= 0 ? const Color(0xFF16A34A) : const Color(0xFFFFE000)),
     ],
   );
 
@@ -165,7 +165,7 @@ Widget _tabaGananciaPorVenta(List<GananciaPorVenta> lista, bool esMovil) {
                 ),
                 if (!esMovil) Expanded(child: Text(formatearMoneda(v.ventas), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12))),
                 if (!esMovil) Expanded(child: Text(formatearMoneda(v.costo), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600))),
-                Expanded(child: Text(formatearMoneda(v.ganancia), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: v.ganancia >= 0 ? const Color(0xFF16A34A) : const Color(0xFFFFC107)))),
+                Expanded(child: Text(formatearMoneda(v.ganancia), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: v.ganancia >= 0 ? const Color(0xFF16A34A) : const Color(0xFFFFE000)))),
                 SizedBox(width: 55, child: Text('${v.margenPorcentaje.toStringAsFixed(0)}%', textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.grey.shade600))),
               ],
             ),
@@ -207,7 +207,7 @@ Widget seccionFlujoEfectivo(ReporteFinancieroData data, bool esMovil) {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-              decoration: BoxDecoration(color: flujo.neto >= 0 ? const Color(0xFF16A34A) : const Color(0xFFFFC107), borderRadius: BorderRadius.circular(14)),
+              decoration: BoxDecoration(color: flujo.neto >= 0 ? const Color(0xFF16A34A) : const Color(0xFFFFE000), borderRadius: BorderRadius.circular(14)),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -558,7 +558,7 @@ Widget seccionBalanceGeneral(ReporteFinancieroData data, bool esMovil) {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('PASIVOS Y PATRIMONIO', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFFFFC107), letterSpacing: 0.4)),
+        Text('PASIVOS Y PATRIMONIO', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFFFFE000), letterSpacing: 0.4)),
         const SizedBox(height: 10),
         _filaBalance('Cuentas por pagar', b.cuentasPorPagar),
         _filaBalance('Patrimonio (estimado)', b.patrimonio),

@@ -195,7 +195,7 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
   void _mostrarMensaje(String mensaje, {bool esError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensaje), backgroundColor: esError ? const Color(0xFFFFC107) : null),
+      SnackBar(content: Text(mensaje), backgroundColor: esError ? const Color(0xFFFFE000) : null),
     );
   }
 
@@ -206,7 +206,7 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
     return Container(
       color: const Color(0xFFF2F3F7),
       child: _cargando
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFC107)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFE000)))
           : LayoutBuilder(
               builder: (context, constraints) {
                 final esMovil = constraints.maxWidth < 760;
@@ -257,7 +257,7 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
           const Divider(height: 24),
           _filaMonto('Total efectivo (calculado)', _totalCalculadoEfectivo, negrita: true),
           _filaMonto('Total transferencia', _totalTransferencia, negrita: true),
-          _filaMonto('Gran total', _granTotal, negrita: true, color: const Color(0xFFFFC107)),
+          _filaMonto('Gran total', _granTotal, negrita: true, color: const Color(0xFFFFE000)),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -310,7 +310,7 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
                 Text('Diferencia', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade700)),
                 Text(
                   formatearMoneda(_diferencia),
-                  style: GoogleFonts.poppins(fontSize: 14.5, fontWeight: FontWeight.w700, color: _diferencia == 0 ? const Color(0xFF16A34A) : const Color(0xFFFFC107)),
+                  style: GoogleFonts.poppins(fontSize: 14.5, fontWeight: FontWeight.w700, color: _diferencia == 0 ? const Color(0xFF16A34A) : const Color(0xFFFFE000)),
                 ),
               ],
             ),
@@ -339,7 +339,7 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.lock_outline, size: 18),
               label: Text(_guardando ? 'Cerrando...' : 'Cerrar Caja', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFC107), padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE000), padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             ),
           ),
         ],
