@@ -76,7 +76,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 child: ClipOval(
                   child: Padding(
                     padding: const EdgeInsets.all(8),
-                    child: Image.asset('assets/images/logo.jpg', fit: BoxFit.cover),
+                    child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),
                   ),
                 ),
               ),
@@ -84,6 +84,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               Text(
                 'VARIEDADES LOPSI',
                 style: GoogleFonts.poppins(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: 1.2),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Celulares, Accesorios y Más',
+                style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.7), fontSize: 12, letterSpacing: 0.6),
               ),
             ],
           ),

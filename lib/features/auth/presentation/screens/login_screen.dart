@@ -108,7 +108,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               child: Padding(
                                 padding: const EdgeInsets.all(6),
                                 child: Image.asset(
-                                  'assets/images/logo.jpg',
+                                  'assets/images/logo.png',
                                   fit: BoxFit.cover,
                                 ),
                               ),
@@ -221,7 +221,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           const SizedBox(height: 20),
                           Text(
-                            'VARIEDADES LOPSI',
+                            'VARIEDADES LOPSI · Celulares, Accesorios y Más',
                             style: GoogleFonts.poppins(
                               fontSize: 11,
                               color: Colors.grey.shade500,

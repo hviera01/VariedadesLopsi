@@ -186,7 +186,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                         child: ClipOval(
                           child: Padding(
                             padding: const EdgeInsets.all(3),
-                            child: Image.asset('assets/images/logo.jpg', fit: BoxFit.cover),
+                            child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),
                           ),
                         ),
                       ),

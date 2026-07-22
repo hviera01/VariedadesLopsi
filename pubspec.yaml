@@ -89,7 +89,7 @@ flutter:
   #   - images/a_dot_ham.jpeg
 
   assets:
-    - assets/images/logo.jpg
+    - assets/images/logo.png
     - assets/images/logo_redondo.png
     - assets/images/fondo.jpg
 
@@ -125,7 +125,7 @@ flutter:
 # con tool/generar_logo_redondo.dart).
 flutter_launcher_icons:
   android: "launcher_icon"
-  image_path: "assets/images/logo.jpg"
+  image_path: "assets/images/logo.png"
   windows:
     generate: true
     image_path: "assets/images/logo_redondo.png"

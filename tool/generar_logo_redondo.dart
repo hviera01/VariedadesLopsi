@@ -1,25 +1,25 @@
 // Genera assets/images/logo_redondo.png (recorte circular con transparencia
-// real del logo cuadrado) a partir de assets/images/logo.jpg, para usarlo
+// real del logo cuadrado) a partir de assets/images/logo.png, para usarlo
 // como ícono de la app en Windows (que sí soporta transparencia en el
 // .ico). Se corre una sola vez a mano:
 // `dart run tool/generar_logo_redondo.dart`.
 //
-// OJO: no alcanza con copyResizeCropSquare(..., radius: ...) sola — el JPEG
-// de origen no tiene canal alfa, y esa función hereda el número de canales
-// de la imagen de origen, así que las esquinas "transparentes" terminaban
-// siendo negro sólido y opaco en vez de transparentes (por eso el ícono de
-// Windows salía con un marco negro feo). Acá se arma la imagen circular a
-// mano, en una imagen RGBA nueva de 4 canales, para que la transparencia
-// sea real.
+// OJO: no alcanza con copyResizeCropSquare(..., radius: ...) sola — si la
+// imagen de origen no tiene canal alfa, esa función hereda el número de
+// canales de la imagen de origen, así que las esquinas "transparentes"
+// terminaban siendo negro sólido y opaco en vez de transparentes (por eso
+// el ícono de Windows salía con un marco negro feo). Acá se arma la imagen
+// circular a mano, en una imagen RGBA nueva de 4 canales, para que la
+// transparencia sea real.
 import 'dart:io';
 import 'dart:math' show sqrt;
 import 'package:image/image.dart' as img;
 
 void main() {
-  final bytes = File('assets/images/logo.jpg').readAsBytesSync();
-  final original = img.decodeJpg(bytes);
+  final bytes = File('assets/images/logo.png').readAsBytesSync();
+  final original = img.decodePng(bytes);
   if (original == null) {
-    stderr.writeln('No se pudo leer assets/images/logo.jpg');
+    stderr.writeln('No se pudo leer assets/images/logo.png');
     exit(1);
   }
   const tamano = 512;
