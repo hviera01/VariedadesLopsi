@@ -34,6 +34,10 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
   final _busquedaController = TextEditingController();
   final _focusNode = FocusNode();
   final _servicioExport = ProductoExportService();
+  final _scrollController = ScrollController();
+  // Alto real de cada fila de la tabla (64) + el divisor (1): para poder
+  // llevar el scroll a la fila seleccionada al navegar con el teclado.
+  static const _altoFila = 65.0;
   String? _filaSeleccionada;
   String? _columnaOrden;
   bool _ordenAscendente = false;
@@ -44,6 +48,10 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
   List<ProductoModel> _listaActual = [];
   // null = todas las categorías.
   String? _categoriaFiltro;
+  // Elegir una categoría sola (sin buscar) no debe mostrar nada en la vista
+  // "Productos filtrados": hay que buscar (aunque sea con el cuadro de texto
+  // vacío) para que se aplique.
+  bool _seBusco = false;
 
   // Filtrar+ordenar de nuevo con cada tap de una fila (que también pasa por
   // setState, para pintar la selección) hacía sentir lenta la lista entera
@@ -61,11 +69,15 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
   void dispose() {
     _busquedaController.dispose();
     _focusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   void _buscar() {
-    setState(() => _busquedaPorCodigoBarras = false);
+    setState(() {
+      _busquedaPorCodigoBarras = false;
+      _seBusco = true;
+    });
     ref.read(inventarioBusquedaProvider.notifier).actualizar(_busquedaController.text.trim());
   }
 
@@ -194,7 +206,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
   }
 
   List<ProductoModel> _listaFiltradaYOrdenada(List<ProductoModel> productos, String vista, String busqueda) {
-    final claves = (productos, vista, busqueda, _categoriaFiltro, _busquedaPorCodigoBarras, _columnaOrden, _ordenAscendente);
+    final claves = (productos, vista, busqueda, _categoriaFiltro, _busquedaPorCodigoBarras, _columnaOrden, _ordenAscendente, _seBusco);
     if (_clavesListaCacheada == claves) return _listaCacheada!;
 
     var lista = productos;
@@ -205,7 +217,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
       lista = _busquedaPorCodigoBarras
           ? lista.where((p) => p.codigoBarras.trim() == busqueda || p.codigo.trim() == busqueda).toList()
           : lista.where((p) => coincideFuzzy(p.textoBusqueda, busqueda)).toList();
-    } else if (vista == 'filtrados' && _categoriaFiltro == null) {
+    } else if (vista == 'filtrados' && !_seBusco) {
       lista = [];
     }
     if (_categoriaFiltro != null) {
@@ -254,6 +266,23 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
     if (nuevoIndice < 0) nuevoIndice = 0;
     if (nuevoIndice >= _listaActual.length) nuevoIndice = _listaActual.length - 1;
     setState(() => _filaSeleccionada = _listaActual[nuevoIndice].id);
+    _asegurarFilaVisible(nuevoIndice);
+  }
+
+  // Lleva el scroll hasta la fila recién seleccionada si quedó tapada arriba
+  // o abajo del área visible (solo aplica a la tabla de escritorio, con
+  // alto de fila fijo; en las tarjetas de móvil no se usa flecha del
+  // teclado para navegar).
+  void _asegurarFilaVisible(int indice) {
+    if (!_scrollController.hasClients) return;
+    final posicion = _scrollController.position;
+    final inicioFila = indice * _altoFila;
+    final finFila = inicioFila + _altoFila;
+    if (inicioFila < posicion.pixels) {
+      _scrollController.jumpTo(inicioFila);
+    } else if (finFila > posicion.pixels + posicion.viewportDimension) {
+      _scrollController.jumpTo(finFila - posicion.viewportDimension);
+    }
   }
 
   KeyEventResult _manejarTeclado(FocusNode node, KeyEvent event) {
@@ -391,7 +420,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                                 Icon(Icons.inventory_2_outlined, size: 56, color: Colors.grey.shade300),
                                 const SizedBox(height: 12),
                                 Text(
-                                  vista == 'filtrados' && busqueda.isEmpty ? 'Escribí algo y presioná buscar' : 'No hay productos encontrados',
+                                  vista == 'filtrados' && !_seBusco ? 'Escribí algo (o elegí una categoría) y presioná buscar' : 'No hay productos encontrados',
                                   textAlign: TextAlign.center,
                                   style: GoogleFonts.poppins(color: Colors.grey.shade500),
                                 ),
@@ -453,6 +482,8 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
             ),
             Expanded(
               child: ListView.separated(
+                controller: _scrollController,
+                cacheExtent: 800,
                 itemCount: lista.length,
                 separatorBuilder: (context, index) => Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
                 itemBuilder: (context, index) {
@@ -522,6 +553,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
   Widget _tarjetas(List<ProductoModel> lista, Map<String, String> mapaCategorias) {
     return ListView.separated(
       padding: const EdgeInsets.all(14),
+      cacheExtent: 800,
       itemCount: lista.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
@@ -782,7 +814,10 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
             for (final c in ordenadas)
               DropdownMenuItem<String?>(value: c.id as String, child: Text(c.descripcion as String, style: GoogleFonts.poppins(fontSize: 12.5))),
           ],
-          onChanged: (valor) => setState(() => _categoriaFiltro = valor),
+          onChanged: (valor) {
+            setState(() => _categoriaFiltro = valor);
+            if (_seBusco) _buscar();
+          },
         ),
       ),
     );

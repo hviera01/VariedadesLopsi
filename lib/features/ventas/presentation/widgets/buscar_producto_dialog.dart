@@ -84,13 +84,23 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
     super.dispose();
   }
 
+  // Una key por fila (el alto real varía según si el nombre ocupa una o dos
+  // líneas, así que no alcanza con calcular un offset fijo): con esto,
+  // Scrollable.ensureVisible encuentra la fila sea cual sea su alto.
+  final Map<String, GlobalKey> _filaKeys = {};
+
   void _moverSeleccion(int delta) {
     if (_listaActual.isEmpty) return;
     final indiceActual = _filaSeleccionada == null ? -1 : _listaActual.indexWhere((p) => p.id == _filaSeleccionada);
     var nuevoIndice = indiceActual + delta;
     if (nuevoIndice < 0) nuevoIndice = 0;
     if (nuevoIndice >= _listaActual.length) nuevoIndice = _listaActual.length - 1;
-    setState(() => _filaSeleccionada = _listaActual[nuevoIndice].id);
+    final idNuevo = _listaActual[nuevoIndice].id;
+    setState(() => _filaSeleccionada = idNuevo);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _filaKeys[idNuevo]?.currentContext;
+      if (ctx != null) Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 120));
+    });
   }
 
   KeyEventResult _manejarTeclado(FocusNode node, KeyEvent event) {
@@ -371,6 +381,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                           ],
                           Expanded(
                             child: ListView.separated(
+                              cacheExtent: 800,
                               itemCount: lista.length,
                               separatorBuilder: (context, i) => Divider(height: 1, color: Colors.grey.shade200),
                               itemBuilder: (context, i) {
@@ -527,6 +538,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
     final bajoStock = p.stock <= 0;
     final seleccionada = _filaSeleccionada == p.id;
     return Material(
+      key: _filaKeys.putIfAbsent(p.id, () => GlobalKey()),
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
