@@ -105,15 +105,20 @@ class ReporteFinancieroRepository {
     if (idsVenta.isEmpty) return (ventas: 0.0, costo: 0.0);
 
     final ventaSnaps = await Future.wait(idsVenta.map((id) => _db.collection('ventas').doc(id).get()));
+    // Detalle de todas las ventas canceladas en paralelo (antes se pedía una
+    // por una, en secuencia, esperando cada respuesta antes de pedir la
+    // siguiente).
+    final detalleSnaps = await Future.wait(ventaSnaps.map((v) => v.exists ? v.reference.collection('detalle').get() : Future.value(null)));
     double ventas = 0, costo = 0;
-    for (final ventaSnap in ventaSnaps) {
+    for (var i = 0; i < ventaSnaps.length; i++) {
+      final ventaSnap = ventaSnaps[i];
       if (!ventaSnap.exists) continue;
       final data = ventaSnap.data()!;
       // Por si se anuló después de haberse cancelado (raro, pero el crédito
       // ya no existiría y no debería sumar).
       if (data['estado'] == 'Anulada') continue;
       ventas += ((data['totalAPagar'] ?? 0) as num).toDouble();
-      final detalleSnap = await ventaSnap.reference.collection('detalle').get();
+      final detalleSnap = detalleSnaps[i]!;
       for (final item in detalleSnap.docs) {
         final d = item.data();
         costo += ((d['precioCompraUsado'] ?? 0) as num).toDouble() * ((d['cantidad'] ?? 0) as num).toDouble();
@@ -412,8 +417,12 @@ class ReporteFinancieroRepository {
     final primerMesDeLaSerie = DateTime(hoy.year, hoy.month - 5, 1);
     final finRango = DateTime(hoy.year, hoy.month + 1, 1).subtract(const Duration(seconds: 1));
 
-    final ventas = await _reporteRepository.obtenerReporteVentas(primerMesDeLaSerie, finRango);
-    final compras = await _reporteRepository.obtenerReporteCompras(primerMesDeLaSerie, finRango);
+    // Independientes entre sí: en paralelo en vez de esperar una para recién
+    // pedir la otra.
+    final ventasFuture = _reporteRepository.obtenerReporteVentas(primerMesDeLaSerie, finRango);
+    final comprasFuture = _reporteRepository.obtenerReporteCompras(primerMesDeLaSerie, finRango);
+    final ventas = await ventasFuture;
+    final compras = await comprasFuture;
     final ventasValidas = ventas.where((v) => v.esActiva && !v.esCotizacion);
     final comprasValidas = compras.where((c) => c.esActiva);
 
