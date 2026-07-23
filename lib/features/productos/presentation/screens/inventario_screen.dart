@@ -45,6 +45,14 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
   // null = todas las categorías.
   String? _categoriaFiltro;
 
+  // Filtrar+ordenar de nuevo con cada tap de una fila (que también pasa por
+  // setState, para pintar la selección) hacía sentir lenta la lista entera
+  // -con más de mil productos, recalcular todo en cada clic se notaba-. Se
+  // cachea el resultado y solo se recalcula si de verdad cambió algo que
+  // afecta qué se muestra (no la fila seleccionada).
+  List<ProductoModel>? _listaCacheada;
+  Object? _clavesListaCacheada;
+
   // Este negocio no cobra ISV: el precio guardado es el precio real, sin
   // ningún desglose ni conversión.
   double _precioMostrado(ProductoModel p) => p.precioVenta;
@@ -183,6 +191,31 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
         _ordenAscendente = false;
       }
     });
+  }
+
+  List<ProductoModel> _listaFiltradaYOrdenada(List<ProductoModel> productos, String vista, String busqueda) {
+    final claves = (productos, vista, busqueda, _categoriaFiltro, _busquedaPorCodigoBarras, _columnaOrden, _ordenAscendente);
+    if (_clavesListaCacheada == claves) return _listaCacheada!;
+
+    var lista = productos;
+    if (vista == 'bajo') {
+      lista = lista.where((p) => p.stock < 3).toList();
+    }
+    if (busqueda.isNotEmpty) {
+      lista = _busquedaPorCodigoBarras
+          ? lista.where((p) => p.codigoBarras.trim() == busqueda || p.codigo.trim() == busqueda).toList()
+          : lista.where((p) => coincideFuzzy(p.textoBusqueda, busqueda)).toList();
+    } else if (vista == 'filtrados' && _categoriaFiltro == null) {
+      lista = [];
+    }
+    if (_categoriaFiltro != null) {
+      lista = lista.where((p) => p.idCategoria == _categoriaFiltro).toList();
+    }
+    lista = _ordenarLista(lista);
+
+    _clavesListaCacheada = claves;
+    _listaCacheada = lista;
+    return lista;
   }
 
   List<ProductoModel> _ordenarLista(List<ProductoModel> lista) {
@@ -347,21 +380,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                 ),
                 child: productosAsync.when(
                       data: (productos) {
-                        var lista = productos;
-                        if (vista == 'bajo') {
-                          lista = lista.where((p) => p.stock < 3).toList();
-                        }
-                        if (busqueda.isNotEmpty) {
-                          lista = _busquedaPorCodigoBarras
-                              ? lista.where((p) => p.codigoBarras.trim() == busqueda || p.codigo.trim() == busqueda).toList()
-                              : lista.where((p) => coincideFuzzy(p.textoBusqueda, busqueda)).toList();
-                        } else if (vista == 'filtrados' && _categoriaFiltro == null) {
-                          lista = [];
-                        }
-                        if (_categoriaFiltro != null) {
-                          lista = lista.where((p) => p.idCategoria == _categoriaFiltro).toList();
-                        }
-                        lista = _ordenarLista(lista);
+                        final lista = _listaFiltradaYOrdenada(productos, vista, busqueda);
                         _listaActual = lista;
 
                         if (lista.isEmpty) {

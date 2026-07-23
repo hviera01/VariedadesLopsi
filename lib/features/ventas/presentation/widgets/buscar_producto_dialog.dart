@@ -51,6 +51,27 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
   String? _columnaOrden;
   bool _ordenAscendente = true;
 
+  // Recalcular la búsqueda difusa contra cada producto en cada tap de fila
+  // (que pasa por setState, para pintar la selección) hacía sentir lenta la
+  // lista. Se cachea el resultado y solo se recalcula si de verdad cambió
+  // algo que afecta qué se muestra (no la fila seleccionada).
+  List<ProductoModel>? _listaCacheada;
+  Object? _clavesListaCacheada;
+
+  List<ProductoModel> _listaFiltradaYOrdenada(List<ProductoModel> productos) {
+    final claves = (productos, _busquedaAplicada, _busquedaExacta, _categoriaFiltro, _columnaOrden, _ordenAscendente);
+    if (_clavesListaCacheada == claves) return _listaCacheada!;
+
+    final lista = productos.where((p) => p.estado && (_busquedaAplicada.isEmpty || _coincide(p, _busquedaAplicada)) && _coincideCategoria(p)).toList();
+    if (_columnaOrden == 'existencia') {
+      lista.sort((a, b) => _ordenAscendente ? a.stock.compareTo(b.stock) : b.stock.compareTo(a.stock));
+    }
+
+    _clavesListaCacheada = claves;
+    _listaCacheada = lista;
+    return lista;
+  }
+
   // defaultTargetPlatform (a diferencia de un ancho de pantalla angosto,
   // que también puede pasar en un navegador de escritorio con la ventana
   // chica) detecta el sistema operativo real del equipo.
@@ -333,10 +354,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                         );
                       }
 
-                      final lista = productos.where((p) => p.estado && (_busquedaAplicada.isEmpty || _coincide(p, _busquedaAplicada)) && _coincideCategoria(p)).toList();
-                      if (_columnaOrden == 'existencia') {
-                        lista.sort((a, b) => _ordenAscendente ? a.stock.compareTo(b.stock) : b.stock.compareTo(a.stock));
-                      }
+                      final lista = _listaFiltradaYOrdenada(productos);
                       _listaActual = lista;
                       if (lista.isEmpty) {
                         return Center(
