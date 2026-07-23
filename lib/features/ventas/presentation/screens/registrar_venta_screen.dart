@@ -722,45 +722,29 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
     ref.read(carritoVentaProvider.notifier).actualizarLinea(index, cantidad: nuevaCantidad);
   }
 
-  Future<void> _actualizarPrecio(int index, double nuevoPrecioConIsv) async {
-    if (nuevoPrecioConIsv < 0) {
+  // Este negocio no cobra ISV: el precio que se escribe acá es el precio
+  // real de la línea, sin ningún ajuste (ver la nota en
+  // carrito_provider.agregarProductoDirecto).
+  Future<void> _actualizarPrecio(int index, double nuevoPrecio) async {
+    if (nuevoPrecio < 0) {
       _mostrarMensaje('Precio inválido');
       return;
     }
     final autorizado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.ventasCambiarPrecio);
     if (!mounted) return;
     if (!autorizado) {
-      // Revierte el campo al precio actual (en la unidad que se esté
-      // mostrando): el usuario ya había escrito el nuevo valor en el
-      // TextField antes de que se pidiera la clave.
+      // Revierte el campo al precio actual: el usuario ya había escrito el
+      // nuevo valor en el TextField antes de que se pidiera la clave.
       final carrito = ref.read(carritoVentaProvider);
       if (index < carrito.items.length) {
-        final precioBase = carrito.items[index].precioVenta;
-        final valorMostrado = _precioCarritoConIsv ? redondearMoneda(precioBase * 1.15) : precioBase;
-        _ctrlPrecio[index]?.text = valorMostrado.toStringAsFixed(2);
+        _ctrlPrecio[index]?.text = carrito.items[index].precioVenta.toStringAsFixed(2);
       }
       return;
     }
-    ref.read(carritoVentaProvider.notifier).actualizarLinea(index, precioConIsv: nuevoPrecioConIsv);
+    ref.read(carritoVentaProvider.notifier).actualizarLinea(index, precioNuevo: nuevoPrecio);
   }
 
-  Future<void> _actualizarPrecioSinIsv(int index, double nuevoPrecioSinIsv) {
-    return _actualizarPrecio(index, redondearMoneda(nuevoPrecioSinIsv * 1.15));
-  }
-
-  void _alternarVistaPrecioCarrito(bool conIsv) {
-    final carrito = ref.read(carritoVentaProvider);
-    setState(() {
-      _precioCarritoConIsv = conIsv;
-      for (var i = 0; i < carrito.items.length; i++) {
-        final ctrl = _ctrlPrecio[i];
-        if (ctrl == null) continue;
-        final base = carrito.items[i].precioVenta;
-        final valor = conIsv ? redondearMoneda(base * 1.15) : base;
-        ctrl.text = valor.toStringAsFixed(2);
-      }
-    });
-  }
+  Future<void> _actualizarPrecioSinIsv(int index, double nuevoPrecio) => _actualizarPrecio(index, nuevoPrecio);
 
   void _actualizarDescuentoLinea(int index, double descuento) {
     if (descuento < 0 || descuento > 100) {
@@ -1757,12 +1741,6 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
               : Row(
                   children: [
                     Text('Productos en la venta', style: GoogleFonts.poppins(fontSize: 14.5, fontWeight: FontWeight.w700)),
-                    const SizedBox(width: 14),
-                    // En escritorio va acá, chico, en vez de en su propia
-                    // fila abajo: con varios productos en la venta, esa
-                    // fila de más le sacaba espacio vertical a la tabla,
-                    // que es lo que más se necesita ver.
-                    _selectorPrecioIsvCarrito(compacto: true),
                     const SizedBox(width: 6),
                     IconButton(
                       tooltip: 'Ver la tabla más grande',
@@ -1795,19 +1773,6 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
                   ],
                 ),
           Offstage(offstage: true, child: _campoCodigoBarras()),
-          // En escritorio el selector de Con/Sin ISV ya va arriba, junto al
-          // título (ver más arriba): acá solo hace falta en móvil, donde no
-          // hay tanta presión de espacio vertical por la tabla.
-          if (esMovil) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Text('Precio unitario:', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600)),
-                const SizedBox(width: 10),
-                _selectorPrecioIsvCarrito(),
-              ],
-            ),
-          ],
           const SizedBox(height: 14),
           if (!esMovil) ...[
             _encabezadoTablaCarrito(),
@@ -1863,47 +1828,6 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
     );
   }
 
-  // [alCambiarExtra] es para cuando este selector se muestra dentro de un
-  // diálogo aparte (ver _expandirTablaProductos): _alternarVistaPrecioCarrito
-  // ya actualiza el estado real con su propio setState, pero eso no alcanza
-  // para refrescar lo que ese diálogo ya dibujó, al ser una ruta aparte.
-  Widget _selectorPrecioIsvCarrito({bool compacto = false, VoidCallback? alCambiarExtra}) {
-    Widget opcion(String texto, bool valor) {
-      final activo = _precioCarritoConIsv == valor;
-      return InkWell(
-        onTap: () {
-          _alternarVistaPrecioCarrito(valor);
-          alCambiarExtra?.call();
-        },
-        borderRadius: BorderRadius.circular(9),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: EdgeInsets.symmetric(horizontal: compacto ? 8 : 12, vertical: compacto ? 5 : 8),
-          decoration: BoxDecoration(
-            color: activo ? const Color(0xFF0F1B3D) : Colors.transparent,
-            borderRadius: BorderRadius.circular(9),
-          ),
-          child: Text(
-            texto,
-            style: GoogleFonts.poppins(fontSize: compacto ? 10.5 : 12, fontWeight: FontWeight.w600, color: activo ? Colors.white : const Color(0xFF666A72)),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(color: const Color(0xFFE8EAF0), borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFFB6BCC7))),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          opcion('Con ISV', true),
-          opcion('Sin ISV', false),
-        ],
-      ),
-    );
-  }
-
   // Muestra la tabla de productos sola, casi a pantalla completa, para
   // cuando hay varios items y la vista normal se queda chica.
   //
@@ -1949,8 +1873,6 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
                       children: [
                         Text('Productos en la venta', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700)),
                         const SizedBox(width: 14),
-                        _selectorPrecioIsvCarrito(compacto: true, alCambiarExtra: () => setDialogState(() {})),
-                        const SizedBox(width: 10),
                         // Sigue funcionando igual que en la pantalla normal:
                         // abre el mismo buscador, y lo que se elija ahí se
                         // agrega al mismo carrito (se ve reflejado acá al

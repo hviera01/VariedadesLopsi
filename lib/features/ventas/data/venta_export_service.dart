@@ -29,6 +29,7 @@ class VentaExportService {
     final logo = decodificarLogoPdf(negocio.logoColorBase64);
     final formatoDia = DateFormat('dd/MM/yyyy');
     final esCotizacion = venta.tipoDocumento == 'Cotizacion';
+    final esFacturable = venta.tipoDocumento == 'Factura' || venta.tipoDocumento == 'Boleta';
 
     doc.addPage(
       pw.Page(
@@ -53,11 +54,11 @@ class VentaExportService {
                 children: [
                   pw.Expanded(child: _bloqueLetrasYPago(venta)),
                   pw.SizedBox(width: 16),
-                  _bloqueTotales(venta),
+                  _bloqueTotales(venta, esFacturable),
                 ],
               ),
               pw.Spacer(),
-              _piePagina(venta, negocio, formatoDia, esCotizacion),
+              _piePagina(venta, negocio, formatoDia, esCotizacion, esFacturable),
             ],
           );
         },
@@ -185,7 +186,7 @@ class VentaExportService {
     }
 
     return pw.TableHelper.fromTextArray(
-      headers: ['Cant.', 'Descripción', conIsv ? 'P. Unitario (c/ISV)' : 'P. Unitario (s/ISV)', 'Desc. %', 'Importe'],
+      headers: ['Cant.', 'Descripción', 'P. Unitario', 'Desc. %', 'Importe'],
       data: venta.detalle.map((item) {
         return [
           _formatoCantidad(item.cantidad),
@@ -249,7 +250,7 @@ class VentaExportService {
     );
   }
 
-  pw.Widget _bloqueTotales(VentaModel venta) {
+  pw.Widget _bloqueTotales(VentaModel venta, bool esFacturable) {
     // Misma base sin ISV que ya usan Subtotal y Gravado 15%: precio de lista
     // (sin descuento) de cada línea menos lo que realmente quedó en
     // subtotal, así que cuadra con el resto del desglose.
@@ -263,14 +264,17 @@ class VentaExportService {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          _filaTotalFormal('Subtotal', formatearMoneda(venta.subtotal)),
-          if (venta.descuentoGlobal > 0) _filaTotalFormal('Descuento global', '${_formatoCantidad(venta.descuentoGlobal)}%'),
-          _filaTotalFormal('Descuentos y rebajas', formatearMoneda(descuentosYRebajas)),
-          _filaTotalFormal('Importe exento', formatearMoneda(0)),
-          _filaTotalFormal('Importe exonerado', formatearMoneda(0)),
-          _filaTotalFormal('Gravado 15%', formatearMoneda(venta.subtotal)),
-          _filaTotalFormal('Gravado 18%', formatearMoneda(0)),
-          _filaTotalFormal('ISV (15%)', formatearMoneda(venta.impuesto)),
+          if (esFacturable) ...[
+            _filaTotalFormal('Subtotal', formatearMoneda(venta.subtotal)),
+            if (venta.descuentoGlobal > 0) _filaTotalFormal('Descuento global', '${_formatoCantidad(venta.descuentoGlobal)}%'),
+            _filaTotalFormal('Descuentos y rebajas', formatearMoneda(descuentosYRebajas)),
+            _filaTotalFormal('Importe exento', formatearMoneda(0)),
+            _filaTotalFormal('Importe exonerado', formatearMoneda(0)),
+            _filaTotalFormal('Gravado 15%', formatearMoneda(venta.subtotal)),
+            _filaTotalFormal('Gravado 18%', formatearMoneda(0)),
+            _filaTotalFormal('ISV (15%)', formatearMoneda(venta.impuesto)),
+          ] else if (venta.descuentoGlobal > 0)
+            _filaTotalFormal('Descuento global', '${_formatoCantidad(venta.descuentoGlobal)}%'),
           pw.Divider(color: _colorBorde, height: 10),
           _filaTotalFormal('TOTAL', formatearMoneda(venta.totalAPagar), destacado: true),
         ],
@@ -278,15 +282,15 @@ class VentaExportService {
     );
   }
 
-  pw.Widget _piePagina(VentaModel venta, NegocioModel negocio, DateFormat formatoDia, bool esCotizacion) {
+  pw.Widget _piePagina(VentaModel venta, NegocioModel negocio, DateFormat formatoDia, bool esCotizacion, bool esFacturable) {
     final estiloFiscal = pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: _colorGrisTexto);
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Divider(color: _colorBorde),
-        if (!esCotizacion) ...[
-          // Datos fiscales de la factura: siempre se incluyen en documentos
-          // fiscales (Factura/Boleta/Venta Sin Facturar), nunca en cotizaciones.
+        if (esFacturable) ...[
+          // Datos fiscales: solo en Factura/Boleta formal. Una Venta normal
+          // (lo único que usa este negocio) no lleva nada de esto.
           pw.Text('CAI: ${negocio.cai.isEmpty ? 'N/D' : negocio.cai}', style: estiloFiscal),
           pw.Text('Rango autorizado: ${negocio.rangoPrefijo}${negocio.rangoDesde} al ${negocio.rangoPrefijo}${negocio.rangoHasta}', style: estiloFiscal),
           pw.Text('Fecha límite de emisión: ${negocio.fechaLimiteEmision != null ? formatoDia.format(negocio.fechaLimiteEmision!) : 'N/D'}', style: estiloFiscal),

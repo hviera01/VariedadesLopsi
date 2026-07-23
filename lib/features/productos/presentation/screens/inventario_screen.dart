@@ -37,7 +37,6 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
   String? _filaSeleccionada;
   String? _columnaOrden;
   bool _ordenAscendente = false;
-  bool _precioConIsv = false;
   // Cuando la búsqueda viene de escanear un código de barras se filtra por
   // coincidencia exacta de código, no con el buscador difuso (que con
   // códigos largos puede "acercarse" a varios productos distintos).
@@ -46,9 +45,9 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
   // null = todas las categorías.
   String? _categoriaFiltro;
 
-  /// Precio de venta a mostrar según la vista elegida (con o sin ISV). El
-  /// precio guardado en el producto siempre incluye ISV.
-  double _precioMostrado(ProductoModel p) => _precioConIsv ? p.precioVenta : redondearMoneda(p.precioVenta / 1.15);
+  // Este negocio no cobra ISV: el precio guardado es el precio real, sin
+  // ningún desglose ni conversión.
+  double _precioMostrado(ProductoModel p) => p.precioVenta;
 
   @override
   void dispose() {
@@ -279,7 +278,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                             children: [
                               _badgeInfo('${productos.length} productos', const Color(0xFF0F1B3D)),
                               _badgeInfo('Valor compra ${formatearMoneda(valorCompra)}', const Color(0xFF3B82F6)),
-                              _badgeInfo('Valor venta (${_precioConIsv ? 'con' : 'sin'} ISV) ${formatearMoneda(valorVenta)}', const Color(0xFF16A34A)),
+                              _badgeInfo('Valor venta ${formatearMoneda(valorVenta)}', const Color(0xFF16A34A)),
                             ],
                           );
                         },
@@ -296,7 +295,6 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                     runSpacing: 10,
                     children: [
                       SizedBox(width: esMovil ? constraints.maxWidth : 220, child: _selectorVista(vista)),
-                      _selectorPrecioIsv(),
                       SizedBox(width: esMovil ? constraints.maxWidth : 340, child: _buscador(busqueda)),
                       SizedBox(width: esMovil ? constraints.maxWidth : 200, child: _selectorCategoria(categoriasLista)),
                       OutlinedButton.icon(
@@ -427,7 +425,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                   if (mostrarDescripcion) _celdaHeader(texto: 'DESCRIPCIÓN', flex: 20),
                   if (mostrarCategoria) _celdaHeader(texto: 'CATEGORÍA', flex: 17),
                   _celdaHeader(texto: 'EXISTENCIA', flex: 12, columnaOrdenKey: 'existencia'),
-                  _celdaHeader(texto: _precioConIsv ? 'P. VENTA (C/ISV)' : 'P. VENTA (S/ISV)', flex: 14, columnaOrdenKey: 'precioVenta'),
+                  _celdaHeader(texto: 'P. VENTA', flex: 14, columnaOrdenKey: 'precioVenta'),
                   _celdaHeader(texto: 'P. COMPRA', flex: 14, columnaOrdenKey: 'precioCompra'),
                   _celdaHeader(texto: 'ESTADO', flex: 11),
                   _celdaHeaderAcciones(),
@@ -558,7 +556,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                   spacing: 16,
                   runSpacing: 4,
                   children: [
-                    Text('Venta (${_precioConIsv ? 'c/ISV' : 's/ISV'}): ${formatearMoneda(_precioMostrado(p))}', style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                    Text('Venta: ${formatearMoneda(_precioMostrado(p))}', style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w600)),
                     Text('Compra: ${formatearMoneda(p.precioCompra)}', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600)),
                   ],
                 ),
@@ -717,41 +715,6 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
             ref.read(inventarioVistaProvider.notifier).actualizar(v);
           },
         ),
-      ),
-    );
-  }
-
-  Widget _selectorPrecioIsv() {
-    Widget opcion(String texto, bool valor) {
-      final activo = _precioConIsv == valor;
-      return InkWell(
-        onTap: () => setState(() => _precioConIsv = valor),
-        borderRadius: BorderRadius.circular(10),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          decoration: BoxDecoration(
-            color: activo ? const Color(0xFF0F1B3D) : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            texto,
-            style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: activo ? Colors.white : const Color(0xFF666A72)),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      height: 46,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFB6BCC7))),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          opcion('Con ISV', true),
-          opcion('Sin ISV', false),
-        ],
       ),
     );
   }

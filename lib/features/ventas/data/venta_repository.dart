@@ -214,13 +214,17 @@ class VentaRepository {
       // Historial de precio de venta por producto: no aplica a cotizaciones,
       // que todavía no son una venta concretada.
       if (tipoDocumento != 'Cotizacion') {
+        // El 15% solo se suma si esta venta de verdad lleva ISV (Factura o
+        // Boleta formal); una Venta normal (lo único que usa este negocio)
+        // no le ajusta nada al precio real.
+        final aplicaIsv = tipoDocumento == 'Factura' || tipoDocumento == 'Boleta';
         for (final item in items) {
           final ref = _db.collection('productos').doc(item.idProducto);
-          final precioConIsv = redondearMoneda(item.precioVenta * (1 - item.descuentoPorcentaje / 100) * 1.15);
+          final precioFinal = redondearMoneda(item.precioVenta * (1 - item.descuentoPorcentaje / 100) * (aplicaIsv ? 1.15 : 1));
           final historialVentaRef = ref.collection('historialVentas').doc();
           transaction.set(historialVentaRef, {
             'idVenta': ventaRef.id,
-            'precioVenta': precioConIsv,
+            'precioVenta': precioFinal,
             'precioUnitario': item.precioVenta,
             'descuentoPorcentaje': item.descuentoPorcentaje,
             'cantidad': item.cantidad,

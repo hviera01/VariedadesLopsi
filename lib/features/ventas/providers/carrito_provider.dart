@@ -157,23 +157,21 @@ class CarritoVentaNotifier extends Notifier<CarritoVentaState> {
   /// Agrega un producto directamente a la tabla (seleccionado desde el modal
   /// de búsqueda), con cantidad 1 y sin descuento por defecto. Si el cajero
   /// eligió un nivel de precio distinto al principal, [precioSeleccionado]
-  /// trae ese precio (con ISV, tal como se muestra en el buscador).
+  /// trae ese precio.
+  ///
+  /// Este negocio no cobra ISV: el precio del producto es el precio real,
+  /// tal cual, sin ningún ajuste. (_aplicaIsv en este mismo archivo es lo
+  /// que decide si se suma 15% arriba de este precio, solo para una Factura
+  /// o Boleta formal — acá no se le resta nada de entrada.)
   void agregarProductoDirecto(ProductoModel producto, {double? precioSeleccionado, double precioCompraUsado = 0, bool reembasado = false}) {
-    final precioConIsv = precioSeleccionado ?? producto.precioVenta;
-    // Sin redondear a centavos acá: precioVenta (sin ISV) no siempre es un
-    // número "limpio" de 2 decimales -por ejemplo 100/1.15- y redondearlo
-    // de una vez, antes de multiplicarlo de nuevo por 1.15 para mostrar o
-    // sumar el total, es lo que causaba precios como 100.01 en vez de
-    // 100.00 (dos redondeos en cadena). Se redondea una sola vez, recién al
-    // mostrar o calcular un total (ver _totalConImpuestoBase más abajo).
-    final precioSinIsv = precioConIsv / 1.15;
+    final precio = precioSeleccionado ?? producto.precioVenta;
     final item = ItemVentaModel(
       idProducto: producto.id,
       idCategoria: producto.idCategoria,
       nombreProducto: producto.nombre,
-      precioVenta: precioSinIsv,
+      precioVenta: precio,
       cantidad: 1,
-      subtotal: _subtotalLinea(precioSinIsv, 1, 0),
+      subtotal: _subtotalLinea(precio, 1, 0),
       precioCompraUsado: precioCompraUsado > 0 ? precioCompraUsado : producto.precioCompra,
       reembasado: reembasado,
     );
@@ -191,14 +189,13 @@ class CarritoVentaNotifier extends Notifier<CarritoVentaState> {
     state = state.copyWith(items: nuevos);
   }
 
-  /// Actualiza cantidad, precio (con ISV, tal como lo ve el cajero) y/o
-  /// descuento de línea directamente desde la tabla, recalculando el subtotal.
-  void actualizarLinea(int index, {double? cantidad, double? precioConIsv, double? descuentoPorcentaje, bool? reembasado}) {
+  /// Actualiza cantidad, precio y/o descuento de línea directamente desde la
+  /// tabla, recalculando el subtotal. Ver la nota de ISV en
+  /// agregarProductoDirecto: [precioNuevo] es el precio real, sin ajustes.
+  void actualizarLinea(int index, {double? cantidad, double? precioNuevo, double? descuentoPorcentaje, bool? reembasado}) {
     final actual = state.items[index];
     final nuevaCantidad = cantidad ?? actual.cantidad;
-    // Ver el comentario en agregarProductoDirecto: no se redondea acá para
-    // no perder precisión antes de multiplicar de nuevo por 1.15.
-    final nuevoPrecio = precioConIsv != null ? precioConIsv / 1.15 : actual.precioVenta;
+    final nuevoPrecio = precioNuevo ?? actual.precioVenta;
     final nuevoDescuento = descuentoPorcentaje ?? actual.descuentoPorcentaje;
     final nuevos = [...state.items];
     nuevos[index] = ItemVentaModel(

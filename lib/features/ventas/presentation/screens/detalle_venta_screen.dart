@@ -59,7 +59,6 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
   bool _anulando = false;
   bool _procesandoPdf = false;
   String? _error;
-  bool _precioConIsv = false;
   // Opcional: acota la búsqueda a un tipo de documento en particular. Hace
   // falta porque Factura/Boleta y Cotización usan contadores separados pero
   // el mismo relleno de 8 dígitos (ver VentaRepository.
@@ -311,7 +310,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
         builder: (context) => PdfPreviewDialog(
           titulo: 'Documento formal · ${venta.numeroDocumento}',
           nombreArchivo: '${venta.tipoDocumento}_${venta.numeroDocumento}.pdf',
-          generarPdf: () => _servicioExport.generarPdfDetalleVenta(venta, negocio, preciosConIsv: _precioConIsv),
+          generarPdf: () => _servicioExport.generarPdfDetalleVenta(venta, negocio),
         ),
       );
     } catch (e) {
@@ -585,8 +584,6 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
         Row(
           children: [
             Text('Productos', style: GoogleFonts.poppins(fontSize: 14.5, fontWeight: FontWeight.w700)),
-            const Spacer(),
-            _selectorPrecioIsv(),
           ],
         ),
         const SizedBox(height: 10),
@@ -734,29 +731,9 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
     );
   }
 
-  Widget _selectorPrecioIsv() {
-    Widget opcion(String texto, bool valor) {
-      final activo = _precioConIsv == valor;
-      return InkWell(
-        onTap: () => setState(() => _precioConIsv = valor),
-        borderRadius: BorderRadius.circular(10),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(color: activo ? const Color(0xFF0F1B3D) : Colors.transparent, borderRadius: BorderRadius.circular(10)),
-          child: Text(texto, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: activo ? Colors.white : const Color(0xFF666A72))),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(color: const Color(0xFFE8EAF0), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFB6BCC7))),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [opcion('Con ISV', true), opcion('Sin ISV', false)]),
-    );
-  }
-
-  double _precioMostrado(dynamic item) => _precioConIsv ? redondearMoneda((item.precioVenta as double) * 1.15) : item.precioVenta as double;
+  // Este negocio no cobra ISV: el precio guardado es el precio real, sin
+  // ningún desglose ni conversión.
+  double _precioMostrado(dynamic item) => item.precioVenta as double;
 
   double _importeMostrado(dynamic item) {
     final precio = _precioMostrado(item);
@@ -772,7 +749,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
           children: [
             Expanded(flex: 2, child: Text('Cant.', textAlign: TextAlign.center, style: estiloEncabezado)),
             Expanded(flex: 5, child: Text('Producto', style: estiloEncabezado)),
-            Expanded(flex: 2, child: Text(_precioConIsv ? 'Precio (c/ISV)' : 'Precio (s/ISV)', textAlign: TextAlign.right, style: estiloEncabezado)),
+            Expanded(flex: 2, child: Text('Precio', textAlign: TextAlign.right, style: estiloEncabezado)),
             Expanded(flex: 2, child: Text('Importe', textAlign: TextAlign.right, style: estiloEncabezado)),
           ],
         ),
@@ -855,7 +832,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
             children: [
               _filaTotalTexto('Subtotal', venta.subtotal),
               if (_descuentosYRebajas(venta) > 0) _filaTotalTexto('Descuentos y rebajas', _descuentosYRebajas(venta)),
-              _filaTotalTexto('ISV (15%)', venta.impuesto),
+              if (venta.impuesto > 0) _filaTotalTexto('ISV (15%)', venta.impuesto),
               if (venta.descuentoGlobal > 0) _filaTotalTextoPorcentaje('Descuento global', venta.descuentoGlobal),
               if (venta.condicion != 'Credito' && venta.metodoPago == 'Efectivo' && venta.montoPago > 0) ...[
                 _filaTotalTexto('Paga con', venta.montoPago),
