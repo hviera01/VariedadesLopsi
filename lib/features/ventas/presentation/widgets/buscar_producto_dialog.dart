@@ -396,11 +396,15 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
               DropdownMenuItem<String?>(value: c.id as String, child: Text(c.descripcion as String, style: GoogleFonts.poppins(fontSize: 13))),
           ],
           onChanged: (valor) {
+            // Solo guarda el filtro: no dispara la búsqueda sola (eso ya
+            // cargaba de golpe todos los productos de la categoría con solo
+            // elegirla). Hay que escribir y buscar (o volver a buscar si ya
+            // había una búsqueda aplicada) para que se aplique.
             setState(() {
               _categoriaFiltro = valor;
-              _seBusco = true;
               _filaSeleccionada = null;
             });
+            if (_seBusco) _buscar();
           },
         ),
       ),
