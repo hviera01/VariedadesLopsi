@@ -67,8 +67,8 @@ class _CobrarDialogState extends State<CobrarDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('TOTAL A PAGAR', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFFFFE000), letterSpacing: 0.5)),
-                  Text(formatearMoneda(widget.total), style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFFFFE000))),
+                  Text('TOTAL A PAGAR', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF0F1B3D), letterSpacing: 0.5)),
+                  Text(formatearMoneda(widget.total), style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF0F1B3D))),
                 ],
               ),
             ),
@@ -113,7 +113,7 @@ class _CobrarDialogState extends State<CobrarDialog> {
                 const SizedBox(width: 10),
                 FilledButton(
                   onPressed: _confirmar,
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE000), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   child: Text('Confirmar', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
                 ),
               ],

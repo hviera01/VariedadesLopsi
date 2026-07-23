@@ -48,7 +48,7 @@ class HomeScreen extends ConsumerWidget {
                   decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
                 ),
                 const SizedBox(height: 16),
-                Text(modulo.titulo, style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: const Color(0xFFFFE000))),
+                Text(modulo.titulo, style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: const Color(0xFF0F1B3D))),
                 const SizedBox(height: 8),
                 ...disponibles.map((sub) {
                   return ListTile(
@@ -91,7 +91,7 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Text(
                     'Hola, ${usuario?.nombreCompleto ?? ''}',
-                    style: GoogleFonts.poppins(fontSize: esMovil ? 20 : 24, fontWeight: FontWeight.w700, color: const Color(0xFFFFE000)),
+                    style: GoogleFonts.poppins(fontSize: esMovil ? 20 : 24, fontWeight: FontWeight.w700, color: const Color(0xFF0F1B3D)),
                   ),
                   const SizedBox(height: 4),
                   Text('Seleccioná una opción para comenzar', style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey.shade600)),

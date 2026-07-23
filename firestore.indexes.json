@@ -1,5 +1,14 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "abonos",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "saldoPendiente", "order": "ASCENDING" },
+        { "fieldPath": "fecha", "order": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": [
     {
       "collectionGroup": "abonos",

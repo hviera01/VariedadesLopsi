@@ -153,7 +153,7 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancelar', style: GoogleFonts.poppins())),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE000)),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500)),
             onPressed: () => Navigator.pop(context, true),
             child: Text('Eliminar', style: GoogleFonts.poppins()),
           ),
@@ -216,10 +216,10 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFE000).withOpacity(0.1),
+                      color: const Color(0xFFF7B500).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(Icons.inventory_2_outlined, color: Color(0xFFFFE000)),
+                    child: const Icon(Icons.inventory_2_outlined, color: Color(0xFF0F1B3D)),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -332,9 +332,9 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
                       onTap: () => setState(() => _mostrarNivelesExtra = !_mostrarNivelesExtra),
                       child: Row(
                         children: [
-                          Icon(_mostrarNivelesExtra ? Icons.remove_circle_outline : Icons.add_circle_outline, size: 18, color: const Color(0xFFFFE000)),
+                          Icon(_mostrarNivelesExtra ? Icons.remove_circle_outline : Icons.add_circle_outline, size: 18, color: const Color(0xFF0F1B3D)),
                           const SizedBox(width: 8),
-                          Text('Niveles de precio adicionales', style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFFFFE000), fontWeight: FontWeight.w600)),
+                          Text('Niveles de precio adicionales', style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF0F1B3D), fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),
@@ -406,9 +406,9 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
                   if (editando)
                     IconButton(
                       onPressed: _guardando ? null : _eliminar,
-                      icon: const Icon(Icons.delete_outline, color: Color(0xFFFFE000)),
+                      icon: const Icon(Icons.delete_outline, color: Color(0xFF0F1B3D)),
                       style: IconButton.styleFrom(
-                        backgroundColor: const Color(0xFFFFE000).withOpacity(0.08),
+                        backgroundColor: const Color(0xFFF7B500).withOpacity(0.08),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
@@ -421,7 +421,7 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
                   FilledButton(
                     onPressed: _guardando ? null : _guardar,
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFE000),
+                      backgroundColor: const Color(0xFFF7B500),
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

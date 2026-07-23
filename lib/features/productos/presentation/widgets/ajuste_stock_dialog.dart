@@ -147,7 +147,7 @@ class _AjusteStockDialogState extends ConsumerState<AjusteStockDialog> {
                 const SizedBox(width: 10),
                 FilledButton(
                   onPressed: _guardando ? null : _guardar,
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE000), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   child: _guardando
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2))
                       : Text('Guardar', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),

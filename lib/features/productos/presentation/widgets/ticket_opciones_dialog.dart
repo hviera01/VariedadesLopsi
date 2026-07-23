@@ -47,7 +47,7 @@ class _TicketOpcionesDialogState extends State<TicketOpcionesDialog> {
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
-                activeColor: const Color(0xFFFFE000),
+                activeColor: const Color(0xFFF7B500),
                 title: Text(op['label']!, style: GoogleFonts.poppins(fontSize: 13)),
                 onChanged: (v) {
                   setState(() {
@@ -68,7 +68,7 @@ class _TicketOpcionesDialogState extends State<TicketOpcionesDialog> {
                 const SizedBox(width: 10),
                 FilledButton(
                   onPressed: () => Navigator.pop(context, _seleccionados),
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE000), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   child: Text('Continuar', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
                 ),
               ],

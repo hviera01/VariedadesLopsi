@@ -386,6 +386,8 @@ class VentaRepository {
     }
     final condicion = data['condicion'] as String? ?? '';
     final numeroDocumento = data['numeroDocumento'] as String? ?? '';
+    final metodoPago = data['metodoPago'] as String? ?? '';
+    final totalAPagar = ((data['totalAPagar'] ?? 0) as num).toDouble();
 
     final detalleSnap = await _colVentas.doc(id).collection('detalle').get();
     final items = detalleSnap.docs.map((d) => ItemVentaModel.fromMap(d.data())).toList();
@@ -429,6 +431,11 @@ class VentaRepository {
         numeroDocumento: numeroDocumento,
         creditoExiste: creditoExiste,
         itemsARestaurar: itemsARestaurar,
+        // Solo hubo plata de por medio si era al contado: un crédito recién
+        // anulado (ver chequeo de arriba) nunca tuvo abonos, así que no hay
+        // nada que devolver.
+        montoADevolver: condicion == 'Contado' ? totalAPagar : 0,
+        metodoPago: metodoPago,
       );
     } on FirebaseException catch (e) {
       if (e.code == 'not-found' || e.code == 'invalid-argument') {
@@ -445,6 +452,8 @@ class VentaRepository {
     required String numeroDocumento,
     required bool creditoExiste,
     required List<ItemVentaModel> itemsARestaurar,
+    required double montoADevolver,
+    required String metodoPago,
   }) async {
     await _db.runTransaction((transaction) async {
       final stocksActuales = <String, double>{};
@@ -464,6 +473,26 @@ class VentaRepository {
 
       if (creditoExiste) {
         transaction.delete(_colVentasCredito.doc(id));
+      }
+
+      // Registra el reembolso como Egreso (aparece en Caja/Ingresos-Egresos
+      // como salida de dinero real, que lo es), pero con una categoría
+      // reconocible aparte para que el Reporte Financiero pueda excluirla de
+      // Utilidad Neta: la venta anulada ya no suma como ingreso ahí, así que
+      // contar además su devolución como gasto operativo la restaría dos
+      // veces.
+      if (montoADevolver > 0) {
+        final egresoRef = _db.collection('egresos').doc();
+        transaction.set(egresoRef, {
+          'fecha': FieldValue.serverTimestamp(),
+          'monto': montoADevolver,
+          'descripcion': 'Devolución - Factura anulada #$numeroDocumento',
+          'usuario': usuario,
+          'metodoPago': metodoPago.isEmpty ? 'Efectivo' : metodoPago,
+          'categoria': 'Devolución',
+          'esPagado': true,
+          'fechaRegistro': FieldValue.serverTimestamp(),
+        });
       }
 
       for (final item in itemsARestaurar) {

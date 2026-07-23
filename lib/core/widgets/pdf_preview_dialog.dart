@@ -80,7 +80,7 @@ class _PdfPreviewDialogState extends State<PdfPreviewDialog> {
                     _imprimiendo ? 'Imprimiendo...' : 'Imprimir en ${widget.impresora!.name}',
                     style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE000), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 ),
               ),
             ],

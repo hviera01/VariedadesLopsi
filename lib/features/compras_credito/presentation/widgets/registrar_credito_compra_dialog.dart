@@ -118,8 +118,8 @@ class _RegistrarCreditoCompraDialogState extends ConsumerState<RegistrarCreditoC
                   Container(
                     width: 44,
                     height: 44,
-                    decoration: BoxDecoration(color: const Color(0xFFFFE000).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
-                    child: const Icon(Icons.credit_score_outlined, color: Color(0xFFFFE000)),
+                    decoration: BoxDecoration(color: const Color(0xFFF7B500).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+                    child: const Icon(Icons.credit_score_outlined, color: Color(0xFF0F1B3D)),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -246,7 +246,7 @@ class _RegistrarCreditoCompraDialogState extends ConsumerState<RegistrarCreditoC
                   FilledButton(
                     onPressed: _guardando ? null : _guardar,
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFE000),
+                      backgroundColor: const Color(0xFFF7B500),
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

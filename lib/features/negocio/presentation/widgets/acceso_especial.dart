@@ -83,7 +83,7 @@ class _ClaveEspecialDialogState extends State<_ClaveEspecialDialog> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(color: const Color(0xFFFBEAEA), borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.lock_outline, color: Color(0xFFFFE000), size: 22),
+                  child: const Icon(Icons.lock_outline, color: Color(0xFF0F1B3D), size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -124,7 +124,7 @@ class _ClaveEspecialDialogState extends State<_ClaveEspecialDialog> {
                 Expanded(
                   child: FilledButton(
                     onPressed: _confirmar,
-                    style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE000), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     child: Text('Confirmar', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),
                   ),
                 ),

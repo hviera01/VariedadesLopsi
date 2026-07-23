@@ -89,6 +89,39 @@ class ReporteFinancieroRepository {
     return [for (final c in compras) rapido[c.id] ?? porId[c.id] ?? const []];
   }
 
+  /// Ventas y costo de las ventas a crédito que se terminaron de pagar
+  /// dentro del rango (el abono que llevó su saldo pendiente a 0), para la
+  /// Utilidad Neta: a diferencia de la Utilidad Bruta (que cuenta toda venta
+  /// activa en la fecha en que se hizo), la Neta solo reconoce un crédito
+  /// cuando el dinero realmente entró, no cuando se prometió.
+  Future<({double ventas, double costo})> _creditoCanceladoEnRango(DateTime inicio, DateTime finInclusive) async {
+    final snap = await _db
+        .collectionGroup('abonos')
+        .where('fecha', isGreaterThanOrEqualTo: Timestamp.fromDate(inicio))
+        .where('fecha', isLessThanOrEqualTo: Timestamp.fromDate(finInclusive))
+        .where('saldoPendiente', isEqualTo: 0)
+        .get();
+    final idsVenta = snap.docs.map((d) => d.reference.parent.parent!.id).toSet();
+    if (idsVenta.isEmpty) return (ventas: 0.0, costo: 0.0);
+
+    final ventaSnaps = await Future.wait(idsVenta.map((id) => _db.collection('ventas').doc(id).get()));
+    double ventas = 0, costo = 0;
+    for (final ventaSnap in ventaSnaps) {
+      if (!ventaSnap.exists) continue;
+      final data = ventaSnap.data()!;
+      // Por si se anuló después de haberse cancelado (raro, pero el crédito
+      // ya no existiría y no debería sumar).
+      if (data['estado'] == 'Anulada') continue;
+      ventas += ((data['totalAPagar'] ?? 0) as num).toDouble();
+      final detalleSnap = await ventaSnap.reference.collection('detalle').get();
+      for (final item in detalleSnap.docs) {
+        final d = item.data();
+        costo += ((d['precioCompraUsado'] ?? 0) as num).toDouble() * ((d['cantidad'] ?? 0) as num).toDouble();
+      }
+    }
+    return (ventas: ventas, costo: costo);
+  }
+
   Future<double> _efectivoEstimado() async {
     final estado = await _cierreCajaRepository.obtenerEstadoCaja();
     final hoy = DateTime.now();
@@ -176,6 +209,7 @@ class ReporteFinancieroRepository {
     final efectivoEstimadoFuture = _efectivoEstimado();
     final hace3Meses = DateTime(DateTime.now().year, DateTime.now().month - 2, 1);
     final egresosUltimos3MesesFuture = _egresoRepository.obtenerEgresosPorRango(hace3Meses, DateTime.now());
+    final creditoCanceladoFuture = _creditoCanceladoEnRango(inicio, finInclusive);
 
     final ventasHeaders = await ventasHeadersFuture;
     final comprasHeaders = await comprasHeadersFuture;
@@ -189,6 +223,7 @@ class ReporteFinancieroRepository {
     final serieMensual = await serieMensualFuture;
     final efectivoEstimado = await efectivoEstimadoFuture;
     final egresosUltimos3Meses = await egresosUltimos3MesesFuture;
+    final creditoCancelado = await creditoCanceladoFuture;
 
     final ventasValidas = ventasHeaders.where((v) => v.esActiva && !v.esCotizacion).toList();
     final comprasValidas = comprasHeaders.where((c) => c.esActiva).toList();
@@ -215,8 +250,25 @@ class ReporteFinancieroRepository {
     final costoVentas = itemsVenta.fold<double>(0, (s, i) => s + i.precioCompraUsado * i.cantidad);
     final utilidadBruta = ventasPeriodo - costoVentas;
 
-    final gastosPeriodo = egresosPeriodo.fold<double>(0, (s, e) => s + e.monto);
-    final utilidadNeta = utilidadBruta - gastosPeriodo;
+    // Gastos operativos reales: las devoluciones por factura anulada quedan
+    // afuera porque no son un gasto del negocio, son plata que nunca debió
+    // contarse como ganada (la venta anulada ya no suma en ventasValidas).
+    final gastosPeriodo = egresosPeriodo.where((e) => e.categoria != 'Devolución').fold<double>(0, (s, e) => s + e.monto);
+
+    // Utilidad Neta usa una base de ingresos distinta a la Bruta: al contado
+    // se reconoce en la fecha de la venta (igual que la Bruta), pero a
+    // crédito recién cuando se termina de cobrar (ver
+    // _creditoCanceladoEnRango) — no cuando se prometió la venta.
+    double ventasNeta = 0, costoNeta = 0;
+    for (var i = 0; i < ventasValidas.length; i++) {
+      if (ventasValidas[i].condicion == 'Contado') {
+        ventasNeta += ventasValidas[i].totalAPagar;
+        costoNeta += detalleVentasPorVenta[i].fold<double>(0, (s, item) => s + item.precioCompraUsado * item.cantidad);
+      }
+    }
+    ventasNeta += creditoCancelado.ventas;
+    costoNeta += creditoCancelado.costo;
+    final utilidadNeta = (ventasNeta - costoNeta) - gastosPeriodo;
 
     final flujoEfectivo = _calcularFlujo(
       ventasContado: ventasValidas.where((v) => v.condicion == 'Contado').toList(),

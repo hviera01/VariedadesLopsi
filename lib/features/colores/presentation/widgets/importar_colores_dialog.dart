@@ -92,8 +92,8 @@ class _ImportarColoresDialogState extends ConsumerState<ImportarColoresDialog> {
                   Container(
                     width: 44,
                     height: 44,
-                    decoration: BoxDecoration(color: const Color(0xFFFFE000).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
-                    child: const Icon(Icons.upload_file_outlined, color: Color(0xFFFFE000)),
+                    decoration: BoxDecoration(color: const Color(0xFFF7B500).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+                    child: const Icon(Icons.upload_file_outlined, color: Color(0xFF0F1B3D)),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -146,7 +146,7 @@ class _ImportarColoresDialogState extends ConsumerState<ImportarColoresDialog> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: const Color(0xFFFFF8CC), borderRadius: BorderRadius.circular(10)),
-            child: Text(_error!, style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFFFFE000))),
+            child: Text(_error!, style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF0F1B3D))),
           ),
         ],
         if (_filas != null) ...[
@@ -242,7 +242,7 @@ class _ImportarColoresDialogState extends ConsumerState<ImportarColoresDialog> {
         width: double.infinity,
         child: FilledButton(
           onPressed: () => Navigator.pop(context),
-          style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE000), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
           child: Text('Cerrar', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),
         ),
       );
@@ -260,7 +260,7 @@ class _ImportarColoresDialogState extends ConsumerState<ImportarColoresDialog> {
         Expanded(
           child: FilledButton(
             onPressed: (_importando || _filas == null || _filas!.isEmpty) ? null : _importar,
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE000), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             child: _importando
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : Text('Importar (${_filas?.length ?? 0})', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),

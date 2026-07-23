@@ -163,7 +163,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       height: 64,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: const BoxDecoration(color: Color(0xFFFFE000)),
+        decoration: const BoxDecoration(color: Color(0xFFF7B500)),
         child: LayoutBuilder(
           builder: (context, constraints) {
             final esAngosto = constraints.maxWidth < 420;
@@ -272,18 +272,18 @@ class _AppShellState extends ConsumerState<AppShell> {
               decoration: BoxDecoration(
                 color: activo ? const Color(0xFFFFF8CC) : Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
-                border: activo ? Border.all(color: const Color(0xFFFFE000).withOpacity(0.25)) : null,
+                border: activo ? Border.all(color: const Color(0xFFF7B500).withOpacity(0.25)) : null,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(tab.icono, size: 16, color: activo ? const Color(0xFFFFE000) : Colors.grey.shade500),
+                  Icon(tab.icono, size: 16, color: activo ? const Color(0xFF0F1B3D) : Colors.grey.shade500),
                   const SizedBox(width: 8),
                   Text(
                     tab.titulo,
                     style: GoogleFonts.poppins(
                       fontSize: 12.5,
-                      color: activo ? const Color(0xFFFFE000) : Colors.grey.shade600,
+                      color: activo ? const Color(0xFF0F1B3D) : Colors.grey.shade600,
                       fontWeight: activo ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),
