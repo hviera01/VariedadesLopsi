@@ -5,9 +5,9 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../data/reporte_financiero_model.dart';
 import '../../../../core/utils/formato_moneda.dart';
 
-const colorVentasFinanciero = Color(0xFFF7B500);
+const colorVentasFinanciero = Color(0xFFFDE68A);
 const colorComprasFinanciero = Color(0xFFF59E0B);
-const _paletaUsuarios = [Color(0xFFF7B500), Color(0xFF0EA5A4), Color(0xFF3B82F6), Color(0xFF8B5CF6), Color(0xFFEC4899), Color(0xFF22C55E)];
+const _paletaUsuarios = [Color(0xFFFDE68A), Color(0xFF0EA5A4), Color(0xFF3B82F6), Color(0xFF8B5CF6), Color(0xFFEC4899), Color(0xFF22C55E)];
 const _colorOtros = Color(0xFF64748B);
 
 String formatoCantidadFinanciero(double cantidad) {
@@ -211,7 +211,7 @@ Widget seccionFlujoEfectivo(ReporteFinancieroData data, bool esMovil) {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-              decoration: BoxDecoration(color: flujo.neto >= 0 ? const Color(0xFF16A34A) : const Color(0xFFF7B500), borderRadius: BorderRadius.circular(14)),
+              decoration: BoxDecoration(color: flujo.neto >= 0 ? const Color(0xFF16A34A) : const Color(0xFFFDE68A), borderRadius: BorderRadius.circular(14)),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

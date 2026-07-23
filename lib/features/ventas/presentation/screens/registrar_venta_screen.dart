@@ -64,7 +64,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
   final _regSagController = TextEditingController();
   final _descuentoGlobalController = TextEditingController();
   bool _datosExpandidos = false;
-  bool _precioCarritoConIsv = true;
+  bool _precioCarritoConIsv = false;
   // true mientras está abierto el diálogo de "ver la tabla más grande" (ver
   // _expandirTablaProductos): mientras tanto, la tabla de acá abajo no
   // renderiza sus filas, porque esas filas comparten los mismos
@@ -348,7 +348,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text('No', style: GoogleFonts.poppins())),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500)),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D)),
             onPressed: () => Navigator.pop(context, true),
             child: Text('Sí', style: GoogleFonts.poppins()),
           ),
@@ -1032,7 +1032,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('⚠ $mensaje', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-          backgroundColor: const Color(0xFFF7B500),
+          backgroundColor: const Color(0xFFFDE68A),
           duration: const Duration(seconds: 12),
           showCloseIcon: true,
           closeIconColor: Colors.white,
@@ -1205,7 +1205,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
             child: Text('Dejar pendiente', style: GoogleFonts.poppins()),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500)),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D)),
             onPressed: () => Navigator.pop(context, 'imprimir'),
             child: Text('Imprimir', style: GoogleFonts.poppins()),
           ),
@@ -1733,7 +1733,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
                             onPressed: _agregarProductoDesdeBusqueda,
                             icon: const Icon(Icons.add, size: 18),
                             label: Text('Agregar Producto', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
-                            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                           ),
                         ),
                         if (_esPlataformaMovil) ...[
@@ -1790,7 +1790,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
                       onPressed: _agregarProductoDesdeBusqueda,
                       icon: const Icon(Icons.add, size: 18),
                       label: Text('Agregar Producto', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
-                      style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     ),
                   ],
                 ),
@@ -1880,7 +1880,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
           duration: const Duration(milliseconds: 150),
           padding: EdgeInsets.symmetric(horizontal: compacto ? 8 : 12, vertical: compacto ? 5 : 8),
           decoration: BoxDecoration(
-            color: activo ? const Color(0xFFF7B500) : Colors.transparent,
+            color: activo ? const Color(0xFFFDE68A) : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
           ),
           child: Text(
@@ -2351,7 +2351,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(color: const Color(0xFFF7B500), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: const Color(0xFFFDE68A), borderRadius: BorderRadius.circular(16)),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

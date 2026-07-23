@@ -54,7 +54,7 @@ class CarritoVentaState {
   CarritoVentaState({
     this.idEnEspera,
     this.items = const [],
-    this.tipoDocumento = 'Factura',
+    this.tipoDocumento = 'VentaSinFacturar',
     this.condicion = 'Contado',
     this.metodoPago = 'Efectivo',
     this.documentoCliente = '',
@@ -77,10 +77,14 @@ class CarritoVentaState {
 
   double get subtotal => redondearMoneda(_subtotalLineasSinDescuentoGlobal * (1 - descuentoGlobalPorcentaje / 100));
 
+  // Este negocio no cobra ISV en su venta normal (Venta Sin Facturar): solo
+  // se aplica el 15% si alguna vez se emite una Factura o Boleta formal.
+  bool get _aplicaIsv => tipoDocumento == 'Factura' || tipoDocumento == 'Boleta';
+
   double get _totalConImpuestoBase {
     var total = 0.0;
     for (final i in items) {
-      final precioConIsv = redondearMoneda(i.precioVenta * 1.15);
+      final precioConIsv = _aplicaIsv ? redondearMoneda(i.precioVenta * 1.15) : i.precioVenta;
       total += _subtotalLinea(precioConIsv, i.cantidad, i.descuentoPorcentaje);
     }
     total *= (1 - descuentoGlobalPorcentaje / 100);

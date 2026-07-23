@@ -2,6 +2,7 @@ import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:intl/intl.dart';
 import 'venta_model.dart';
 import 'numero_a_letras.dart';
+import 'tipos_documento.dart';
 import '../../../core/utils/formato_moneda.dart';
 import '../../negocio/data/negocio_model.dart';
 
@@ -36,7 +37,7 @@ class VentaTicketEscPosService {
     if (negocio.cai.isNotEmpty) bytes += generador.text('CAI: ${negocio.cai}', styles: const PosStyles(align: PosAlign.center));
     bytes += generador.hr();
 
-    bytes += generador.text('${venta.tipoDocumento.toUpperCase()} ${negocio.rangoPrefijo}${venta.numeroDocumento}', styles: const PosStyles(bold: true));
+    bytes += generador.text('${(tiposDocumento[venta.tipoDocumento] ?? venta.tipoDocumento).toUpperCase()} ${negocio.rangoPrefijo}${venta.numeroDocumento}', styles: const PosStyles(bold: true));
     bytes += generador.text('Fecha: ${venta.fechaRegistro != null ? formatoFecha.format(venta.fechaRegistro!) : '-'}');
     bytes += generador.text('Atendido por: ${venta.usuarioRegistro}');
     bytes += generador.text('Condición: ${venta.condicion}');

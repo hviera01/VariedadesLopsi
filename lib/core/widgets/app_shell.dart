@@ -163,7 +163,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       height: 64,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: const BoxDecoration(color: Color(0xFFF7B500)),
+        decoration: const BoxDecoration(color: Color(0xFFFDE68A)),
         child: LayoutBuilder(
           builder: (context, constraints) {
             final esAngosto = constraints.maxWidth < 420;
@@ -175,7 +175,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.menu, color: Colors.white),
+                        icon: const Icon(Icons.menu, color: Color(0xFF0F1B3D)),
                         onPressed: () => setState(() => _menuAbierto = !_menuAbierto),
                       ),
                       const SizedBox(width: 4),
@@ -194,7 +194,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                         const SizedBox(width: 12),
                         Text(
                           'VARIEDADES LOPSI',
-                          style: GoogleFonts.poppins(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 1),
+                          style: GoogleFonts.poppins(color: const Color(0xFF0F1B3D), fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 1),
                         ),
                       ],
                     ],
@@ -206,10 +206,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                     children: [
                       CircleAvatar(
                         radius: 16,
-                        backgroundColor: Colors.white.withOpacity(0.2),
+                        backgroundColor: const Color(0xFF0F1B3D).withOpacity(0.15),
                         child: Text(
                           usuario.nombreCompleto.isNotEmpty ? usuario.nombreCompleto[0].toUpperCase() : '?',
-                          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600),
+                          style: GoogleFonts.poppins(color: const Color(0xFF0F1B3D), fontWeight: FontWeight.w600),
                         ),
                       ),
                       if (!esAngosto) ...[
@@ -225,13 +225,13 @@ class _AppShellState extends ConsumerState<AppShell> {
                                 usuario.nombreCompleto,
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
-                                style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                                style: GoogleFonts.poppins(color: const Color(0xFF0F1B3D), fontSize: 13, fontWeight: FontWeight.w600),
                               ),
                               Text(
                                 usuario.rol,
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
-                                style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.75), fontSize: 11),
+                                style: GoogleFonts.poppins(color: const Color(0xFF0F1B3D).withOpacity(0.7), fontSize: 11),
                               ),
                             ],
                           ),
@@ -239,7 +239,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                       ],
                       const SizedBox(width: 8),
                       IconButton(
-                        icon: const Icon(Icons.logout, color: Colors.white, size: 20),
+                        icon: const Icon(Icons.logout, color: Color(0xFF0F1B3D), size: 20),
                         tooltip: 'Cerrar sesión',
                         onPressed: () => ref.read(authProvider.notifier).logout(),
                       ),
@@ -272,7 +272,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               decoration: BoxDecoration(
                 color: activo ? const Color(0xFFFFF8CC) : Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
-                border: activo ? Border.all(color: const Color(0xFFF7B500).withOpacity(0.25)) : null,
+                border: activo ? Border.all(color: const Color(0xFFFDE68A).withOpacity(0.25)) : null,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

@@ -113,7 +113,7 @@ class _ComprasCreditoScreenState extends ConsumerState<ComprasCreditoScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancelar', style: GoogleFonts.poppins())),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500)),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D)),
             onPressed: () => Navigator.pop(context, true),
             child: Text('Eliminar', style: GoogleFonts.poppins()),
           ),
@@ -268,7 +268,7 @@ class _ComprasCreditoScreenState extends ConsumerState<ComprasCreditoScreen> {
                         onPressed: _abrirRegistrarCredito,
                         icon: const Icon(Icons.add, size: 18),
                         label: Text('Registrar Crédito', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
-                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                       ),
                     ],
                   ),
@@ -299,7 +299,7 @@ class _ComprasCreditoScreenState extends ConsumerState<ComprasCreditoScreen> {
                         }
                         return esMovil ? _tarjetas(lista) : _tabla(lista);
                       },
-                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFF7B500))),
+                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A))),
                       error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
                     ),
                   ),
@@ -315,9 +315,9 @@ class _ComprasCreditoScreenState extends ConsumerState<ComprasCreditoScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7B500),
+        color: const Color(0xFFFDE68A),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: const Color(0xFFF7B500).withOpacity(0.35), blurRadius: 18, offset: const Offset(0, 8))],
+        boxShadow: [BoxShadow(color: const Color(0xFFFDE68A).withOpacity(0.35), blurRadius: 18, offset: const Offset(0, 8))],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -534,7 +534,7 @@ class _ComprasCreditoScreenState extends ConsumerState<ComprasCreditoScreen> {
             decoration: BoxDecoration(
               color: seleccionada ? const Color(0xFFFBEAEA) : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: seleccionada ? const Color(0xFFF7B500) : const Color(0xFFC7CBD3)),
+              border: Border.all(color: seleccionada ? const Color(0xFFFDE68A) : const Color(0xFFC7CBD3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

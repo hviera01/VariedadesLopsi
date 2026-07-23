@@ -140,7 +140,7 @@ class _DetalleCompraScreenState extends ConsumerState<DetalleCompraScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancelar', style: GoogleFonts.poppins())),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500)),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D)),
             onPressed: () => Navigator.pop(context, true),
             child: Text('Anular', style: GoogleFonts.poppins()),
           ),
@@ -229,7 +229,7 @@ class _DetalleCompraScreenState extends ConsumerState<DetalleCompraScreen> {
           const SizedBox(height: 16),
           Expanded(
             child: _cargando
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFFF7B500)))
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A)))
                 : _error != null
                     ? Center(child: Text(_error!, style: GoogleFonts.poppins(color: Colors.red)))
                     : _compra == null
@@ -301,7 +301,7 @@ class _DetalleCompraScreenState extends ConsumerState<DetalleCompraScreen> {
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.block_outlined, size: 18),
             label: Text(_anulando ? 'Anulando...' : 'Anular Compra', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
           ),
       ],
     );
@@ -311,7 +311,7 @@ class _DetalleCompraScreenState extends ConsumerState<DetalleCompraScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(color: const Color(0xFFFCE4E4), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFF7B500))),
+      decoration: BoxDecoration(color: const Color(0xFFFCE4E4), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFFDE68A))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -462,7 +462,7 @@ class _DetalleCompraScreenState extends ConsumerState<DetalleCompraScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(color: const Color(0xFFF7B500), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: const Color(0xFFFDE68A), borderRadius: BorderRadius.circular(16)),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

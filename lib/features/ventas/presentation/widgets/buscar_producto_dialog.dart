@@ -33,6 +33,11 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
   final _busquedaController = TextEditingController();
   final _focusNodeLista = FocusNode();
   String _busquedaAplicada = '';
+  // null = todas las categorías. Elegir una categoría ya muestra resultados
+  // por sí sola, sin necesidad de escribir nada (para "quiero ver todos los
+  // celulares", por ejemplo).
+  String? _categoriaFiltro;
+  bool _seBusco = false;
   // Cuando la búsqueda viene de escanear un código de barras se filtra por
   // coincidencia exacta de código, no con el buscador difuso (que con
   // códigos largos puede "acercarse" a varios productos distintos).
@@ -154,9 +159,10 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
       _busquedaAplicada = texto;
       _filaSeleccionada = null;
       _busquedaExacta = exacta;
+      _seBusco = true;
     });
     if (texto.isEmpty) return;
-    final coincidencias = productos.where((p) => p.estado && _coincide(p, texto)).toList();
+    final coincidencias = productos.where((p) => p.estado && _coincide(p, texto) && _coincideCategoria(p)).toList();
     // Un código escaneado (exacta) con un solo resultado se agrega directo
     // en cualquier plataforma, para que escanear siga siendo instantáneo.
     // Una búsqueda por escrito con un solo resultado también se agregaba
@@ -171,6 +177,8 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
     if (_busquedaExacta) return _coincideExacto(p, texto);
     return coincideFuzzy(p.textoBusqueda, texto);
   }
+
+  bool _coincideCategoria(ProductoModel p) => _categoriaFiltro == null || p.idCategoria == _categoriaFiltro;
 
   Future<void> _crearProductoNuevo() async {
     final nuevo = await showDialog<ProductoModel>(context: context, builder: (context) => const ProductoFormDialog());
@@ -265,6 +273,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                       ),
                     ),
                   ),
+                  _selectorCategoria(categoriasLista, mapaCategorias),
                   _selectorNivelPrecio(),
                   // Escanear con la cámara solo tiene sentido en el celular
                   // (APK o navegador móvil): en escritorio no hay cámara
@@ -288,7 +297,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                     label: Text('Producto Nuevo', style: GoogleFonts.poppins(fontSize: 13)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF0F1B3D),
-                      side: const BorderSide(color: Color(0xFFF7B500)),
+                      side: const BorderSide(color: Color(0xFFFDE68A)),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -310,7 +319,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                     onKeyEvent: _manejarTeclado,
                     child: productosAsync.when(
                     data: (productos) {
-                      if (_busquedaAplicada.isEmpty) {
+                      if (!_seBusco) {
                         _listaActual = [];
                         return Center(
                           child: Column(
@@ -318,13 +327,13 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                             children: [
                               Icon(Icons.search, size: 48, color: Colors.grey.shade300),
                               const SizedBox(height: 12),
-                              Text('Escribí algo y presioná Enter para buscar', style: GoogleFonts.poppins(color: Colors.grey.shade500)),
+                              Text('Escribí algo, elegí una categoría, o ambos, y presioná Enter para buscar', style: GoogleFonts.poppins(color: Colors.grey.shade500)),
                             ],
                           ),
                         );
                       }
 
-                      final lista = productos.where((p) => p.estado && _coincide(p, _busquedaAplicada)).toList();
+                      final lista = productos.where((p) => p.estado && (_busquedaAplicada.isEmpty || _coincide(p, _busquedaAplicada)) && _coincideCategoria(p)).toList();
                       if (_columnaOrden == 'existencia') {
                         lista.sort((a, b) => _ordenAscendente ? a.stock.compareTo(b.stock) : b.stock.compareTo(a.stock));
                       }
@@ -355,7 +364,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                         ],
                       );
                     },
-                    loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFF7B500))),
+                    loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A))),
                     error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
                     ),
                   ),
@@ -363,6 +372,36 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _selectorCategoria(List<dynamic> categoriasLista, Map<String, String> mapaCategorias) {
+    final ordenadas = [...categoriasLista]..sort((a, b) => (a.descripcion as String).compareTo(b.descripcion as String));
+    return Container(
+      height: 50,
+      constraints: const BoxConstraints(minWidth: 170),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFB6BCC7))),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String?>(
+          value: _categoriaFiltro,
+          isDense: true,
+          hint: Text('Todas las categorías', style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey.shade600)),
+          icon: const Icon(Icons.expand_more, size: 18),
+          items: [
+            DropdownMenuItem<String?>(value: null, child: Text('Todas las categorías', style: GoogleFonts.poppins(fontSize: 13))),
+            for (final c in ordenadas)
+              DropdownMenuItem<String?>(value: c.id as String, child: Text(c.descripcion as String, style: GoogleFonts.poppins(fontSize: 13))),
+          ],
+          onChanged: (valor) {
+            setState(() {
+              _categoriaFiltro = valor;
+              _seBusco = true;
+              _filaSeleccionada = null;
+            });
+          },
         ),
       ),
     );
@@ -378,7 +417,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
-            color: activo ? const Color(0xFFF7B500) : Colors.transparent,
+            color: activo ? const Color(0xFFFDE68A) : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -435,12 +474,12 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(texto, style: activo ? estilo.copyWith(color: const Color(0xFFF7B500)) : estilo),
+          Text(texto, style: activo ? estilo.copyWith(color: const Color(0xFFFDE68A)) : estilo),
           const SizedBox(width: 3),
           Icon(
             activo ? (_ordenAscendente ? Icons.arrow_upward : Icons.arrow_downward) : Icons.unfold_more,
             size: 14,
-            color: activo ? const Color(0xFFF7B500) : Colors.grey.shade400,
+            color: activo ? const Color(0xFFFDE68A) : Colors.grey.shade400,
           ),
         ],
       ),
@@ -479,7 +518,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
           decoration: BoxDecoration(
             color: seleccionada ? const Color(0xFFFBEAEA) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            border: seleccionada ? Border.all(color: const Color(0xFFF7B500), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
+            border: seleccionada ? Border.all(color: const Color(0xFFFDE68A), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -541,7 +580,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
           decoration: BoxDecoration(
             color: seleccionada ? const Color(0xFFFBEAEA) : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
-            border: seleccionada ? Border.all(color: const Color(0xFFF7B500), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
+            border: seleccionada ? Border.all(color: const Color(0xFFFDE68A), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

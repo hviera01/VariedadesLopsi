@@ -20,7 +20,7 @@ class NegocioScreen extends ConsumerWidget {
       color: const Color(0xFFF2F3F7),
       child: negocioAsync.when(
         data: (modelo) => _NegocioForm(modelo: modelo),
-        loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFF7B500))),
+        loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A))),
         error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
       ),
     );
@@ -393,7 +393,7 @@ class _NegocioFormState extends ConsumerState<_NegocioForm> {
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.save_outlined, size: 18),
               label: Text(_guardando ? 'Guardando...' : 'Guardar cambios', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             ),
           ),
         ],
@@ -758,7 +758,7 @@ class _NegocioFormState extends ConsumerState<_NegocioForm> {
           Switch(
             value: activo,
             onChanged: !tieneClave ? null : (v) => _alternarPermiso(key, v),
-            activeThumbColor: const Color(0xFFF7B500),
+            activeThumbColor: const Color(0xFFFDE68A),
           ),
         ],
       ),

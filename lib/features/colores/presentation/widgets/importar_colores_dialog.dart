@@ -92,7 +92,7 @@ class _ImportarColoresDialogState extends ConsumerState<ImportarColoresDialog> {
                   Container(
                     width: 44,
                     height: 44,
-                    decoration: BoxDecoration(color: const Color(0xFFF7B500).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+                    decoration: BoxDecoration(color: const Color(0xFFFDE68A).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
                     child: const Icon(Icons.upload_file_outlined, color: Color(0xFF0F1B3D)),
                   ),
                   const SizedBox(width: 14),
@@ -242,7 +242,7 @@ class _ImportarColoresDialogState extends ConsumerState<ImportarColoresDialog> {
         width: double.infinity,
         child: FilledButton(
           onPressed: () => Navigator.pop(context),
-          style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
           child: Text('Cerrar', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),
         ),
       );
@@ -260,7 +260,7 @@ class _ImportarColoresDialogState extends ConsumerState<ImportarColoresDialog> {
         Expanded(
           child: FilledButton(
             onPressed: (_importando || _filas == null || _filas!.isEmpty) ? null : _importar,
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             child: _importando
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : Text('Importar (${_filas?.length ?? 0})', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),

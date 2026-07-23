@@ -174,7 +174,7 @@ class _BuscarProductoCompraDialogState extends ConsumerState<BuscarProductoCompr
                     label: Text('Producto Nuevo', style: GoogleFonts.poppins(fontSize: 13)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF0F1B3D),
-                      side: const BorderSide(color: Color(0xFFF7B500)),
+                      side: const BorderSide(color: Color(0xFFFDE68A)),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -238,7 +238,7 @@ class _BuscarProductoCompraDialogState extends ConsumerState<BuscarProductoCompr
                           ],
                         );
                       },
-                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFF7B500))),
+                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A))),
                       error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
                     ),
                   ),
@@ -281,7 +281,7 @@ class _BuscarProductoCompraDialogState extends ConsumerState<BuscarProductoCompr
           decoration: BoxDecoration(
             color: seleccionada ? const Color(0xFFFBEAEA) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            border: seleccionada ? Border.all(color: const Color(0xFFF7B500), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
+            border: seleccionada ? Border.all(color: const Color(0xFFFDE68A), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -342,7 +342,7 @@ class _BuscarProductoCompraDialogState extends ConsumerState<BuscarProductoCompr
           decoration: BoxDecoration(
             color: seleccionada ? const Color(0xFFFBEAEA) : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
-            border: seleccionada ? Border.all(color: const Color(0xFFF7B500), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
+            border: seleccionada ? Border.all(color: const Color(0xFFFDE68A), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

@@ -107,7 +107,7 @@ class _ReporteFinancieroScreenState extends ConsumerState<ReporteFinancieroScree
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(padding: EdgeInsets.all(esMovil ? 14 : 24), child: _encabezado(esMovil)),
-              if (_cargando) const Expanded(child: Center(child: CircularProgressIndicator(color: Color(0xFFF7B500)))),
+              if (_cargando) const Expanded(child: Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A)))),
               if (_error != null) Expanded(child: Center(child: Padding(padding: const EdgeInsets.all(20), child: Text(_error!, style: GoogleFonts.poppins(color: Colors.red))))),
               if (!_cargando && _error == null && _data != null) Expanded(child: _tabsYContenido(_data!, esMovil)),
             ],
@@ -126,9 +126,9 @@ class _ReporteFinancieroScreenState extends ConsumerState<ReporteFinancieroScree
             color: Colors.white,
             child: TabBar(
               isScrollable: true,
-              labelColor: const Color(0xFFF7B500),
+              labelColor: const Color(0xFFFDE68A),
               unselectedLabelColor: Colors.grey.shade600,
-              indicatorColor: const Color(0xFFF7B500),
+              indicatorColor: const Color(0xFFFDE68A),
               labelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
               unselectedLabelStyle: GoogleFonts.poppins(fontSize: 13),
               tabs: [for (final t in _tabs) Tab(icon: Icon(t.$2, size: 18), text: t.$1)],
@@ -170,7 +170,7 @@ class _ReporteFinancieroScreenState extends ConsumerState<ReporteFinancieroScree
           onPressed: _data == null ? null : _descargarPdf,
           icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
           label: Text('Descargar PDF completo', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
-          style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
         ),
       ],
     );

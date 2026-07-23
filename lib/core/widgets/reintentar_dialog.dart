@@ -41,7 +41,7 @@ Future<T?> ejecutarConReintento<T>(BuildContext context, Future<T> Function() ac
           actions: [
             TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancelar', style: GoogleFonts.poppins())),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500)),
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D)),
               onPressed: () => Navigator.pop(context, true),
               child: Text('Reintentar', style: GoogleFonts.poppins()),
             ),

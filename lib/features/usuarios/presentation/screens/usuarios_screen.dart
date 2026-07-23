@@ -101,7 +101,7 @@ class UsuariosScreen extends ConsumerWidget {
 
                         return esMovil ? _tarjetas(context, filtrados) : _tabla(context, filtrados);
                       },
-                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFF7B500))),
+                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A))),
                       error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
                     ),
                   ),
@@ -318,7 +318,7 @@ class UsuariosScreen extends ConsumerWidget {
       icon: const Icon(Icons.add, size: 18),
       label: Text('Nuevo Usuario', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
       style: FilledButton.styleFrom(
-        backgroundColor: const Color(0xFFF7B500),
+        backgroundColor: const Color(0xFFFDE68A),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

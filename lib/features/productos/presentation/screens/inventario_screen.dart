@@ -37,12 +37,14 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
   String? _filaSeleccionada;
   String? _columnaOrden;
   bool _ordenAscendente = false;
-  bool _precioConIsv = true;
+  bool _precioConIsv = false;
   // Cuando la búsqueda viene de escanear un código de barras se filtra por
   // coincidencia exacta de código, no con el buscador difuso (que con
   // códigos largos puede "acercarse" a varios productos distintos).
   bool _busquedaPorCodigoBarras = false;
   List<ProductoModel> _listaActual = [];
+  // null = todas las categorías.
+  String? _categoriaFiltro;
 
   /// Precio de venta a mostrar según la vista elegida (con o sin ISV). El
   /// precio guardado en el producto siempre incluye ISV.
@@ -275,7 +277,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              _badgeInfo('${productos.length} productos', const Color(0xFFF7B500)),
+                              _badgeInfo('${productos.length} productos', const Color(0xFFFDE68A)),
                               _badgeInfo('Valor compra ${formatearMoneda(valorCompra)}', const Color(0xFF3B82F6)),
                               _badgeInfo('Valor venta (${_precioConIsv ? 'con' : 'sin'} ISV) ${formatearMoneda(valorVenta)}', const Color(0xFF16A34A)),
                             ],
@@ -296,6 +298,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                       SizedBox(width: esMovil ? constraints.maxWidth : 220, child: _selectorVista(vista)),
                       _selectorPrecioIsv(),
                       SizedBox(width: esMovil ? constraints.maxWidth : 340, child: _buscador(busqueda)),
+                      SizedBox(width: esMovil ? constraints.maxWidth : 200, child: _selectorCategoria(categoriasLista)),
                       OutlinedButton.icon(
                         onPressed: () => ref.invalidate(productosStreamProvider),
                         icon: const Icon(Icons.refresh, size: 18),
@@ -330,7 +333,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                         onPressed: () => _abrirFormulario(),
                         icon: const Icon(Icons.add, size: 18),
                         label: Text('Nuevo Producto', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
-                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                       ),
                     ],
                   ),
@@ -354,8 +357,11 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                           lista = _busquedaPorCodigoBarras
                               ? lista.where((p) => p.codigoBarras.trim() == busqueda || p.codigo.trim() == busqueda).toList()
                               : lista.where((p) => coincideFuzzy(p.textoBusqueda, busqueda)).toList();
-                        } else if (vista == 'filtrados') {
+                        } else if (vista == 'filtrados' && _categoriaFiltro == null) {
                           lista = [];
+                        }
+                        if (_categoriaFiltro != null) {
+                          lista = lista.where((p) => p.idCategoria == _categoriaFiltro).toList();
                         }
                         lista = _ordenarLista(lista);
                         _listaActual = lista;
@@ -383,7 +389,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                           child: esMovil ? _tarjetas(lista, mapaCategorias) : _tabla(lista, mapaCategorias),
                         );
                       },
-                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFF7B500))),
+                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A))),
                       error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
                     ),
                   ),
@@ -513,7 +519,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
           },
           child: Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: seleccionada ? const Color(0xFFFBEAEA) : Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: seleccionada ? const Color(0xFFF7B500) : const Color(0xFFC7CBD3))),
+            decoration: BoxDecoration(color: seleccionada ? const Color(0xFFFBEAEA) : Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: seleccionada ? const Color(0xFFFDE68A) : const Color(0xFFC7CBD3))),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -725,7 +731,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
-            color: activo ? const Color(0xFFF7B500) : Colors.transparent,
+            color: activo ? const Color(0xFFFDE68A) : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -772,6 +778,30 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
           IconButton(tooltip: 'Escanear código de barras', icon: const Icon(Icons.qr_code_scanner, size: 20), onPressed: _escanear),
           IconButton(tooltip: 'Buscar', icon: const Icon(Icons.arrow_forward, size: 18), onPressed: _buscar),
         ],
+      ),
+    );
+  }
+
+  Widget _selectorCategoria(List<dynamic> categoriasLista) {
+    final ordenadas = [...categoriasLista]..sort((a, b) => (a.descripcion as String).compareTo(b.descripcion as String));
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFB6BCC7))),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String?>(
+          value: _categoriaFiltro,
+          isExpanded: true,
+          isDense: true,
+          hint: Text('Todas las categorías', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600)),
+          icon: const Icon(Icons.expand_more, size: 18),
+          items: [
+            DropdownMenuItem<String?>(value: null, child: Text('Todas las categorías', style: GoogleFonts.poppins(fontSize: 12.5))),
+            for (final c in ordenadas)
+              DropdownMenuItem<String?>(value: c.id as String, child: Text(c.descripcion as String, style: GoogleFonts.poppins(fontSize: 12.5))),
+          ],
+          onChanged: (valor) => setState(() => _categoriaFiltro = valor),
+        ),
       ),
     );
   }

@@ -95,7 +95,7 @@ class _ImportarCreditosVentaDialogState extends ConsumerState<ImportarCreditosVe
                   Container(
                     width: 44,
                     height: 44,
-                    decoration: BoxDecoration(color: const Color(0xFFF7B500).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+                    decoration: BoxDecoration(color: const Color(0xFFFDE68A).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
                     child: const Icon(Icons.upload_file_outlined, color: Color(0xFF0F1B3D)),
                   ),
                   const SizedBox(width: 14),
@@ -158,7 +158,7 @@ class _ImportarCreditosVentaDialogState extends ConsumerState<ImportarCreditosVe
             runSpacing: 8,
             children: [
               _badge('${_validas.length} listas para importar', const Color(0xFF16A34A)),
-              if (_conError.isNotEmpty) _badge('${_conError.length} con error (se omiten)', const Color(0xFFF7B500)),
+              if (_conError.isNotEmpty) _badge('${_conError.length} con error (se omiten)', const Color(0xFFFDE68A)),
             ],
           ),
           const SizedBox(height: 14),
@@ -184,7 +184,7 @@ class _ImportarCreditosVentaDialogState extends ConsumerState<ImportarCreditosVe
       child: SingleChildScrollView(
         child: Column(
           children: filas.map((f) {
-            final color = f.valido ? const Color(0xFF1A1A1A) : const Color(0xFFF7B500);
+            final color = f.valido ? const Color(0xFF1A1A1A) : const Color(0xFFFDE68A);
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
@@ -252,7 +252,7 @@ class _ImportarCreditosVentaDialogState extends ConsumerState<ImportarCreditosVe
         width: double.infinity,
         child: FilledButton(
           onPressed: () => Navigator.pop(context),
-          style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
           child: Text('Cerrar', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),
         ),
       );
@@ -270,7 +270,7 @@ class _ImportarCreditosVentaDialogState extends ConsumerState<ImportarCreditosVe
         Expanded(
           child: FilledButton(
             onPressed: (_importando || _validas.isEmpty) ? null : _importar,
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             child: _importando
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : Text('Importar (${_validas.length})', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),

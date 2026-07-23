@@ -221,7 +221,7 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
   void _mostrarMensaje(String mensaje, {bool esError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensaje), backgroundColor: esError ? const Color(0xFFF7B500) : null),
+      SnackBar(content: Text(mensaje), backgroundColor: esError ? const Color(0xFFFDE68A) : null),
     );
   }
 
@@ -361,7 +361,7 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
                   onPressed: _registrarEgreso,
                   icon: Icon(_idEditando.isEmpty ? Icons.add : Icons.save_outlined, size: 16),
                   label: Text(_idEditando.isEmpty ? 'Registrar' : 'Guardar', style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w600)),
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF7B500), padding: const EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 ),
               ),
             ],
@@ -399,7 +399,7 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
       children: [
         _statChip('Ingresos', totales.ingresos, const Color(0xFF16A34A)),
         _statChip('A proveedores', totales.aProveedores, const Color(0xFFF59E0B)),
-        _statChip('Gastos negocio', totales.gastosNegocio, const Color(0xFFF7B500)),
+        _statChip('Gastos negocio', totales.gastosNegocio, const Color(0xFFFDE68A)),
         _statChip('Gastos casa', totales.gastosCasa, const Color(0xFF8B5CF6)),
         _statChip('Utilidad', totales.utilidad, const Color(0xFF1A1A1A)),
       ],
@@ -422,7 +422,7 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
   }
 
   Widget _lista(List<MovimientoFinanciero> lista) {
-    if (_cargando) return const Center(child: CircularProgressIndicator(color: Color(0xFFF7B500)));
+    if (_cargando) return const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A)));
     if (lista.isEmpty) {
       return Center(
         child: Column(
