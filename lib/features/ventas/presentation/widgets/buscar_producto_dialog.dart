@@ -297,7 +297,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                     label: Text('Producto Nuevo', style: GoogleFonts.poppins(fontSize: 13)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF0F1B3D),
-                      side: const BorderSide(color: Color(0xFFFDE68A)),
+                      side: const BorderSide(color: Color(0xFF0F1B3D)),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -364,7 +364,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                         ],
                       );
                     },
-                    loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A))),
+                    loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF0F1B3D))),
                     error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
                     ),
                   ),
@@ -417,7 +417,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
-            color: activo ? const Color(0xFFFDE68A) : Colors.transparent,
+            color: activo ? const Color(0xFF0F1B3D) : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -474,12 +474,12 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(texto, style: activo ? estilo.copyWith(color: const Color(0xFFFDE68A)) : estilo),
+          Text(texto, style: activo ? estilo.copyWith(color: const Color(0xFF0F1B3D)) : estilo),
           const SizedBox(width: 3),
           Icon(
             activo ? (_ordenAscendente ? Icons.arrow_upward : Icons.arrow_downward) : Icons.unfold_more,
             size: 14,
-            color: activo ? const Color(0xFFFDE68A) : Colors.grey.shade400,
+            color: activo ? const Color(0xFF0F1B3D) : Colors.grey.shade400,
           ),
         ],
       ),
@@ -518,7 +518,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
           decoration: BoxDecoration(
             color: seleccionada ? const Color(0xFFFBEAEA) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            border: seleccionada ? Border.all(color: const Color(0xFFFDE68A), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
+            border: seleccionada ? Border.all(color: const Color(0xFF0F1B3D), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -580,7 +580,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
           decoration: BoxDecoration(
             color: seleccionada ? const Color(0xFFFBEAEA) : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
-            border: seleccionada ? Border.all(color: const Color(0xFFFDE68A), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
+            border: seleccionada ? Border.all(color: const Color(0xFF0F1B3D), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

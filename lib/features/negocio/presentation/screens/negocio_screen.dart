@@ -20,7 +20,7 @@ class NegocioScreen extends ConsumerWidget {
       color: const Color(0xFFF2F3F7),
       child: negocioAsync.when(
         data: (modelo) => _NegocioForm(modelo: modelo),
-        loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A))),
+        loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF0F1B3D))),
         error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
       ),
     );
@@ -758,7 +758,7 @@ class _NegocioFormState extends ConsumerState<_NegocioForm> {
           Switch(
             value: activo,
             onChanged: !tieneClave ? null : (v) => _alternarPermiso(key, v),
-            activeThumbColor: const Color(0xFFFDE68A),
+            activeThumbColor: const Color(0xFF0F1B3D),
           ),
         ],
       ),

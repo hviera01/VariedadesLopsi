@@ -518,7 +518,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
               const SizedBox(height: 16),
               Expanded(
                 child: _cargando
-                    ? const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A)))
+                    ? const Center(child: CircularProgressIndicator(color: Color(0xFF0F1B3D)))
                     : _error != null
                         ? Center(child: Text(_error!, style: GoogleFonts.poppins(color: Colors.red)))
                         : _venta == null
@@ -653,7 +653,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(color: const Color(0xFFFCE4E4), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFFDE68A))),
+      decoration: BoxDecoration(color: const Color(0xFFFCE4E4), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFF0F1B3D))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -743,7 +743,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(color: activo ? const Color(0xFFFDE68A) : Colors.transparent, borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(color: activo ? const Color(0xFF0F1B3D) : Colors.transparent, borderRadius: BorderRadius.circular(10)),
           child: Text(texto, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: activo ? Colors.white : const Color(0xFF666A72))),
         ),
       );
@@ -867,7 +867,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(color: const Color(0xFFFDE68A), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: const Color(0xFF0F1B3D), borderRadius: BorderRadius.circular(16)),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

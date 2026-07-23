@@ -209,7 +209,7 @@ class _TecladoNumericoDialogState extends State<TecladoNumericoDialog> {
                       icon: const Icon(Icons.check, size: 18),
                       label: Text('Listo', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFFDE68A),
+                        backgroundColor: const Color(0xFF0F1B3D),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),

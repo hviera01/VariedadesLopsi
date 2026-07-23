@@ -277,7 +277,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              _badgeInfo('${productos.length} productos', const Color(0xFFFDE68A)),
+                              _badgeInfo('${productos.length} productos', const Color(0xFF0F1B3D)),
                               _badgeInfo('Valor compra ${formatearMoneda(valorCompra)}', const Color(0xFF3B82F6)),
                               _badgeInfo('Valor venta (${_precioConIsv ? 'con' : 'sin'} ISV) ${formatearMoneda(valorVenta)}', const Color(0xFF16A34A)),
                             ],
@@ -389,7 +389,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                           child: esMovil ? _tarjetas(lista, mapaCategorias) : _tabla(lista, mapaCategorias),
                         );
                       },
-                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A))),
+                      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF0F1B3D))),
                       error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
                     ),
                   ),
@@ -519,7 +519,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
           },
           child: Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: seleccionada ? const Color(0xFFFBEAEA) : Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: seleccionada ? const Color(0xFFFDE68A) : const Color(0xFFC7CBD3))),
+            decoration: BoxDecoration(color: seleccionada ? const Color(0xFFFBEAEA) : Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: seleccionada ? const Color(0xFF0F1B3D) : const Color(0xFFC7CBD3))),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -731,7 +731,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
-            color: activo ? const Color(0xFFFDE68A) : Colors.transparent,
+            color: activo ? const Color(0xFF0F1B3D) : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(

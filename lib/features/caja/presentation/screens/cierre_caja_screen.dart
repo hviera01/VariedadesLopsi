@@ -22,10 +22,10 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
   final _servicioExport = CajaExportService();
   final _totalRealController = TextEditingController();
   final _observacionesController = TextEditingController();
+  final _montoInicialController = TextEditingController();
 
   DateTime _fechaInicio = DateTime.now();
   DateTime _fechaFin = DateTime.now();
-  double _montoInicial = 0;
   TotalesCaja _totales = const TotalesCaja();
   bool _cargando = true;
   bool _guardando = false;
@@ -40,8 +40,13 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
   void dispose() {
     _totalRealController.dispose();
     _observacionesController.dispose();
+    _montoInicialController.dispose();
     super.dispose();
   }
+
+  // Editable: el usuario puede escribir el monto inicial que quiere que
+  // quede registrado, no solo ver el que ya venía calculado.
+  double get _montoInicial => double.tryParse(_montoInicialController.text.replaceAll(',', '').trim()) ?? 0;
 
   double get _totalCalculadoEfectivo => _montoInicial + _totales.ingresosEfectivo - _totales.egresosEfectivo;
   double get _totalTransferencia => _totales.ingresosTransferencia - _totales.egresosTransferencia;
@@ -56,7 +61,7 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
       final repo = ref.read(cierreCajaRepositoryProvider);
       final estado = await repo.obtenerEstadoCaja();
       _fechaInicio = estado.fechaDesde;
-      _montoInicial = estado.montoInicial;
+      _montoInicialController.text = estado.montoInicial == estado.montoInicial.roundToDouble() ? estado.montoInicial.toStringAsFixed(0) : estado.montoInicial.toStringAsFixed(2);
       _fechaFin = DateTime.now();
       await _recalcular();
     } catch (e) {
@@ -124,7 +129,7 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
       if (!mounted) return;
       setState(() {
         _fechaInicio = cierre.fechaFin;
-        _montoInicial = cierre.totalReal;
+        _montoInicialController.text = cierre.totalReal == cierre.totalReal.roundToDouble() ? cierre.totalReal.toStringAsFixed(0) : cierre.totalReal.toStringAsFixed(2);
         _totalRealController.clear();
         _observacionesController.clear();
       });
@@ -195,7 +200,7 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
   void _mostrarMensaje(String mensaje, {bool esError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensaje), backgroundColor: esError ? const Color(0xFFFDE68A) : null),
+      SnackBar(content: Text(mensaje), backgroundColor: esError ? const Color(0xFF0F1B3D) : null),
     );
   }
 
@@ -206,7 +211,7 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
     return Container(
       color: const Color(0xFFF2F3F7),
       child: _cargando
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF0F1B3D)))
           : LayoutBuilder(
               builder: (context, constraints) {
                 final esMovil = constraints.maxWidth < 760;
@@ -248,7 +253,28 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
         children: [
           Text('Resumen del periodo', style: GoogleFonts.poppins(fontSize: 14.5, fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
-          _filaMonto('Monto inicial efectivo', _montoInicial),
+          Text('Monto inicial efectivo', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _montoInicialController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600),
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: '0.00',
+              prefixText: 'L. ',
+              filled: true,
+              fillColor: const Color(0xFFE8EAF0),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Escribí el monto con el que arrancó la caja en efectivo. Se guarda con "Guardar monto inicial", sin necesidad de cerrar caja.',
+            style: GoogleFonts.poppins(fontSize: 10.5, color: Colors.grey.shade500),
+          ),
+          const SizedBox(height: 10),
           _filaMonto('Ingreso efectivo', _totales.ingresosEfectivo),
           _filaMonto('Ingreso tarjeta', _totales.ingresosTarjeta),
           _filaMonto('Ingreso transferencia', _totales.ingresosTransferencia),
@@ -257,7 +283,7 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
           const Divider(height: 24),
           _filaMonto('Total efectivo (calculado)', _totalCalculadoEfectivo, negrita: true),
           _filaMonto('Total transferencia', _totalTransferencia, negrita: true),
-          _filaMonto('Gran total', _granTotal, negrita: true, color: const Color(0xFFFDE68A)),
+          _filaMonto('Gran total', _granTotal, negrita: true, color: const Color(0xFF0F1B3D)),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,

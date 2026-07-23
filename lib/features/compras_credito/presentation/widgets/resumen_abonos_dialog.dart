@@ -182,9 +182,9 @@ class _ResumenAbonosDialogState extends ConsumerState<ResumenAbonosDialog> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFDE68A),
+                color: const Color(0xFF0F1B3D),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: const Color(0xFFFDE68A).withOpacity(0.35), blurRadius: 18, offset: const Offset(0, 8))],
+                boxShadow: [BoxShadow(color: const Color(0xFF0F1B3D).withOpacity(0.35), blurRadius: 18, offset: const Offset(0, 8))],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -205,7 +205,7 @@ class _ResumenAbonosDialogState extends ConsumerState<ResumenAbonosDialog> {
             const SizedBox(height: 16),
             Expanded(
               child: _cargando
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A)))
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF0F1B3D)))
                   : _error != null
                       ? Center(child: Text(_error!, style: GoogleFonts.poppins(color: Colors.red)))
                       : filas.isEmpty

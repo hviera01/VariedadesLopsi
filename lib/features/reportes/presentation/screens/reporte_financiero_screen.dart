@@ -107,7 +107,7 @@ class _ReporteFinancieroScreenState extends ConsumerState<ReporteFinancieroScree
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(padding: EdgeInsets.all(esMovil ? 14 : 24), child: _encabezado(esMovil)),
-              if (_cargando) const Expanded(child: Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A)))),
+              if (_cargando) const Expanded(child: Center(child: CircularProgressIndicator(color: Color(0xFF0F1B3D)))),
               if (_error != null) Expanded(child: Center(child: Padding(padding: const EdgeInsets.all(20), child: Text(_error!, style: GoogleFonts.poppins(color: Colors.red))))),
               if (!_cargando && _error == null && _data != null) Expanded(child: _tabsYContenido(_data!, esMovil)),
             ],
@@ -126,9 +126,9 @@ class _ReporteFinancieroScreenState extends ConsumerState<ReporteFinancieroScree
             color: Colors.white,
             child: TabBar(
               isScrollable: true,
-              labelColor: const Color(0xFFFDE68A),
+              labelColor: const Color(0xFF0F1B3D),
               unselectedLabelColor: Colors.grey.shade600,
-              indicatorColor: const Color(0xFFFDE68A),
+              indicatorColor: const Color(0xFF0F1B3D),
               labelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
               unselectedLabelStyle: GoogleFonts.poppins(fontSize: 13),
               tabs: [for (final t in _tabs) Tab(icon: Icon(t.$2, size: 18), text: t.$1)],

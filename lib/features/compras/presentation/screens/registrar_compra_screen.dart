@@ -964,7 +964,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(color: const Color(0xFFFDE68A), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: const Color(0xFF0F1B3D), borderRadius: BorderRadius.circular(16)),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

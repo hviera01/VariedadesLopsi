@@ -272,7 +272,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               decoration: BoxDecoration(
                 color: activo ? const Color(0xFFFFF8CC) : Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
-                border: activo ? Border.all(color: const Color(0xFFFDE68A).withOpacity(0.25)) : null,
+                border: activo ? Border.all(color: const Color(0xFF0F1B3D).withOpacity(0.25)) : null,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

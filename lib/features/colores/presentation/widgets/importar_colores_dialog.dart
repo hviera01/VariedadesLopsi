@@ -92,7 +92,7 @@ class _ImportarColoresDialogState extends ConsumerState<ImportarColoresDialog> {
                   Container(
                     width: 44,
                     height: 44,
-                    decoration: BoxDecoration(color: const Color(0xFFFDE68A).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+                    decoration: BoxDecoration(color: const Color(0xFF0F1B3D).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
                     child: const Icon(Icons.upload_file_outlined, color: Color(0xFF0F1B3D)),
                   ),
                   const SizedBox(width: 14),

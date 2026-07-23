@@ -47,7 +47,7 @@ class _TicketOpcionesDialogState extends State<TicketOpcionesDialog> {
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
-                activeColor: const Color(0xFFFDE68A),
+                activeColor: const Color(0xFF0F1B3D),
                 title: Text(op['label']!, style: GoogleFonts.poppins(fontSize: 13)),
                 onChanged: (v) {
                   setState(() {

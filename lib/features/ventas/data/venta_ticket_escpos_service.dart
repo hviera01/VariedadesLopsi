@@ -16,6 +16,11 @@ class VentaTicketEscPosService {
     final generador = Generator(PaperSize.mm80, perfil);
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
     final formatoDia = DateFormat('dd/MM/yyyy');
+    // Todo lo fiscal (CAI, rango autorizado, desglose de ISV, leyenda legal)
+    // solo tiene sentido en una Factura/Boleta formal. Una Venta normal (la
+    // que usa este negocio siempre) es un comprobante simple, sin nada de
+    // esto.
+    final esFacturable = venta.tipoDocumento == 'Factura' || venta.tipoDocumento == 'Boleta';
 
     double precioMostrado(dynamic item) => negocio.facturaPreciosConIsv ? redondearMoneda((item.precioVenta as double) * 1.15) : item.precioVenta as double;
     double importeMostrado(dynamic item) {
@@ -34,7 +39,7 @@ class VentaTicketEscPosService {
     if (negocio.direccion.isNotEmpty) bytes += generador.text('Dirección: ${negocio.direccion}', styles: const PosStyles(align: PosAlign.center));
     if (negocio.rtn.isNotEmpty) bytes += generador.text('RTN: ${negocio.rtn}', styles: const PosStyles(align: PosAlign.center));
     if (negocio.telefono.isNotEmpty) bytes += generador.text('Tel: ${negocio.telefono}', styles: const PosStyles(align: PosAlign.center));
-    if (negocio.cai.isNotEmpty) bytes += generador.text('CAI: ${negocio.cai}', styles: const PosStyles(align: PosAlign.center));
+    if (esFacturable && negocio.cai.isNotEmpty) bytes += generador.text('CAI: ${negocio.cai}', styles: const PosStyles(align: PosAlign.center));
     bytes += generador.hr();
 
     bytes += generador.text('${(tiposDocumento[venta.tipoDocumento] ?? venta.tipoDocumento).toUpperCase()} ${negocio.rangoPrefijo}${venta.numeroDocumento}', styles: const PosStyles(bold: true));
@@ -47,10 +52,12 @@ class VentaTicketEscPosService {
     bytes += generador.hr();
 
     bytes += generador.text('Cliente: ${venta.nombreCliente.isEmpty ? 'CONSUMIDOR FINAL' : venta.nombreCliente}');
-    bytes += generador.text('ID/RTN Cliente: ${venta.documentoCliente.isEmpty ? 'N/A' : venta.documentoCliente}');
-    if (venta.oc.isNotEmpty) bytes += generador.text('No. O/C exenta: ${venta.oc}');
-    if (venta.regExonerado.isNotEmpty) bytes += generador.text('No. Reg de exonerado: ${venta.regExonerado}');
-    if (venta.regSag.isNotEmpty) bytes += generador.text('No. De reg de la SAG: ${venta.regSag}');
+    if (esFacturable) {
+      bytes += generador.text('ID/RTN Cliente: ${venta.documentoCliente.isEmpty ? 'N/A' : venta.documentoCliente}');
+      if (venta.oc.isNotEmpty) bytes += generador.text('No. O/C exenta: ${venta.oc}');
+      if (venta.regExonerado.isNotEmpty) bytes += generador.text('No. Reg de exonerado: ${venta.regExonerado}');
+      if (venta.regSag.isNotEmpty) bytes += generador.text('No. De reg de la SAG: ${venta.regSag}');
+    }
     bytes += generador.hr();
 
     for (final item in venta.detalle) {
@@ -62,10 +69,14 @@ class VentaTicketEscPosService {
     }
     bytes += generador.hr();
 
-    bytes += _filaTotal(generador, 'SUBTOTAL:', venta.subtotal);
-    if (venta.descuentoGlobal > 0) bytes += generador.text('Descuento global: ${_formatoCantidad(venta.descuentoGlobal)}%');
-    bytes += _filaTotal(generador, 'Gravado 15%:', venta.subtotal);
-    bytes += _filaTotal(generador, 'ISV 15%:', venta.impuesto);
+    if (esFacturable) {
+      bytes += _filaTotal(generador, 'SUBTOTAL:', venta.subtotal);
+      if (venta.descuentoGlobal > 0) bytes += generador.text('Descuento global: ${_formatoCantidad(venta.descuentoGlobal)}%');
+      bytes += _filaTotal(generador, 'Gravado 15%:', venta.subtotal);
+      bytes += _filaTotal(generador, 'ISV 15%:', venta.impuesto);
+    } else if (venta.descuentoGlobal > 0) {
+      bytes += generador.text('Descuento global: ${_formatoCantidad(venta.descuentoGlobal)}%');
+    }
     bytes += _filaTotal(generador, 'TOTAL A PAGAR:', venta.totalAPagar, negrita: true);
     bytes += generador.hr();
 
@@ -82,15 +93,17 @@ class VentaTicketEscPosService {
     }
     bytes += generador.hr();
 
-    if (negocio.rangoPrefijo.isNotEmpty || negocio.rangoDesde.isNotEmpty) {
-      bytes += generador.text('Rango Aut.: ${negocio.rangoPrefijo}${negocio.rangoDesde} al ${negocio.rangoPrefijo}${negocio.rangoHasta}');
+    if (esFacturable) {
+      if (negocio.rangoPrefijo.isNotEmpty || negocio.rangoDesde.isNotEmpty) {
+        bytes += generador.text('Rango Aut.: ${negocio.rangoPrefijo}${negocio.rangoDesde} al ${negocio.rangoPrefijo}${negocio.rangoHasta}');
+      }
+      if (negocio.fechaLimiteEmision != null) {
+        bytes += generador.text('Fecha Límite: ${formatoDia.format(negocio.fechaLimiteEmision!)}');
+      }
+      bytes += generador.text('ORIGINAL: CLIENTE');
+      bytes += generador.text('COPIA: OBLIGADO TRIBUTARIO EMISOR');
+      bytes += generador.text('LA FACTURA ES BENEFICIO DE TODOS, ¡EXÍJALA!', styles: const PosStyles(align: PosAlign.center, bold: true));
     }
-    if (negocio.fechaLimiteEmision != null) {
-      bytes += generador.text('Fecha Límite: ${formatoDia.format(negocio.fechaLimiteEmision!)}');
-    }
-    bytes += generador.text('ORIGINAL: CLIENTE');
-    bytes += generador.text('COPIA: OBLIGADO TRIBUTARIO EMISOR');
-    bytes += generador.text('LA FACTURA ES BENEFICIO DE TODOS, ¡EXÍJALA!', styles: const PosStyles(align: PosAlign.center, bold: true));
     bytes += generador.text('¡GRACIAS POR SU COMPRA!', styles: const PosStyles(align: PosAlign.center, bold: true));
     bytes += generador.cut();
 

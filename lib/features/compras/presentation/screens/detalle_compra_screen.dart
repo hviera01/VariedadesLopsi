@@ -229,7 +229,7 @@ class _DetalleCompraScreenState extends ConsumerState<DetalleCompraScreen> {
           const SizedBox(height: 16),
           Expanded(
             child: _cargando
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A)))
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFF0F1B3D)))
                 : _error != null
                     ? Center(child: Text(_error!, style: GoogleFonts.poppins(color: Colors.red)))
                     : _compra == null
@@ -311,7 +311,7 @@ class _DetalleCompraScreenState extends ConsumerState<DetalleCompraScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(color: const Color(0xFFFCE4E4), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFFDE68A))),
+      decoration: BoxDecoration(color: const Color(0xFFFCE4E4), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFF0F1B3D))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -462,7 +462,7 @@ class _DetalleCompraScreenState extends ConsumerState<DetalleCompraScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(color: const Color(0xFFFDE68A), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: const Color(0xFF0F1B3D), borderRadius: BorderRadius.circular(16)),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

@@ -95,7 +95,7 @@ class _ImportarCreditosVentaDialogState extends ConsumerState<ImportarCreditosVe
                   Container(
                     width: 44,
                     height: 44,
-                    decoration: BoxDecoration(color: const Color(0xFFFDE68A).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+                    decoration: BoxDecoration(color: const Color(0xFF0F1B3D).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
                     child: const Icon(Icons.upload_file_outlined, color: Color(0xFF0F1B3D)),
                   ),
                   const SizedBox(width: 14),
@@ -158,7 +158,7 @@ class _ImportarCreditosVentaDialogState extends ConsumerState<ImportarCreditosVe
             runSpacing: 8,
             children: [
               _badge('${_validas.length} listas para importar', const Color(0xFF16A34A)),
-              if (_conError.isNotEmpty) _badge('${_conError.length} con error (se omiten)', const Color(0xFFFDE68A)),
+              if (_conError.isNotEmpty) _badge('${_conError.length} con error (se omiten)', const Color(0xFF0F1B3D)),
             ],
           ),
           const SizedBox(height: 14),
@@ -184,7 +184,7 @@ class _ImportarCreditosVentaDialogState extends ConsumerState<ImportarCreditosVe
       child: SingleChildScrollView(
         child: Column(
           children: filas.map((f) {
-            final color = f.valido ? const Color(0xFF1A1A1A) : const Color(0xFFFDE68A);
+            final color = f.valido ? const Color(0xFF1A1A1A) : const Color(0xFF0F1B3D);
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade200))),

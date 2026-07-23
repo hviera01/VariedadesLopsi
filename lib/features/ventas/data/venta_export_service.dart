@@ -13,7 +13,7 @@ import '../../../core/utils/logo_pdf.dart';
 import '../../negocio/data/negocio_model.dart';
 
 class VentaExportService {
-  static const _colorMarca = PdfColor.fromInt(0xFFFDE68A);
+  static const _colorMarca = PdfColor.fromInt(0xFF0F1B3D);
   static const _colorGrisTexto = PdfColor.fromInt(0xFF4B4F58);
   static const _colorGrisClaro = PdfColor.fromInt(0xFFF2F3F7);
   static const _colorBorde = PdfColor.fromInt(0xFFE0E2E8);
@@ -372,6 +372,11 @@ class VentaExportService {
     const fSmall = 7.5;
     const fNormal = 8.0;
     final alturaMm = _estimarAlturaTicketMm(venta, negocio, tieneLogo: logo != null);
+    // Todo lo fiscal (CAI, rango autorizado, desglose de ISV, leyenda legal)
+    // solo tiene sentido en una Factura/Boleta formal. Una Venta normal (la
+    // que usa este negocio siempre) es un comprobante simple, sin nada de
+    // esto.
+    final esFacturable = venta.tipoDocumento == 'Factura' || venta.tipoDocumento == 'Boleta';
 
     // El total y el desglose de ISV siempre reflejan el monto real de la
     // venta; esto solo cambia cómo se ve el precio unitario y el importe de
@@ -424,7 +429,7 @@ class VentaExportService {
             if (negocio.rtn.isNotEmpty) pw.Center(child: pw.Text('RTN: ${negocio.rtn}', style: const pw.TextStyle(fontSize: fSmall))),
             if (negocio.telefono.isNotEmpty) pw.Center(child: pw.Text('Tel: ${negocio.telefono}', style: const pw.TextStyle(fontSize: fSmall))),
             if (negocio.correo.isNotEmpty) pw.Center(child: pw.Text('Email: ${negocio.correo}', style: const pw.TextStyle(fontSize: fSmall))),
-            if (negocio.cai.isNotEmpty) pw.Center(child: pw.Text('CAI: ${negocio.cai}', style: const pw.TextStyle(fontSize: fSmall))),
+            if (esFacturable && negocio.cai.isNotEmpty) pw.Center(child: pw.Text('CAI: ${negocio.cai}', style: const pw.TextStyle(fontSize: fSmall))),
             pw.SizedBox(height: 6),
             _separador(),
             pw.Text('${(tiposDocumento[venta.tipoDocumento] ?? venta.tipoDocumento).toUpperCase()} ${negocio.rangoPrefijo}${venta.numeroDocumento}', style: const pw.TextStyle(fontSize: fNormal)),
@@ -435,10 +440,12 @@ class VentaExportService {
               pw.Text('Fecha de vencimiento: ${formatoDia.format(venta.fechaVencimiento!)}', style: const pw.TextStyle(fontSize: fNormal)),
             _separador(),
             pw.Text('Cliente: ${venta.nombreCliente.isEmpty ? 'CONSUMIDOR FINAL' : venta.nombreCliente}', style: const pw.TextStyle(fontSize: fNormal)),
-            pw.Text('ID/RTN Cliente: ${venta.documentoCliente.isEmpty ? 'N/A' : venta.documentoCliente}', style: const pw.TextStyle(fontSize: fNormal)),
-            if (venta.oc.isNotEmpty) pw.Text('No. O/C exenta: ${venta.oc}', style: const pw.TextStyle(fontSize: fNormal)),
-            if (venta.regExonerado.isNotEmpty) pw.Text('No. Reg de exonerado: ${venta.regExonerado}', style: const pw.TextStyle(fontSize: fNormal)),
-            if (venta.regSag.isNotEmpty) pw.Text('No. De reg de la SAG: ${venta.regSag}', style: const pw.TextStyle(fontSize: fNormal)),
+            if (esFacturable) ...[
+              pw.Text('ID/RTN Cliente: ${venta.documentoCliente.isEmpty ? 'N/A' : venta.documentoCliente}', style: const pw.TextStyle(fontSize: fNormal)),
+              if (venta.oc.isNotEmpty) pw.Text('No. O/C exenta: ${venta.oc}', style: const pw.TextStyle(fontSize: fNormal)),
+              if (venta.regExonerado.isNotEmpty) pw.Text('No. Reg de exonerado: ${venta.regExonerado}', style: const pw.TextStyle(fontSize: fNormal)),
+              if (venta.regSag.isNotEmpty) pw.Text('No. De reg de la SAG: ${venta.regSag}', style: const pw.TextStyle(fontSize: fNormal)),
+            ],
             _separador(),
             // Fila con spaceBetween (no texto con espacios a mano) para que
             // "IMPORTE" quede alineado de verdad arriba del monto de cada
@@ -474,14 +481,17 @@ class VentaExportService {
                   ),
                 )),
             _separador(),
-            _filaTotal('SUBTOTAL:', venta.subtotal),
-            if (venta.descuentoGlobal > 0) pw.Text('Descuento global: ${_formatoCantidad(venta.descuentoGlobal)}%', style: const pw.TextStyle(fontSize: fSmall)),
-            _filaTotal('Descuentos y rebajas:', descuentosYRebajas),
-            _filaTotal('Importe Exento:', 0),
-            _filaTotal('Importe Exonerado:', 0),
-            _filaTotal('Gravado 15%:', venta.subtotal),
-            _filaTotal('Gravado 18%:', 0),
-            _filaTotal('ISV 15%:', venta.impuesto),
+            if (esFacturable) ...[
+              _filaTotal('SUBTOTAL:', venta.subtotal),
+              if (venta.descuentoGlobal > 0) pw.Text('Descuento global: ${_formatoCantidad(venta.descuentoGlobal)}%', style: const pw.TextStyle(fontSize: fSmall)),
+              _filaTotal('Descuentos y rebajas:', descuentosYRebajas),
+              _filaTotal('Importe Exento:', 0),
+              _filaTotal('Importe Exonerado:', 0),
+              _filaTotal('Gravado 15%:', venta.subtotal),
+              _filaTotal('Gravado 18%:', 0),
+              _filaTotal('ISV 15%:', venta.impuesto),
+            ] else if (venta.descuentoGlobal > 0)
+              pw.Text('Descuento global: ${_formatoCantidad(venta.descuentoGlobal)}%', style: const pw.TextStyle(fontSize: fSmall)),
             _filaTotal('TOTAL A PAGAR:', venta.totalAPagar, negrita: true),
             pw.SizedBox(height: 6),
             _separador(),
@@ -496,22 +506,24 @@ class VentaExportService {
                 pw.Text('Transferencia', style: const pw.TextStyle(fontSize: fNormal)),
             ],
             _separador(),
-            if (negocio.rangoPrefijo.isNotEmpty || negocio.rangoDesde.isNotEmpty)
-              pw.Text('Rango Aut.: ${negocio.rangoPrefijo}${negocio.rangoDesde} al ${negocio.rangoPrefijo}${negocio.rangoHasta}', style: const pw.TextStyle(fontSize: fSmall)),
-            if (negocio.fechaLimiteEmision != null)
-              pw.Text('Fecha Límite: ${formatoDia.format(negocio.fechaLimiteEmision!)}', style: const pw.TextStyle(fontSize: fSmall)),
-            pw.SizedBox(height: 4),
-            pw.Text('ORIGINAL: CLIENTE', style: const pw.TextStyle(fontSize: fSmall)),
-            pw.Text('COPIA: OBLIGADO TRIBUTARIO EMISOR', style: const pw.TextStyle(fontSize: fSmall)),
-            pw.SizedBox(height: 8),
-            pw.Center(
-              child: pw.Text(
-                'LA FACTURA ES BENEFICIO DE TODOS, ¡EXÍJALA!',
-                textAlign: pw.TextAlign.center,
-                style: const pw.TextStyle(fontSize: fSmall),
+            if (esFacturable) ...[
+              if (negocio.rangoPrefijo.isNotEmpty || negocio.rangoDesde.isNotEmpty)
+                pw.Text('Rango Aut.: ${negocio.rangoPrefijo}${negocio.rangoDesde} al ${negocio.rangoPrefijo}${negocio.rangoHasta}', style: const pw.TextStyle(fontSize: fSmall)),
+              if (negocio.fechaLimiteEmision != null)
+                pw.Text('Fecha Límite: ${formatoDia.format(negocio.fechaLimiteEmision!)}', style: const pw.TextStyle(fontSize: fSmall)),
+              pw.SizedBox(height: 4),
+              pw.Text('ORIGINAL: CLIENTE', style: const pw.TextStyle(fontSize: fSmall)),
+              pw.Text('COPIA: OBLIGADO TRIBUTARIO EMISOR', style: const pw.TextStyle(fontSize: fSmall)),
+              pw.SizedBox(height: 8),
+              pw.Center(
+                child: pw.Text(
+                  'LA FACTURA ES BENEFICIO DE TODOS, ¡EXÍJALA!',
+                  textAlign: pw.TextAlign.center,
+                  style: const pw.TextStyle(fontSize: fSmall),
+                ),
               ),
-            ),
-            pw.SizedBox(height: 6),
+              pw.SizedBox(height: 6),
+            ],
             pw.Text('¡GRACIAS POR SU COMPRA!', style: const pw.TextStyle(fontSize: fNormal)),
             pw.SizedBox(height: 10),
             pw.Align(

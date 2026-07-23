@@ -1032,7 +1032,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('⚠ $mensaje', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-          backgroundColor: const Color(0xFFFDE68A),
+          backgroundColor: const Color(0xFF0F1B3D),
           duration: const Duration(seconds: 12),
           showCloseIcon: true,
           closeIconColor: Colors.white,
@@ -1880,7 +1880,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
           duration: const Duration(milliseconds: 150),
           padding: EdgeInsets.symmetric(horizontal: compacto ? 8 : 12, vertical: compacto ? 5 : 8),
           decoration: BoxDecoration(
-            color: activo ? const Color(0xFFFDE68A) : Colors.transparent,
+            color: activo ? const Color(0xFF0F1B3D) : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
           ),
           child: Text(
@@ -2351,12 +2351,12 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(color: const Color(0xFFFDE68A), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: const Color(0xFFE8EAF0), borderRadius: BorderRadius.circular(16)),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('TOTAL A PAGAR', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
-                Text(formatearMoneda(carrito.totalAPagar), style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
+                Text('TOTAL A PAGAR', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0F1B3D))),
+                Text(formatearMoneda(carrito.totalAPagar), style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF0F1B3D))),
               ],
             ),
           ),

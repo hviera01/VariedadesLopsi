@@ -90,7 +90,7 @@ class _HistorialStockDialogState extends ConsumerState<HistorialStockDialog> {
             const SizedBox(height: 14),
             Expanded(
               child: historialAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A))),
+                loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF0F1B3D))),
                 error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
                 data: (data) {
                   final registros = _filtrar(data);

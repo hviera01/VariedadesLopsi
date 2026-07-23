@@ -135,7 +135,7 @@ class _HistorialMovimientosDialogState extends ConsumerState<HistorialMovimiento
   Widget _contenidoVentas(DateFormat formatoFecha) {
     final async = ref.watch(historialVentasProductoProvider(widget.producto.id));
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A))),
+      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF0F1B3D))),
       error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
       data: (data) {
         final filas = _filtrar(data
@@ -156,7 +156,7 @@ class _HistorialMovimientosDialogState extends ConsumerState<HistorialMovimiento
   Widget _contenidoCompras(DateFormat formatoFecha) {
     final async = ref.watch(historialPreciosCompraProvider(widget.producto.id));
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFDE68A))),
+      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF0F1B3D))),
       error: (e, st) => Center(child: Text('Error: $e', style: GoogleFonts.poppins(color: Colors.red))),
       data: (data) {
         final filas = _filtrar(data

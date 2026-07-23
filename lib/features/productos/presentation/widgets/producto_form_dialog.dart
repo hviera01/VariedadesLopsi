@@ -216,7 +216,7 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFDE68A).withOpacity(0.1),
+                      color: const Color(0xFF0F1B3D).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(Icons.inventory_2_outlined, color: Color(0xFF0F1B3D)),
@@ -408,7 +408,7 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
                       onPressed: _guardando ? null : _eliminar,
                       icon: const Icon(Icons.delete_outline, color: Color(0xFF0F1B3D)),
                       style: IconButton.styleFrom(
-                        backgroundColor: const Color(0xFFFDE68A).withOpacity(0.08),
+                        backgroundColor: const Color(0xFF0F1B3D).withOpacity(0.08),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
@@ -421,7 +421,7 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
                   FilledButton(
                     onPressed: _guardando ? null : _guardar,
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFFDE68A),
+                      backgroundColor: const Color(0xFF0F1B3D),
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

@@ -94,7 +94,7 @@ class _ReembaseDialogState extends State<ReembaseDialog> {
                   onChanged: (v) => setState(() => _tipo = v!),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  activeColor: const Color(0xFFFDE68A),
+                  activeColor: const Color(0xFF0F1B3D),
                   title: Text(entrada.value, style: GoogleFonts.poppins(fontSize: 12.5)),
                 )),
             const SizedBox(height: 16),
