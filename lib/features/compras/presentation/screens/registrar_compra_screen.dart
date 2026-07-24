@@ -58,17 +58,25 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
   }
 
   bool _manejarAtajoTeclado(KeyEvent event) {
+    // Ver la explicación completa en RegistrarVentaScreen: F10 y F12 se
+    // capturan enteros -keyDown Y keyUp- antes que cualquier otro chequeo.
+    // Antes solo se devolvía `true` para el keyDown; el keyUp caía sin
+    // dueño y Windows se lo entregaba al campo de texto de Buscar Producto
+    // justo cuando estaba tomando el foco, y esa interrupción hacía perder
+    // la primera tecla real que se escribía ahí (solo en Windows).
+    if (event.logicalKey == LogicalKeyboardKey.f10 || event.logicalKey == LogicalKeyboardKey.f12) {
+      if (event is KeyDownEvent && mounted && !_guardando && _esPestanaActiva()) {
+        if (event.logicalKey == LogicalKeyboardKey.f10) {
+          _agregarProductoDesdeBusqueda();
+        } else {
+          _confirmarCompra();
+        }
+      }
+      return true;
+    }
     if (event is! KeyDownEvent) return false;
     if (!mounted || _guardando) return false;
     if (!_esPestanaActiva()) return false;
-    if (event.logicalKey == LogicalKeyboardKey.f10) {
-      _agregarProductoDesdeBusqueda();
-      return true;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.f12) {
-      _confirmarCompra();
-      return true;
-    }
     return false;
   }
 
