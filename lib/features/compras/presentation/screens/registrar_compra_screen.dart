@@ -785,7 +785,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
   // así siempre usa el [valorActual]/[alConfirmar] vigentes en vez de quedar
   // atado a los del primer build (que sería el bug si el listener capturara
   // esos parámetros directamente).
-  Widget _campoInlineNumero(String claveFoco, TextEditingController controlador, double valorActual, void Function(double) alConfirmar, {String? sufijo}) {
+  Widget _campoInlineNumero(String claveFoco, TextEditingController controlador, double valorActual, void Function(double) alConfirmar, {String? sufijo, String? prefijo}) {
     void confirmar() {
       final valor = double.tryParse(controlador.text.replaceAll(',', '').trim());
       if (valor == null || (valor - valorActual).abs() < 0.005) return;
@@ -809,6 +809,8 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
       style: GoogleFonts.poppins(fontSize: 13),
       decoration: InputDecoration(
         suffixText: sufijo,
+        prefixText: prefijo,
+        prefixStyle: GoogleFonts.poppins(fontSize: 13, color: Colors.grey.shade600),
         filled: true,
         fillColor: const Color(0xFFE8EAF0),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -820,13 +822,13 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
     );
   }
 
-  Widget _campoInlineConEtiqueta(String claveFoco, String etiqueta, TextEditingController controlador, double valorActual, void Function(double) alConfirmar) {
+  Widget _campoInlineConEtiqueta(String claveFoco, String etiqueta, TextEditingController controlador, double valorActual, void Function(double) alConfirmar, {String? prefijo}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(etiqueta, style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade500)),
         const SizedBox(height: 4),
-        _campoInlineNumero(claveFoco, controlador, valorActual, alConfirmar),
+        _campoInlineNumero(claveFoco, controlador, valorActual, alConfirmar, prefijo: prefijo),
       ],
     );
   }
@@ -853,7 +855,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
                 child: Text(item.nombreProducto as String, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
               ),
               Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('cantidad_$index', ctrlCantidad, item.cantidad as double, (v) => _actualizarCantidad(index, v)))),
-              Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('precio_$index', ctrlPrecio, item.precioCompra as double, (v) => _actualizarPrecio(index, v)))),
+              Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('precio_$index', ctrlPrecio, item.precioCompra as double, (v) => _actualizarPrecio(index, v), prefijo: 'L.'))),
               Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('descuento_$index', ctrlDescuento, item.descuentoPorcentaje as double, (v) => _actualizarDescuentoLinea(index, v), sufijo: '%'))),
               Expanded(flex: 2, child: Text(formatearMoneda(_descuentoLineaMonto(item)), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600))),
               Expanded(flex: 2, child: Text(formatearMoneda(item.subtotal as double), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700))),
@@ -869,7 +871,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
               children: [
                 const Spacer(flex: 6),
                 Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineConEtiqueta('margen_$index', 'Margen %', ctrlMargen, _margenActual(item), (v) => _actualizarMargenCompra(index, v)))),
-                Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineConEtiqueta('precioVenta_$index', 'Precio de venta', ctrlPrecioVenta, (item.precioVentaNuevo as double?) ?? 0, (v) => _actualizarPrecioVentaCompra(index, v)))),
+                Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineConEtiqueta('precioVenta_$index', 'Precio de venta', ctrlPrecioVenta, (item.precioVentaNuevo as double?) ?? 0, (v) => _actualizarPrecioVentaCompra(index, v), prefijo: 'L.'))),
                 const Spacer(flex: 4),
                 const SizedBox(width: 40),
               ],
@@ -914,7 +916,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
             children: [
               Expanded(child: _campoInlineConEtiqueta('cantidad_$index', 'Cantidad', ctrlCantidad, item.cantidad as double, (v) => _actualizarCantidad(index, v))),
               const SizedBox(width: 8),
-              Expanded(child: _campoInlineConEtiqueta('precio_$index', 'Costo unitario', ctrlPrecio, item.precioCompra as double, (v) => _actualizarPrecio(index, v))),
+              Expanded(child: _campoInlineConEtiqueta('precio_$index', 'Costo unitario', ctrlPrecio, item.precioCompra as double, (v) => _actualizarPrecio(index, v), prefijo: 'L.')),
               const SizedBox(width: 8),
               Expanded(child: _campoInlineConEtiqueta('descuento_$index', 'Desc. %', ctrlDescuento, item.descuentoPorcentaje as double, (v) => _actualizarDescuentoLinea(index, v))),
             ],
@@ -924,7 +926,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
             children: [
               Expanded(child: _campoInlineConEtiqueta('margen_$index', 'Margen %', ctrlMargen, _margenActual(item), (v) => _actualizarMargenCompra(index, v))),
               const SizedBox(width: 8),
-              Expanded(child: _campoInlineConEtiqueta('precioVenta_$index', 'Precio de venta', ctrlPrecioVenta, (item.precioVentaNuevo as double?) ?? 0, (v) => _actualizarPrecioVentaCompra(index, v))),
+              Expanded(child: _campoInlineConEtiqueta('precioVenta_$index', 'Precio de venta', ctrlPrecioVenta, (item.precioVentaNuevo as double?) ?? 0, (v) => _actualizarPrecioVentaCompra(index, v), prefijo: 'L.')),
             ],
           ),
           const SizedBox(height: 10),
