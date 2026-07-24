@@ -56,21 +56,24 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
-  // F10 sin ningún modificador es, a nivel de Win32, una "tecla de
-  // sistema" igual que Alt solo: Windows la manda como WM_SYSKEYDOWN /
-  // WM_SYSKEYUP, y si ese mensaje llega a DefWindowProc (más abajo, vía
-  // Win32Window::MessageHandler), el sistema operativo entra en "modo
-  // menú". Como esta app no tiene un menú nativo, la siguiente tecla que
-  // se escribe se interpreta como un mnemónico de menú inexistente, y
-  // Windows la traga sonando el beep de error en vez de mandarla como
-  // texto -esto pasaba incluso con el atajo F10 ya manejado del lado de
-  // Dart (ver _manejarAtajoTeclado en registrar_venta_screen.dart), porque
-  // esa decisión de Dart no evita que DefWindowProc procese el mensaje
-  // nativo original-. Se lo sigue dejando pasar a Flutter primero (así el
-  // atajo F10 en Dart sigue funcionando igual que siempre), pero después
-  // se corta acá sin llamar a Win32Window::MessageHandler para que nunca
-  // llegue a DefWindowProc y el modo menú nunca se active.
-  const bool esSysKeyF10 = (message == WM_SYSKEYDOWN || message == WM_SYSKEYUP) && wparam == VK_F10;
+  // F10 (y Alt solo) son teclas de sistema en Win32: aunque esta ventana no
+  // tiene menú nativo, Windows las procesa igual como un pedido de "activar
+  // el menú" -internamente, DefWindowProc traduce el WM_SYSKEYUP de F10 en
+  // un WM_SYSCOMMAND con wParam SC_KEYMENU-. Como acá no hay ningún menú
+  // real, Windows queda esperando una tecla de mnemónico, y la siguiente
+  // tecla que se escribe se interpreta como ese intento y se pierde con el
+  // beep de error en vez de escribirse. Esto pasa en el procesamiento
+  // nativo de Windows sin importar qué haga Flutter/Dart con la tecla, así
+  // que no alcanza con manejar F10 del lado de Dart (ver
+  // _manejarAtajoTeclado en registrar_venta_screen.dart).
+  //
+  // Cortando acá el WM_SYSCOMMAND/SC_KEYMENU (sin llamar a DefWindowProc)
+  // se evita que se active ese modo, sin tocar el resto del manejo de
+  // teclado: F10 le sigue llegando a Flutter/Dart exactamente igual que
+  // siempre, por el camino normal.
+  if (message == WM_SYSCOMMAND && (wparam & 0xFFF0) == SC_KEYMENU) {
+    return 0;
+  }
 
   // Give Flutter, including plugins, an opportunity to handle window messages.
   if (flutter_controller_) {
@@ -80,10 +83,6 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
     if (result) {
       return *result;
     }
-  }
-
-  if (esSysKeyF10) {
-    return 0;
   }
 
   switch (message) {
