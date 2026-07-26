@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'venta_model.dart';
 import 'venta_en_espera_model.dart';
 import 'item_venta_model.dart';
+import 'pago_detalle_model.dart';
 import '../../../core/utils/formato_moneda.dart';
 import '../../productos/data/lote_costo_repository.dart';
 
@@ -62,6 +63,7 @@ class VentaRepository {
     required List<ItemVentaModel> items,
     required double montoPago,
     required double montoCambio,
+    List<PagoDetalle> pagosMixtos = const [],
     required double subtotal,
     required double impuesto,
     required double totalAPagar,
@@ -143,6 +145,7 @@ class VentaRepository {
         'metodoPago': metodoPago,
         'montoPago': montoPago,
         'montoCambio': montoCambio,
+        'pagosMixtos': PagoDetalle.listaToMaps(pagosMixtos),
         'subtotal': subtotal,
         'impuesto': impuesto,
         'totalAPagar': totalAPagar,
@@ -247,6 +250,7 @@ class VentaRepository {
       metodoPago: metodoPago,
       montoPago: montoPago,
       montoCambio: montoCambio,
+      pagosMixtos: pagosMixtos,
       subtotal: subtotal,
       impuesto: impuesto,
       totalAPagar: totalAPagar,
@@ -392,6 +396,7 @@ class VentaRepository {
     final numeroDocumento = data['numeroDocumento'] as String? ?? '';
     final metodoPago = data['metodoPago'] as String? ?? '';
     final totalAPagar = ((data['totalAPagar'] ?? 0) as num).toDouble();
+    final pagosMixtos = PagoDetalle.listaFromMaps(data['pagosMixtos'] as List<dynamic>?);
 
     final detalleSnap = await _colVentas.doc(id).collection('detalle').get();
     final items = detalleSnap.docs.map((d) => ItemVentaModel.fromMap(d.data())).toList();
@@ -440,6 +445,7 @@ class VentaRepository {
         // nada que devolver.
         montoADevolver: condicion == 'Contado' ? totalAPagar : 0,
         metodoPago: metodoPago,
+        pagosMixtos: condicion == 'Contado' ? pagosMixtos : const [],
       );
     } on FirebaseException catch (e) {
       if (e.code == 'not-found' || e.code == 'invalid-argument') {
@@ -458,6 +464,7 @@ class VentaRepository {
     required List<ItemVentaModel> itemsARestaurar,
     required double montoADevolver,
     required String metodoPago,
+    List<PagoDetalle> pagosMixtos = const [],
   }) async {
     await _db.runTransaction((transaction) async {
       final stocksActuales = <String, double>{};
@@ -486,17 +493,39 @@ class VentaRepository {
       // contar además su devolución como gasto operativo la restaría dos
       // veces.
       if (montoADevolver > 0) {
-        final egresoRef = _db.collection('egresos').doc();
-        transaction.set(egresoRef, {
-          'fecha': FieldValue.serverTimestamp(),
-          'monto': montoADevolver,
-          'descripcion': 'Devolución - Factura anulada #$numeroDocumento',
-          'usuario': usuario,
-          'metodoPago': metodoPago.isEmpty ? 'Efectivo' : metodoPago,
-          'categoria': 'Devolución',
-          'esPagado': true,
-          'fechaRegistro': FieldValue.serverTimestamp(),
-        });
+        // Una venta con pago mixto no tiene un solo método al que devolverle
+        // la plata: se registra un Egreso de devolución por cada renglón de
+        // pagosMixtos (con su propio método y monto) en vez de uno solo con
+        // metodoPago='Mixto', que no encaja en ningún caso del switch de
+        // EgresoRepository.obtenerLibroFinanciero y desaparecería del
+        // reporte de flujo de caja.
+        if (metodoPago == 'Mixto' && pagosMixtos.isNotEmpty) {
+          for (final pago in pagosMixtos) {
+            final egresoRef = _db.collection('egresos').doc();
+            transaction.set(egresoRef, {
+              'fecha': FieldValue.serverTimestamp(),
+              'monto': pago.monto,
+              'descripcion': 'Devolución - Factura anulada #$numeroDocumento (mixto)',
+              'usuario': usuario,
+              'metodoPago': pago.metodoPago,
+              'categoria': 'Devolución',
+              'esPagado': true,
+              'fechaRegistro': FieldValue.serverTimestamp(),
+            });
+          }
+        } else {
+          final egresoRef = _db.collection('egresos').doc();
+          transaction.set(egresoRef, {
+            'fecha': FieldValue.serverTimestamp(),
+            'monto': montoADevolver,
+            'descripcion': 'Devolución - Factura anulada #$numeroDocumento',
+            'usuario': usuario,
+            'metodoPago': metodoPago.isEmpty ? 'Efectivo' : metodoPago,
+            'categoria': 'Devolución',
+            'esPagado': true,
+            'fechaRegistro': FieldValue.serverTimestamp(),
+          });
+        }
       }
 
       for (final item in itemsARestaurar) {
