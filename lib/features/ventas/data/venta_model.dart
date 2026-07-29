@@ -29,6 +29,9 @@ class VentaModel {
   // método a la vez, ej. mitad Efectivo/mitad Tarjeta). Vacío en cualquier
   // otro caso: ahí montoPago/montoCambio/metodoPago ya alcanzan solos.
   final List<PagoDetalle> pagosMixtos;
+  // Usuario que autorizó el último cambio de precio de esta venta con la
+  // clave especial (ver verificarAccesoEspecial). Vacío si no aplicó.
+  final String usuarioAutorizaPrecio;
   final String usuarioAnulacion;
   final String motivoAnulacion;
   final DateTime? fechaAnulacion;
@@ -84,6 +87,7 @@ class VentaModel {
       descuentoGlobal: descuentoGlobal,
       detalle: detalle ?? this.detalle,
       pagosMixtos: pagosMixtos,
+      usuarioAutorizaPrecio: usuarioAutorizaPrecio,
       usuarioAnulacion: usuarioAnulacion,
       motivoAnulacion: motivoAnulacion,
       fechaAnulacion: fechaAnulacion,
@@ -117,6 +121,7 @@ class VentaModel {
     this.descuentoGlobal = 0,
     required this.detalle,
     this.pagosMixtos = const [],
+    this.usuarioAutorizaPrecio = '',
     this.usuarioAnulacion = '',
     this.motivoAnulacion = '',
     this.fechaAnulacion,
@@ -150,6 +155,7 @@ class VentaModel {
       descuentoGlobal: (data['descuentoGlobal'] ?? 0).toDouble(),
       detalle: detalle,
       pagosMixtos: PagoDetalle.listaFromMaps(data['pagosMixtos'] as List<dynamic>?),
+      usuarioAutorizaPrecio: data['usuarioAutorizaPrecio'] ?? '',
       usuarioAnulacion: data['usuarioAnulacion'] ?? '',
       motivoAnulacion: data['motivoAnulacion'] ?? '',
       fechaAnulacion: (data['fechaAnulacion'] as Timestamp?)?.toDate(),

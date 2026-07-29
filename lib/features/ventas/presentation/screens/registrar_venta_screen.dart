@@ -926,6 +926,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
             impuesto: carrito.impuesto,
             totalAPagar: carrito.totalAPagar,
             usuario: usuario,
+            usuarioAutorizaPrecio: carrito.usuarioAutorizaPrecio,
             categoriasSinControlStock: categoriasSinControlStock,
           );
 

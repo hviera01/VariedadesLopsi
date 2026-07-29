@@ -68,6 +68,10 @@ class VentaRepository {
     required double impuesto,
     required double totalAPagar,
     required String usuario,
+    // Usuario que autorizó (con la clave especial + selector de "quién
+    // autoriza", ver verificarAccesoEspecial) el último cambio de precio de
+    // esta venta. Vacío si nunca hizo falta pedir autorización.
+    String usuarioAutorizaPrecio = '',
     // Categorías marcadas para no controlar existencia (servicios, pintura
     // preparada, etc.): sus productos no bajan del inventario al venderse.
     // Se recibe ya resuelta desde la UI (que ya tiene las categorías
@@ -146,6 +150,7 @@ class VentaRepository {
         'montoPago': montoPago,
         'montoCambio': montoCambio,
         'pagosMixtos': PagoDetalle.listaToMaps(pagosMixtos),
+        'usuarioAutorizaPrecio': usuarioAutorizaPrecio,
         'subtotal': subtotal,
         'impuesto': impuesto,
         'totalAPagar': totalAPagar,
