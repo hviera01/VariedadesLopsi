@@ -7,8 +7,11 @@ import '../../../auth/providers/auth_provider.dart';
 
 class AjusteStockDialog extends ConsumerStatefulWidget {
   final ProductoModel producto;
+  // Usuario que autorizó con la clave especial (ver verificarAccesoEspecial),
+  // si aplicó. Se guarda junto con el movimiento de historial.
+  final String usuarioAutoriza;
 
-  const AjusteStockDialog({super.key, required this.producto});
+  const AjusteStockDialog({super.key, required this.producto, this.usuarioAutoriza = ''});
 
   @override
   ConsumerState<AjusteStockDialog> createState() => _AjusteStockDialogState();
@@ -60,6 +63,7 @@ class _AjusteStockDialogState extends ConsumerState<AjusteStockDialog> {
         usuario: usuario?.nombreCompleto ?? 'Sistema',
         motivo: _motivoController.text.trim(),
         costoUnitario: costoUnitario,
+        usuarioAutoriza: widget.usuarioAutoriza,
       );
       if (mounted) Navigator.pop(context);
     } catch (e) {

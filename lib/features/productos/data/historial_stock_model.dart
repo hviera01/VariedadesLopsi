@@ -7,6 +7,9 @@ class HistorialStockModel {
   final DateTime? fecha;
   final String usuario;
   final String motivo;
+  // Usuario que autorizó el ajuste con la clave especial (ver
+  // verificarAccesoEspecial), cuando aplicó. Vacío si no hizo falta.
+  final String usuarioAutoriza;
 
   HistorialStockModel({
     required this.id,
@@ -15,6 +18,7 @@ class HistorialStockModel {
     required this.fecha,
     required this.usuario,
     required this.motivo,
+    this.usuarioAutoriza = '',
   });
 
   factory HistorialStockModel.fromMap(String id, Map<String, dynamic> data) {
@@ -25,6 +29,7 @@ class HistorialStockModel {
       fecha: (data['fecha'] as Timestamp?)?.toDate(),
       usuario: data['usuario'] ?? '',
       motivo: data['motivo'] ?? '',
+      usuarioAutoriza: data['usuarioAutoriza'] ?? '',
     );
   }
 }

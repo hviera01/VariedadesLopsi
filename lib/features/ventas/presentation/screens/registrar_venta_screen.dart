@@ -651,9 +651,9 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       _mostrarMensaje('Precio inválido');
       return;
     }
-    final autorizado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.ventasCambiarPrecio);
+    final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.ventasCambiarPrecio);
     if (!mounted) return;
-    if (!autorizado) {
+    if (!resultado.autorizado) {
       // Revierte el campo al precio actual: el usuario ya había escrito el
       // nuevo valor en el TextField antes de que se pidiera la clave.
       final carrito = ref.read(carritoVentaProvider);
@@ -661,6 +661,9 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
         _ctrlPrecio[index]?.text = carrito.items[index].precioVenta.toStringAsFixed(2);
       }
       return;
+    }
+    if (resultado.usuarioAutoriza.isNotEmpty) {
+      ref.read(carritoVentaProvider.notifier).establecerUsuarioAutorizaPrecio(resultado.usuarioAutoriza);
     }
     ref.read(carritoVentaProvider.notifier).actualizarLinea(index, precioNuevo: nuevoPrecio);
   }
@@ -2064,8 +2067,8 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
       if (negocio.tienePermiso(PermisosEspeciales.ventasEditarDescripcion)) {
         if (!mounted) return;
-        final permitido = await verificarAccesoEspecial(context, ref, PermisosEspeciales.ventasEditarDescripcion);
-        if (!permitido) {
+        final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.ventasEditarDescripcion);
+        if (!resultado.autorizado) {
           ctrl.text = nombreActual;
           return;
         }

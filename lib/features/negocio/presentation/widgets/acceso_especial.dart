@@ -5,32 +5,59 @@ import '../../data/negocio_repository.dart';
 import '../../providers/negocio_provider.dart';
 import '../../../../core/constants/roles.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../usuarios/data/usuario_model.dart';
+import '../../../usuarios/providers/usuarios_provider.dart';
+
+/// Resultado de [verificarAccesoEspecial]: si quedó autorizado y, cuando
+/// aplica, qué usuario del sistema asumió la responsabilidad de autorizar
+/// (igual que el "usuario responsable" del sistema viejo — no es
+/// necesariamente quien está logueado, es a quien el cajero le pidió el
+/// visto bueno).
+class ResultadoAccesoEspecial {
+  final bool autorizado;
+  final String usuarioAutoriza;
+
+  const ResultadoAccesoEspecial({required this.autorizado, this.usuarioAutoriza = ''});
+}
 
 /// Si el permiso [permisoKey] está activado y hay una clave especial configurada,
-/// pide la clave antes de continuar. Si no está activado (o no hay clave configurada),
-/// retorna true de inmediato sin mostrar nada. El Administrador nunca la pide: es el
-/// único rol que puede hacer todo sin restricciones.
-Future<bool> verificarAccesoEspecial(BuildContext context, WidgetRef ref, String permisoKey) async {
-  if (ref.read(authProvider).usuario?.rol == Roles.administrador) return true;
+/// pide la clave y quién autoriza antes de continuar. Si no está activado (o no hay
+/// clave configurada), retorna autorizado de inmediato sin mostrar nada, con el
+/// usuario logueado como responsable implícito. El Administrador nunca la pide: es
+/// el único rol que puede hacer todo sin restricciones.
+Future<ResultadoAccesoEspecial> verificarAccesoEspecial(BuildContext context, WidgetRef ref, String permisoKey) async {
+  final usuarioLogueado = ref.read(authProvider).usuario;
+  if (usuarioLogueado?.rol == Roles.administrador) {
+    return ResultadoAccesoEspecial(autorizado: true, usuarioAutoriza: usuarioLogueado?.nombreCompleto ?? '');
+  }
   final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
   if (!negocio.tieneClaveEspecial || !negocio.tienePermiso(permisoKey)) {
-    return true;
+    return ResultadoAccesoEspecial(autorizado: true, usuarioAutoriza: usuarioLogueado?.nombreCompleto ?? '');
   }
-  if (!context.mounted) return false;
+  if (!context.mounted) return const ResultadoAccesoEspecial(autorizado: false);
   final repo = ref.read(negocioRepositoryProvider);
-  final ok = await showDialog<bool>(
+  final usuarios = await ref.read(usuariosStreamProvider.future);
+  if (!context.mounted) return const ResultadoAccesoEspecial(autorizado: false);
+  final resultado = await showDialog<ResultadoAccesoEspecial>(
     context: context,
     barrierDismissible: false,
-    builder: (context) => _ClaveEspecialDialog(hashEsperado: negocio.claveEspecialHash, repo: repo),
+    builder: (context) => _ClaveEspecialDialog(
+      hashEsperado: negocio.claveEspecialHash,
+      repo: repo,
+      usuarios: usuarios.where((u) => u.estado).toList(),
+      usuarioLogueadoId: usuarioLogueado?.id,
+    ),
   );
-  return ok ?? false;
+  return resultado ?? const ResultadoAccesoEspecial(autorizado: false);
 }
 
 class _ClaveEspecialDialog extends StatefulWidget {
   final String hashEsperado;
   final NegocioRepository repo;
+  final List<UsuarioModel> usuarios;
+  final String? usuarioLogueadoId;
 
-  const _ClaveEspecialDialog({required this.hashEsperado, required this.repo});
+  const _ClaveEspecialDialog({required this.hashEsperado, required this.repo, required this.usuarios, this.usuarioLogueadoId});
 
   @override
   State<_ClaveEspecialDialog> createState() => _ClaveEspecialDialogState();
@@ -39,6 +66,20 @@ class _ClaveEspecialDialog extends StatefulWidget {
 class _ClaveEspecialDialogState extends State<_ClaveEspecialDialog> {
   final _controller = TextEditingController();
   String? _error;
+  String? _usuarioSeleccionadoId;
+
+  @override
+  void initState() {
+    super.initState();
+    // Preselecciona al usuario que está logueado en la caja, si está en la
+    // lista de usuarios activos — el cajero solo tiene que cambiarlo si
+    // realmente es OTRA persona quien está autorizando.
+    if (widget.usuarios.any((u) => u.id == widget.usuarioLogueadoId)) {
+      _usuarioSeleccionadoId = widget.usuarioLogueadoId;
+    } else if (widget.usuarios.isNotEmpty) {
+      _usuarioSeleccionadoId = widget.usuarios.first.id;
+    }
+  }
 
   @override
   void dispose() {
@@ -47,6 +88,10 @@ class _ClaveEspecialDialogState extends State<_ClaveEspecialDialog> {
   }
 
   void _confirmar() {
+    if (_usuarioSeleccionadoId == null) {
+      setState(() => _error = 'Seleccioná quién autoriza');
+      return;
+    }
     final clave = _controller.text;
     if (clave.isEmpty) {
       setState(() => _error = 'Ingresá la clave');
@@ -60,7 +105,8 @@ class _ClaveEspecialDialogState extends State<_ClaveEspecialDialog> {
       });
       return;
     }
-    Navigator.pop(context, true);
+    final nombreResponsable = widget.usuarios.firstWhere((u) => u.id == _usuarioSeleccionadoId).nombreCompleto;
+    Navigator.pop(context, ResultadoAccesoEspecial(autorizado: true, usuarioAutoriza: nombreResponsable));
   }
 
   @override
@@ -92,8 +138,23 @@ class _ClaveEspecialDialogState extends State<_ClaveEspecialDialog> {
               ],
             ),
             const SizedBox(height: 8),
-            Text('Esta acción está protegida. Ingresá la clave especial para continuar.', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600)),
+            Text('Esta acción está protegida. Seleccioná quién autoriza e ingresá la clave especial para continuar.', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600)),
             const SizedBox(height: 18),
+            DropdownButtonFormField<String>(
+              initialValue: _usuarioSeleccionadoId,
+              isExpanded: true,
+              style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF1A1A1A)),
+              decoration: InputDecoration(
+                hintText: '¿Quién autoriza?',
+                filled: true,
+                fillColor: const Color(0xFFE8EAF0),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
+              items: widget.usuarios.map((u) => DropdownMenuItem(value: u.id, child: Text(u.nombreCompleto, overflow: TextOverflow.ellipsis))).toList(),
+              onChanged: (v) => setState(() => _usuarioSeleccionadoId = v),
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _controller,
               autofocus: true,
@@ -115,7 +176,7 @@ class _ClaveEspecialDialogState extends State<_ClaveEspecialDialog> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context, false),
+                    onPressed: () => Navigator.pop(context, null),
                     style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF1A1A1A), side: const BorderSide(color: Color(0xFFB6BCC7)), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     child: Text('Cancelar', style: GoogleFonts.poppins(fontSize: 13.5)),
                   ),

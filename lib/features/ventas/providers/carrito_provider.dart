@@ -54,6 +54,11 @@ class CarritoVentaState {
   // Desglose cuando metodoPago == 'Mixto' (ver PagoMixtoDialog). Vacío en
   // cualquier otro método.
   final List<PagoDetalle> pagosMixtos;
+  // Nombre del usuario que autorizó el último cambio de precio de esta venta
+  // (clave especial + selector de "quién autoriza", ver verificarAccesoEspecial).
+  // Igual que Venta.UsuarioAutorizaPrecio del sistema viejo: queda vacío si
+  // nunca hizo falta pedir autorización (ej. la cambió el Administrador).
+  final String usuarioAutorizaPrecio;
 
   CarritoVentaState({
     this.idEnEspera,
@@ -72,6 +77,7 @@ class CarritoVentaState {
     this.cambio = 0,
     this.descuentoGlobalPorcentaje = 0,
     this.pagosMixtos = const [],
+    this.usuarioAutorizaPrecio = '',
   }) : fecha = fecha ?? DateTime.now();
 
   bool get esCotizacion => tipoDocumento == 'Cotizacion';
@@ -130,6 +136,7 @@ class CarritoVentaState {
     double? cambio,
     double? descuentoGlobalPorcentaje,
     List<PagoDetalle>? pagosMixtos,
+    String? usuarioAutorizaPrecio,
   }) {
     return CarritoVentaState(
       idEnEspera: idEnEspera == _sinCambio ? this.idEnEspera : idEnEspera as String?,
@@ -148,6 +155,7 @@ class CarritoVentaState {
       cambio: cambio ?? this.cambio,
       descuentoGlobalPorcentaje: descuentoGlobalPorcentaje ?? this.descuentoGlobalPorcentaje,
       pagosMixtos: pagosMixtos ?? this.pagosMixtos,
+      usuarioAutorizaPrecio: usuarioAutorizaPrecio ?? this.usuarioAutorizaPrecio,
     );
   }
 }
@@ -260,6 +268,7 @@ class CarritoVentaNotifier extends Notifier<CarritoVentaState> {
   void establecerPago({required double pagoCon, required double cambio}) {
     state = state.copyWith(pagoCon: pagoCon, cambio: cambio);
   }
+  void establecerUsuarioAutorizaPrecio(String v) => state = state.copyWith(usuarioAutorizaPrecio: v);
   void cargarSesion(VentaEnEsperaModel sesion) {
     state = CarritoVentaState(
       idEnEspera: sesion.id,

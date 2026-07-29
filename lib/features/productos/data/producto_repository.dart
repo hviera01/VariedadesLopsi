@@ -236,6 +236,7 @@ class ProductoRepository {
     required String usuario,
     String motivo = '',
     double? costoUnitario,
+    String usuarioAutoriza = '',
   }) async {
     final ref = _col.doc(id);
     final lotes = LoteCostoRepository();
@@ -260,6 +261,7 @@ class ProductoRepository {
         'stockNuevo': stockNuevo,
         'usuario': usuario,
         'motivo': motivo,
+        'usuarioAutoriza': usuarioAutoriza,
         'fecha': FieldValue.serverTimestamp(),
       });
 
