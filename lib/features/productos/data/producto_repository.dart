@@ -40,6 +40,7 @@ class ProductoRepository {
     required double precioVenta,
     required double precioVenta2,
     required double precioVenta3,
+    double precioPuntos = 0,
     required bool estado,
   }) async {
     var codigoFinal = codigo.trim();
@@ -62,6 +63,7 @@ class ProductoRepository {
       'precioVenta': precioVenta,
       'precioVenta2': precioVenta2,
       'precioVenta3': precioVenta3,
+      'precioPuntos': precioPuntos,
       'estado': estado,
       'fechaRegistro': FieldValue.serverTimestamp(),
     });
@@ -92,6 +94,7 @@ class ProductoRepository {
       precioVenta: precioVenta,
       precioVenta2: precioVenta2,
       precioVenta3: precioVenta3,
+      precioPuntos: precioPuntos,
       estado: estado,
     );
   }
@@ -107,6 +110,7 @@ class ProductoRepository {
     required double precioVenta,
     required double precioVenta2,
     required double precioVenta3,
+    double precioPuntos = 0,
     required bool estado,
   }) async {
     final codigoFinal = codigo.trim().isEmpty ? _generarCodigo() : codigo.trim();
@@ -125,6 +129,7 @@ class ProductoRepository {
       'precioVenta': precioVenta,
       'precioVenta2': precioVenta2,
       'precioVenta3': precioVenta3,
+      'precioPuntos': precioPuntos,
       'estado': estado,
     });
   }

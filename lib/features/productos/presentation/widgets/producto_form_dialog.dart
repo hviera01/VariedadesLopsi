@@ -26,6 +26,7 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
   final _precioVentaController = TextEditingController(text: '0');
   final _precioVenta2Controller = TextEditingController();
   final _precioVenta3Controller = TextEditingController();
+  final _precioPuntosController = TextEditingController();
   // Sin `autofocus`: en Windows, pedir el foco durante el primer build (que
   // es lo que hace `autofocus`) compite con la animación de apertura del
   // Dialog y se pierde la primera tecla que se escribe. Pidiéndolo a mano
@@ -54,7 +55,8 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
       _precioVentaController.text = p.precioVenta.toString();
       if (p.precioVenta2 > 0) _precioVenta2Controller.text = p.precioVenta2.toString();
       if (p.precioVenta3 > 0) _precioVenta3Controller.text = p.precioVenta3.toString();
-      _mostrarNivelesExtra = p.precioVenta2 > 0 || p.precioVenta3 > 0;
+      if (p.precioPuntos > 0) _precioPuntosController.text = p.precioPuntos.toString();
+      _mostrarNivelesExtra = p.precioVenta2 > 0 || p.precioVenta3 > 0 || p.precioPuntos > 0;
       _idCategoria = p.idCategoria;
       _activo = p.estado;
     }
@@ -74,6 +76,7 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
     _precioVentaController.dispose();
     _precioVenta2Controller.dispose();
     _precioVenta3Controller.dispose();
+    _precioPuntosController.dispose();
     _focusNombre.dispose();
     super.dispose();
   }
@@ -112,6 +115,7 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
               precioVenta: _parseDouble(_precioVentaController.text),
               precioVenta2: _parseDouble(_precioVenta2Controller.text),
               precioVenta3: _parseDouble(_precioVenta3Controller.text),
+              precioPuntos: _parseDouble(_precioPuntosController.text),
               estado: _activo,
             )
             .timeout(const Duration(seconds: 12)),
@@ -140,6 +144,7 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
               precioVenta: _parseDouble(_precioVentaController.text),
               precioVenta2: _parseDouble(_precioVenta2Controller.text),
               precioVenta3: _parseDouble(_precioVenta3Controller.text),
+              precioPuntos: _parseDouble(_precioPuntosController.text),
               estado: _activo,
             )
             .timeout(const Duration(seconds: 12));
@@ -371,6 +376,13 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _precioPuntosController,
+                        keyboardType: TextInputType.number,
+                        style: GoogleFonts.poppins(fontSize: 14),
+                        decoration: _decoracion('Precio en puntos (para Canje)'),
                       ),
                     ],
                     const SizedBox(height: 14),

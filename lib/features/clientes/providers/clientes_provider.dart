@@ -1,11 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/cliente_repository.dart';
 import '../data/cliente_model.dart';
+import '../data/movimiento_puntos_model.dart';
 
 final clienteRepositoryProvider = Provider((ref) => ClienteRepository());
 
 final clientesStreamProvider = StreamProvider<List<ClienteModel>>((ref) {
   return ref.watch(clienteRepositoryProvider).obtenerClientes();
+});
+
+final movimientosPuntosProvider = StreamProvider.family<List<MovimientoPuntosModel>, String>((ref, idCliente) {
+  return ref.watch(clienteRepositoryProvider).obtenerMovimientosPuntos(idCliente);
 });
 
 class ClientesBusquedaNotifier extends Notifier<String> {
