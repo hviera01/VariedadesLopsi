@@ -143,7 +143,11 @@ class CarritoCompraNotifier extends Notifier<CarritoCompraState> {
   }
 
   void establecerMetodoPago(String v) => state = state.copyWith(metodoPago: v);
-  void establecerFecha(DateTime v) => state = state.copyWith(fecha: v);
+
+  /// Al cambiar la fecha de registro, la fecha de vencimiento del crédito se
+  /// recalcula sola a 30 días de esa fecha (no de "hoy"), para que quede
+  /// consistente con lo que el usuario acaba de elegir.
+  void establecerFecha(DateTime v) => state = state.copyWith(fecha: v, fechaVencimiento: v.add(const Duration(days: 30)));
   void establecerFechaVencimiento(DateTime v) => state = state.copyWith(fechaVencimiento: v);
   void establecerDescuentoGlobal(double v) => state = state.copyWith(descuentoGlobalPorcentaje: v);
   void establecerIsv(double v) => state = state.copyWith(isvPorcentaje: v);
