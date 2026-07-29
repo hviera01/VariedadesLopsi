@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'dart:typed_data';
 import 'package:excel/excel.dart' as xls;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -17,6 +18,31 @@ class VentaExportService {
   static const _colorGrisTexto = PdfColor.fromInt(0xFF4B4F58);
   static const _colorGrisClaro = PdfColor.fromInt(0xFFF2F3F7);
   static const _colorBorde = PdfColor.fromInt(0xFFE0E2E8);
+
+  // Íconos del ticket (pulgar arriba junto al nombre, WhatsApp y redes
+  // sociales): son assets fijos del paquete, no vienen de Firestore como el
+  // logo del negocio, así que se cargan una sola vez con rootBundle y quedan
+  // en cache en memoria para el resto de la sesión.
+  static final Map<String, pw.MemoryImage> _cacheIconosTicket = {};
+
+  Future<pw.MemoryImage> _cargarIconoTicket(String ruta) async {
+    final cacheado = _cacheIconosTicket[ruta];
+    if (cacheado != null) return cacheado;
+    final data = await rootBundle.load(ruta);
+    final imagen = pw.MemoryImage(data.buffer.asUint8List());
+    _cacheIconosTicket[ruta] = imagen;
+    return imagen;
+  }
+
+  Future<Map<String, pw.MemoryImage>> _cargarIconosTicket() async {
+    return {
+      'pulgar': await _cargarIconoTicket('assets/images/icono_pulgar.png'),
+      'whatsapp': await _cargarIconoTicket('assets/images/icono_whatsapp.png'),
+      'facebook': await _cargarIconoTicket('assets/images/icono_facebook.png'),
+      'instagram': await _cargarIconoTicket('assets/images/icono_instagram.png'),
+      'tiktok': await _cargarIconoTicket('assets/images/icono_tiktok.png'),
+    };
+  }
 
   /// PDF formal en tamaño carta, pensado para descargar/compartir/archivar
   /// (distinto al ticket térmico de 80mm que se usa para imprimir en punto
@@ -339,16 +365,17 @@ class VentaExportService {
     // imprime más grande (ver _construirPaginaTicket), y con la resolución
     // chica que alcanza para un logo de cabecera normal se vería borroso.
     final logo = decodificarLogoPdf(negocio.logoBnBase64, maxDimension: 400);
+    final iconos = await _cargarIconosTicket();
     final anchoMm = _anchoValidoDesdeFormato(formatoImpresora);
 
     if (forzarCopia != null) {
-      doc.addPage(_construirPaginaTicket(venta, negocio, logo, esCopia: forzarCopia, anchoMm: anchoMm));
+      doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: forzarCopia, anchoMm: anchoMm));
       return doc.save();
     }
 
-    doc.addPage(_construirPaginaTicket(venta, negocio, logo, esCopia: false, anchoMm: anchoMm));
+    doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: false, anchoMm: anchoMm));
     if (negocio.facturaImprimirCopia) {
-      doc.addPage(_construirPaginaTicket(venta, negocio, logo, esCopia: true, anchoMm: anchoMm));
+      doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: true, anchoMm: anchoMm));
     }
     return doc.save();
   }
@@ -373,7 +400,7 @@ class VentaExportService {
   // que realmente va a imprimirse (ver _estimarAlturaTicketMm) en vez de un
   // valor fijo enorme: con una altura fija muy por encima de lo real, la
   // vista previa quedaba con un espacio en blanco gigante al final.
-  pw.Page _construirPaginaTicket(VentaModel venta, NegocioModel negocio, pw.MemoryImage? logo, {required bool esCopia, double? anchoMm}) {
+  pw.Page _construirPaginaTicket(VentaModel venta, NegocioModel negocio, pw.MemoryImage? logo, Map<String, pw.MemoryImage> iconos, {required bool esCopia, double? anchoMm}) {
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
     final formatoDia = DateFormat('dd/MM/yyyy');
     const fSmall = 7.5;
@@ -428,20 +455,78 @@ class VentaExportService {
             // limitaba el alto a 50pt.
             if (logo != null) pw.Center(child: pw.Image(logo, width: 140)),
             if (negocio.nombre.isNotEmpty)
-              pw.Center(child: pw.Text(negocio.nombre.toUpperCase(), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold))),
+              pw.Center(
+                child: pw.Row(
+                  mainAxisSize: pw.MainAxisSize.min,
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Text(negocio.nombre.toUpperCase(), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                    pw.SizedBox(width: 4),
+                    pw.Image(iconos['pulgar']!, height: 12),
+                  ],
+                ),
+              ),
             if (negocio.eslogan.isNotEmpty)
               pw.Center(child: pw.Text(negocio.eslogan, style: const pw.TextStyle(fontSize: 9))),
             if (negocio.direccion.isNotEmpty)
               pw.Center(child: pw.Text('Dirección: ${negocio.direccion}', style: const pw.TextStyle(fontSize: fSmall), textAlign: pw.TextAlign.center)),
             if (negocio.rtn.isNotEmpty) pw.Center(child: pw.Text('RTN: ${negocio.rtn}', style: const pw.TextStyle(fontSize: fSmall))),
-            if (negocio.telefono.isNotEmpty) pw.Center(child: pw.Text('Tel: ${negocio.telefono}', style: const pw.TextStyle(fontSize: fSmall))),
+            if (negocio.telefono.isNotEmpty)
+              pw.Center(
+                child: pw.Row(
+                  mainAxisSize: pw.MainAxisSize.min,
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Image(iconos['whatsapp']!, height: 9),
+                    pw.SizedBox(width: 3),
+                    pw.Text('WhatsApp: ${negocio.telefono}', style: const pw.TextStyle(fontSize: fSmall)),
+                  ],
+                ),
+              ),
             if (negocio.correo.isNotEmpty) pw.Center(child: pw.Text('Email: ${negocio.correo}', style: const pw.TextStyle(fontSize: fSmall))),
             if (esFacturable && negocio.cai.isNotEmpty) pw.Center(child: pw.Text('CAI: ${negocio.cai}', style: const pw.TextStyle(fontSize: fSmall))),
+            pw.SizedBox(height: 3),
+            pw.Center(child: pw.Text('Síguenos en nuestras redes sociales:', style: const pw.TextStyle(fontSize: fSmall))),
+            pw.Center(
+              child: pw.Row(
+                mainAxisSize: pw.MainAxisSize.min,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Image(iconos['facebook']!, height: 9),
+                  pw.SizedBox(width: 3),
+                  pw.Text('Facebook: Variedades LOPSI', style: const pw.TextStyle(fontSize: fSmall)),
+                ],
+              ),
+            ),
+            pw.Center(
+              child: pw.Row(
+                mainAxisSize: pw.MainAxisSize.min,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Image(iconos['instagram']!, height: 9),
+                  pw.SizedBox(width: 3),
+                  pw.Text('Instagram: @variedadeslopsi', style: const pw.TextStyle(fontSize: fSmall)),
+                ],
+              ),
+            ),
+            pw.Center(
+              child: pw.Row(
+                mainAxisSize: pw.MainAxisSize.min,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Image(iconos['tiktok']!, height: 9),
+                  pw.SizedBox(width: 3),
+                  pw.Text('TikTok: @variedades.lopsi', style: const pw.TextStyle(fontSize: fSmall)),
+                ],
+              ),
+            ),
             pw.SizedBox(height: 6),
             _separador(),
             pw.Text('${(tiposDocumento[venta.tipoDocumento] ?? venta.tipoDocumento).toUpperCase()} ${negocio.rangoPrefijo}${venta.numeroDocumento}', style: const pw.TextStyle(fontSize: fNormal)),
             pw.Text('Fecha: ${venta.fechaRegistro != null ? formatoFecha.format(venta.fechaRegistro!) : '-'}', style: const pw.TextStyle(fontSize: fNormal)),
             pw.Text('Atendido por: ${venta.usuarioRegistro}', style: const pw.TextStyle(fontSize: fNormal)),
+            if (venta.usuarioAutorizaPrecio.isNotEmpty)
+              pw.Text('Autorizó cambio de precio: ${venta.usuarioAutorizaPrecio}', style: const pw.TextStyle(fontSize: fSmall)),
             pw.Text('Condición: ${venta.condicion}', style: const pw.TextStyle(fontSize: fNormal)),
             if (venta.condicion == 'Credito' && venta.fechaVencimiento != null)
               pw.Text('Fecha de vencimiento: ${formatoDia.format(venta.fechaVencimiento!)}', style: const pw.TextStyle(fontSize: fNormal)),
@@ -570,8 +655,12 @@ class VentaExportService {
     if (negocio.telefono.isNotEmpty) alto += 6.0;
     if (negocio.correo.isNotEmpty) alto += 6.0;
     if (negocio.cai.isNotEmpty) alto += 6.0;
+    // Bloque fijo de redes sociales (encabezado + Facebook/Instagram/TikTok),
+    // siempre se imprime, no depende de datos del negocio.
+    alto += 24.0;
 
     if (venta.condicion == 'Credito' && venta.fechaVencimiento != null) alto += 6.0;
+    if (venta.usuarioAutorizaPrecio.isNotEmpty) alto += 6.0;
     if (venta.oc.isNotEmpty) alto += 6.0;
     if (venta.regExonerado.isNotEmpty) alto += 6.0;
     if (venta.regSag.isNotEmpty) alto += 6.0;

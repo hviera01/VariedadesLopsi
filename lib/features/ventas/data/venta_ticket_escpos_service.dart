@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
 import 'venta_model.dart';
 import 'numero_a_letras.dart';
@@ -11,11 +14,39 @@ import '../../negocio/data/negocio_model.dart';
 /// directo a una impresora de red (ImpresoraRedService) en vez de un PDF —
 /// es la vía de impresión que funciona desde el celular.
 class VentaTicketEscPosService {
+  // Ícono de "pulgar arriba" fijo del paquete (no viene de Firestore como el
+  // logo del negocio), se decodifica una sola vez y queda en cache.
+  static img.Image? _cacheIconoPulgar;
+
+  Future<img.Image> _cargarIconoPulgar() async {
+    final cacheado = _cacheIconoPulgar;
+    if (cacheado != null) return cacheado;
+    final data = await rootBundle.load('assets/images/icono_pulgar.png');
+    final decodificado = img.decodeImage(data.buffer.asUint8List())!;
+    // A resolución completa (256x256) el ícono queda enorme en el rollo
+    // térmico; se reduce a un alto chico, similar al de la versión PDF.
+    final chico = img.copyResize(decodificado, height: 60);
+    _cacheIconoPulgar = chico;
+    return chico;
+  }
+
   Future<List<int>> generarTicket(VentaModel venta, NegocioModel negocio) async {
     final perfil = await CapabilityProfile.load();
     final generador = Generator(PaperSize.mm80, perfil);
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
     final formatoDia = DateFormat('dd/MM/yyyy');
+    final iconoPulgar = await _cargarIconoPulgar();
+    // El logo del negocio (base64, igual que en el PDF) no se imprimía nunca
+    // acá — a diferencia de generarPdfFactura, que sí lo incluye.
+    img.Image? logo;
+    if (negocio.logoBnBase64.isNotEmpty) {
+      try {
+        final decodificado = img.decodeImage(base64Decode(negocio.logoBnBase64));
+        if (decodificado != null) logo = img.copyResize(decodificado, width: decodificado.width >= decodificado.height ? 300 : null, height: decodificado.height > decodificado.width ? 300 : null);
+      } catch (_) {
+        logo = null;
+      }
+    }
     // Todo lo fiscal (CAI, rango autorizado, desglose de ISV, leyenda legal)
     // solo tiene sentido en una Factura/Boleta formal. Una Venta normal (la
     // que usa este negocio siempre) es un comprobante simple, sin nada de
@@ -32,19 +63,32 @@ class VentaTicketEscPosService {
     List<int> bytes = [];
     bytes += generador.reset();
 
+    if (logo != null) bytes += generador.image(logo, align: PosAlign.center);
     if (negocio.nombre.isNotEmpty) {
       bytes += generador.text(negocio.nombre.toUpperCase(), styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2));
     }
+    // Ícono de "pulgar arriba" junto al nombre del negocio, igual que el
+    // sistema viejo — ESC/POS no permite combinar texto e imagen en el mismo
+    // renglón, así que se imprime chico e inmediatamente debajo del nombre.
+    bytes += generador.image(iconoPulgar, align: PosAlign.center);
     if (negocio.eslogan.isNotEmpty) bytes += generador.text(negocio.eslogan, styles: const PosStyles(align: PosAlign.center));
     if (negocio.direccion.isNotEmpty) bytes += generador.text('Dirección: ${negocio.direccion}', styles: const PosStyles(align: PosAlign.center));
     if (negocio.rtn.isNotEmpty) bytes += generador.text('RTN: ${negocio.rtn}', styles: const PosStyles(align: PosAlign.center));
-    if (negocio.telefono.isNotEmpty) bytes += generador.text('Tel: ${negocio.telefono}', styles: const PosStyles(align: PosAlign.center));
+    if (negocio.telefono.isNotEmpty) bytes += generador.text('WhatsApp: ${negocio.telefono}', styles: const PosStyles(align: PosAlign.center));
+    if (negocio.correo.isNotEmpty) bytes += generador.text('Email: ${negocio.correo}', styles: const PosStyles(align: PosAlign.center));
     if (esFacturable && negocio.cai.isNotEmpty) bytes += generador.text('CAI: ${negocio.cai}', styles: const PosStyles(align: PosAlign.center));
+    bytes += generador.text('Síguenos en nuestras redes sociales:', styles: const PosStyles(align: PosAlign.center));
+    bytes += generador.text('Facebook: Variedades LOPSI', styles: const PosStyles(align: PosAlign.center));
+    bytes += generador.text('Instagram: @variedadeslopsi', styles: const PosStyles(align: PosAlign.center));
+    bytes += generador.text('TikTok: @variedades.lopsi', styles: const PosStyles(align: PosAlign.center));
     bytes += generador.hr();
 
     bytes += generador.text('${(tiposDocumento[venta.tipoDocumento] ?? venta.tipoDocumento).toUpperCase()} ${negocio.rangoPrefijo}${venta.numeroDocumento}', styles: const PosStyles(bold: true));
     bytes += generador.text('Fecha: ${venta.fechaRegistro != null ? formatoFecha.format(venta.fechaRegistro!) : '-'}');
     bytes += generador.text('Atendido por: ${venta.usuarioRegistro}');
+    if (venta.usuarioAutorizaPrecio.isNotEmpty) {
+      bytes += generador.text('Autorizó cambio de precio: ${venta.usuarioAutorizaPrecio}');
+    }
     bytes += generador.text('Condición: ${venta.condicion}');
     if (venta.condicion == 'Credito' && venta.fechaVencimiento != null) {
       bytes += generador.text('Fecha de vencimiento: ${formatoDia.format(venta.fechaVencimiento!)}');

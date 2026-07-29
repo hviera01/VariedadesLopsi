@@ -94,6 +94,11 @@ flutter:
     - assets/images/logo.png
     - assets/images/logo_redondo.png
     - assets/images/fondo.jpg
+    - assets/images/icono_pulgar.png
+    - assets/images/icono_whatsapp.png
+    - assets/images/icono_facebook.png
+    - assets/images/icono_instagram.png
+    - assets/images/icono_tiktok.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
