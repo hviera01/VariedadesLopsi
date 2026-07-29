@@ -116,17 +116,17 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
 
   Future<void> _abrirFormulario([ProductoModel? producto]) async {
     if (producto != null) {
-      final autorizado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.inventarioEditarProducto);
-      if (!autorizado || !mounted) return;
+      final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.inventarioEditarProducto);
+      if (!resultado.autorizado || !mounted) return;
     }
     if (!mounted) return;
     showDialog(context: context, builder: (context) => ProductoFormDialog(producto: producto));
   }
 
   Future<void> _abrirAjusteStock(ProductoModel producto) async {
-    final autorizado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.inventarioAjustarStock);
-    if (!autorizado || !mounted) return;
-    showDialog(context: context, builder: (context) => AjusteStockDialog(producto: producto));
+    final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.inventarioAjustarStock);
+    if (!resultado.autorizado || !mounted) return;
+    showDialog(context: context, builder: (context) => AjusteStockDialog(producto: producto, usuarioAutoriza: resultado.usuarioAutoriza));
   }
 
   void _abrirHistorial(ProductoModel producto) {
@@ -498,46 +498,49 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                     },
                     child: Container(
                       color: seleccionada ? const Color(0xFFFBEAEA) : Colors.white,
-                      // Alto fijo en vez de IntrinsicHeight: con alto fijo, Flutter
-                      // no necesita un segundo pase de layout por fila para saber
-                      // cuánto "estirar" cada celda (lo que exigía IntrinsicHeight),
-                      // así que desplazarse por listas largas queda mucho más fluido.
-                      height: 64,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _celdaTabla(flex: 12, child: Text(producto.codigo, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF3F434A)))),
-                          _celdaTabla(flex: 24, child: Text(producto.nombre, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A)))),
-                          if (mostrarDescripcion)
-                            _celdaTabla(flex: 20, child: Text(producto.descripcion.isEmpty ? '-' : producto.descripcion, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600))),
-                          if (mostrarCategoria)
-                            _celdaTabla(flex: 17, child: Text(mapaCategorias[producto.idCategoria] ?? '-', maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF3F434A)))),
-                          _celdaTabla(
-                            flex: 12,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(color: bajoStock ? const Color(0xFFFCE4E4) : const Color(0xFFEFF4FF), borderRadius: BorderRadius.circular(8)),
-                                child: Text(producto.stock.toString(), style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700, color: bajoStock ? const Color(0xFF0F1B3D) : const Color(0xFF3B82F6))),
+                      // Alto mínimo en vez de fijo: el nombre de producto ya no se
+                      // corta con "...", así que la fila necesita poder crecer si el
+                      // nombre ocupa más de una línea. IntrinsicHeight mide ese alto
+                      // real para poder seguir "estirando" (stretch) las demás celdas
+                      // a la misma altura, sin perder el alto mínimo de 64 de antes.
+                      constraints: const BoxConstraints(minHeight: 64),
+                      child: IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _celdaTabla(flex: 12, child: Text(producto.codigo, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF3F434A)))),
+                            _celdaTabla(flex: 24, child: Text(producto.nombre, style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A)))),
+                            if (mostrarDescripcion)
+                              _celdaTabla(flex: 20, child: Text(producto.descripcion.isEmpty ? '-' : producto.descripcion, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600))),
+                            if (mostrarCategoria)
+                              _celdaTabla(flex: 17, child: Text(mapaCategorias[producto.idCategoria] ?? '-', maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF3F434A)))),
+                            _celdaTabla(
+                              flex: 12,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(color: bajoStock ? const Color(0xFFFCE4E4) : const Color(0xFFEFF4FF), borderRadius: BorderRadius.circular(8)),
+                                  child: Text(producto.stock.toString(), style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700, color: bajoStock ? const Color(0xFF0F1B3D) : const Color(0xFF3B82F6))),
+                                ),
                               ),
                             ),
-                          ),
-                          _celdaTabla(flex: 14, child: Text(formatearMoneda(_precioMostrado(producto)), maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF3F434A)))),
-                          _celdaTabla(flex: 14, child: Text(formatearMoneda(producto.precioCompra), maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF3F434A)))),
-                          _celdaTabla(
-                            flex: 11,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                                decoration: BoxDecoration(color: producto.estado ? const Color(0xFFE8F8EE) : Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
-                                child: Text(producto.estado ? 'Activo' : 'Inactivo', maxLines: 1, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: producto.estado ? const Color(0xFF16A34A) : Colors.grey.shade600)),
+                            _celdaTabla(flex: 14, child: Text(formatearMoneda(_precioMostrado(producto)), maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF3F434A)))),
+                            _celdaTabla(flex: 14, child: Text(formatearMoneda(producto.precioCompra), maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF3F434A)))),
+                            _celdaTabla(
+                              flex: 11,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                                  decoration: BoxDecoration(color: producto.estado ? const Color(0xFFE8F8EE) : Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
+                                  child: Text(producto.estado ? 'Activo' : 'Inactivo', maxLines: 1, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: producto.estado ? const Color(0xFF16A34A) : Colors.grey.shade600)),
+                                ),
                               ),
                             ),
-                          ),
-                          _celdaAcciones(producto),
-                        ],
+                            _celdaAcciones(producto),
+                          ],
+                        ),
                       ),
                     ),
                   );
