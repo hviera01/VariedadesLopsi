@@ -572,6 +572,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
               _campoInfo('No. Documento', venta.numeroDocumento),
               _campoInfo('Fecha', venta.fechaRegistro != null ? formatoDia.format(venta.fechaRegistro!) : '-'),
               _campoInfo('Atendido por', venta.usuarioRegistro),
+              if (venta.usuarioAutorizaPrecio.isNotEmpty) _campoInfo('Autorizó cambio de precio', venta.usuarioAutorizaPrecio),
               _campoInfo('Cliente', venta.nombreCliente.isEmpty ? 'CONSUMIDOR FINAL' : venta.nombreCliente),
               _campoInfo('Documento cliente', venta.documentoCliente.isEmpty ? 'N/A' : venta.documentoCliente),
               _campoInfo('Condición', esCredito ? 'Crédito' : 'Contado'),

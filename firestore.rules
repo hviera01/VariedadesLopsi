@@ -45,6 +45,10 @@ service cloud.firestore {
 
     match /clientes/{idCliente} {
       allow read, write: if true;
+
+      match /puntos_movimientos/{idMovimiento} {
+        allow read, write: if true;
+      }
     }
 
     match /proveedores/{idProveedor} {

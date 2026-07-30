@@ -75,6 +75,14 @@ class _PuntosClienteDialogState extends ConsumerState<PuntosClienteDialog> {
     final esMovil = tamano.width < 480;
     final movimientosAsync = ref.watch(movimientosPuntosProvider(widget.cliente.id));
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
+    // El saldo mostrado sale del último movimiento del ledger (ya viene
+    // ordenado por fecha descendente), no de `widget.cliente.saldoPuntos`:
+    // ese es solo la foto de cuando se abrió el diálogo, y quedaba
+    // desactualizado después de aplicar un ajuste sin cerrar y reabrir.
+    final saldoActual = movimientosAsync.maybeWhen(
+      data: (movimientos) => movimientos.isNotEmpty ? movimientos.first.saldoResultante : widget.cliente.saldoPuntos,
+      orElse: () => widget.cliente.saldoPuntos,
+    );
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -117,7 +125,7 @@ class _PuntosClienteDialogState extends ConsumerState<PuntosClienteDialog> {
                 children: [
                   Text('SALDO ACTUAL', style: GoogleFonts.poppins(fontSize: 11, color: Colors.white70, letterSpacing: 1)),
                   const SizedBox(height: 4),
-                  Text(widget.cliente.saldoPuntos.toStringAsFixed(0), style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white)),
+                  Text(saldoActual.toStringAsFixed(0), style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white)),
                 ],
               ),
             ),

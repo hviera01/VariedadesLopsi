@@ -265,6 +265,7 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
                     _celdaHeader('NOMBRE COMPLETO', 3),
                     if (mostrarCorreo) _celdaHeader('CORREO', 3),
                     _celdaHeader('TELÉFONO', 2),
+                    _celdaHeader('PUNTOS', 1),
                     _celdaHeader('ESTADO', 1),
                     const SizedBox(width: 56),
                   ],
@@ -287,6 +288,7 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
                         _celda(3, cliente.nombreCompleto.isEmpty ? '-' : cliente.nombreCompleto),
                         if (mostrarCorreo) _celda(3, cliente.correo.isEmpty ? '-' : cliente.correo, gris: true),
                         _celda(2, cliente.telefono.isEmpty ? '-' : cliente.telefono, gris: true),
+                        Expanded(flex: 1, child: _chipPuntos(cliente)),
                         Expanded(flex: 1, child: _chipEstado(cliente.estado)),
                         SizedBox(width: 56, child: _celdaAcciones(cliente)),
                       ],
@@ -318,6 +320,28 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: peso, color: gris ? Colors.grey.shade600 : const Color(0xFF1A1A1A)),
+        ),
+      ),
+    );
+  }
+
+  Widget _chipPuntos(ClienteModel cliente) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => showDialog(context: context, builder: (context) => PuntosClienteDialog(cliente: cliente)),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(color: const Color(0xFFEFEAFB), borderRadius: BorderRadius.circular(8)),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.stars_rounded, size: 13, color: Color(0xFF6D28D9)),
+              const SizedBox(width: 4),
+              Text(cliente.saldoPuntos.toStringAsFixed(0), style: GoogleFonts.poppins(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF6D28D9))),
+            ],
+          ),
         ),
       ),
     );

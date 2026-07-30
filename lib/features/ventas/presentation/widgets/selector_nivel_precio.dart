@@ -27,12 +27,19 @@ class SelectorNivelPrecio extends StatelessWidget {
           ),
           child: Text(
             texto,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: activo ? Colors.white : const Color(0xFF666A72)),
           ),
         ),
       );
     }
 
+    // Row de tamaño mínimo (hugging content, ~270px): funciona tanto suelto
+    // dentro de un Wrap (ancho no acotado, ver buscar_producto_dialog.dart)
+    // como dentro de un SizedBox de ancho fijo (ver la cabecera de
+    // registrar_venta_screen.dart) — mientras ese SizedBox sea lo bastante
+    // ancho como para no recortarlo.
     return Container(
       height: 50,
       padding: const EdgeInsets.all(3),

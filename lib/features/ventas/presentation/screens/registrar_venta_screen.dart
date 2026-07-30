@@ -1420,7 +1420,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
               ),
               if (carrito.tipoDocumento != 'Canje')
                 SizedBox(
-                  width: esMovil ? double.infinity : 190,
+                  width: esMovil ? double.infinity : 280,
                   child: SelectorNivelPrecio(
                     nivelActivo: carrito.nivelPrecioActivo,
                     onCambiar: (nivel) => ref.read(carritoVentaProvider.notifier).establecerNivelPrecio(nivel),
