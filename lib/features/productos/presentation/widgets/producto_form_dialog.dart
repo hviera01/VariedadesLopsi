@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/producto_model.dart';
+import '../../data/producto_export_service.dart';
 import '../../providers/productos_provider.dart';
 import '../../../categorias/providers/categorias_provider.dart';
+import '../../../negocio/providers/negocio_provider.dart';
 import '../../../../core/widgets/barcode_scanner_screen.dart';
 import '../../../../core/widgets/reintentar_dialog.dart';
+import '../../../../core/widgets/pdf_preview_dialog.dart';
 
 class ProductoFormDialog extends ConsumerStatefulWidget {
   final ProductoModel? producto;
@@ -85,6 +88,71 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
     return double.tryParse(texto.replaceAll(',', '').trim()) ?? 0;
   }
 
+  /// Igual que el sistema viejo: al crear un producto nuevo (no al editar),
+  /// pregunta si se desea imprimir el código de barras y, si acepta, cuántas
+  /// etiquetas.
+  Future<void> _preguntarImprimirCodigoBarras(ProductoModel producto) async {
+    final quiereImprimir = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Imprimir Código de Barras', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+        content: Text('¿Desea imprimir código de barras para este producto?', style: GoogleFonts.poppins(fontSize: 13)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('No', style: GoogleFonts.poppins())),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D)),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Sí', style: GoogleFonts.poppins()),
+          ),
+        ],
+      ),
+    );
+    if (quiereImprimir != true || !mounted) return;
+
+    final cantidadController = TextEditingController(text: '1');
+    final cantidad = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Cantidad a imprimir', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+        content: TextField(
+          controller: cantidadController,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          style: GoogleFonts.poppins(fontSize: 14),
+          decoration: InputDecoration(
+            labelText: '¿Cuántas etiquetas desea imprimir?',
+            labelStyle: GoogleFonts.poppins(fontSize: 12.5),
+            filled: true,
+            fillColor: const Color(0xFFE8EAF0),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancelar', style: GoogleFonts.poppins())),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D)),
+            onPressed: () => Navigator.pop(context, int.tryParse(cantidadController.text.trim())),
+            child: Text('Aceptar', style: GoogleFonts.poppins()),
+          ),
+        ],
+      ),
+    );
+    if (cantidad == null || cantidad <= 0 || !mounted) return;
+
+    final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => PdfPreviewDialog(
+        titulo: 'Código de barras · ${producto.nombre}',
+        nombreArchivo: 'codigo_${producto.codigo}.pdf',
+        generarPdf: () => ProductoExportService().generarPdfCodigoBarras(producto, negocio, cantidad: cantidad),
+      ),
+    );
+  }
+
   Future<void> _guardar() async {
     final nombre = _nombreController.text.trim();
     if (nombre.isEmpty) {
@@ -125,6 +193,8 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
         setState(() => _guardando = false);
         return;
       }
+      await _preguntarImprimirCodigoBarras(creado);
+      if (!mounted) return;
       Navigator.pop(context, creado);
       return;
     }

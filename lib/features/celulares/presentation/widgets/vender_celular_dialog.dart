@@ -79,14 +79,14 @@ class _VenderCelularDialogState extends ConsumerState<VenderCelularDialog> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Nota de Garantía', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
-        content: Text('¿Deseás imprimir la Nota de Garantía de este celular?', style: GoogleFonts.poppins(fontSize: 13)),
+        title: Text('Imprimir garantía', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+        content: Text('¿Deseas imprimir la Nota de Garantía ahora?', style: GoogleFonts.poppins(fontSize: 13)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text('No', style: GoogleFonts.poppins())),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D)),
             onPressed: () => Navigator.pop(context, true),
-            child: Text('Sí, imprimir', style: GoogleFonts.poppins()),
+            child: Text('Sí', style: GoogleFonts.poppins()),
           ),
         ],
       ),

@@ -26,11 +26,18 @@ Future<void> main() async {
           textAlign: TextAlign.center,
         ),
       );
-  // Evita que google_fonts intente descargar variantes de Poppins por red en
-  // cada pantalla nueva (esta app corre en cajas/POS con internet lento o
-  // intermitente) — si la variante no está en caché local, cae al font del
-  // sistema en vez de bloquear la navegación esperando la descarga.
-  GoogleFonts.config.allowRuntimeFetching = false;
+  // OJO: este flag en `false` se agregó para evitar que google_fonts baje
+  // variantes de Poppins por red en cajas con internet lento — la intención
+  // era que, si la variante no está en caché local, cayera al font del
+  // sistema. En la práctica (google_fonts 8.x) no cae con gracia: tira una
+  // excepción no capturada apenas se pide una variante que nunca se
+  // descargó/cacheó antes (por ejemplo, la primera vez que se abre una
+  // pantalla que usa un peso de fuente distinto, o después de limpiar el
+  // caché del navegador en la versión web) — dejando esa pantalla en blanco.
+  // Se deja en `true` (el default del paquete): sí puede pedir la fuente por
+  // red la primera vez, pero una vez bajada queda cacheada localmente y no
+  // vuelve a pedirla — mejor que un crash duro.
+  GoogleFonts.config.allowRuntimeFetching = true;
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

@@ -1,12 +1,24 @@
 import 'dart:typed_data';
 import 'package:excel/excel.dart' as xls;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:barcode/barcode.dart' as bc;
 import 'producto_model.dart';
 import '../../../core/utils/formato_moneda.dart';
+import '../../negocio/data/negocio_model.dart';
 
 class ProductoExportService {
+  static pw.MemoryImage? _cacheIconoPulgar;
+
+  Future<pw.MemoryImage> _cargarIconoPulgar() async {
+    final cacheado = _cacheIconoPulgar;
+    if (cacheado != null) return cacheado;
+    final data = await rootBundle.load('assets/images/icono_pulgar.png');
+    final imagen = pw.MemoryImage(data.buffer.asUint8List());
+    _cacheIconoPulgar = imagen;
+    return imagen;
+  }
   Uint8List generarExcel(List<ProductoModel> lista, Map<String, String> mapaCategorias) {
     final libro = xls.Excel.createExcel();
     final hoja = libro['Inventario'];
@@ -142,35 +154,68 @@ class ProductoExportService {
     return doc.save();
   }
 
-  Future<Uint8List> generarPdfCodigoBarras(ProductoModel producto) async {
+  /// Etiquetas de código de barras, mismo diseño que el sistema viejo
+  /// (`frmProducto.GenerarPrintDocumentCodigoBarras`): página de 3x3
+  /// pulgadas con 3 etiquetas apiladas, cada una con el nombre del negocio +
+  /// el ícono de pulgar arriba, el código de barras, el código en texto, el
+  /// nombre del producto en itálica chica, y un recuadro alrededor de todo.
+  /// [cantidad] es cuántas páginas de 3 etiquetas imprimir (igual que
+  /// "¿Cuántas etiquetas desea imprimir?" del sistema viejo, que en realidad
+  /// pregunta cuántas veces repetir la página de 3).
+  Future<Uint8List> generarPdfCodigoBarras(ProductoModel producto, NegocioModel negocio, {int cantidad = 1}) async {
     final codigo = producto.codigoBarras.isNotEmpty ? producto.codigoBarras : producto.codigo;
+    final iconoPulgar = await _cargarIconoPulgar();
+    final nombreNegocio = negocio.nombre.isEmpty ? 'MI NEGOCIO' : negocio.nombre.toUpperCase();
     final doc = pw.Document();
-    doc.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat(80 * PdfPageFormat.mm, 45 * PdfPageFormat.mm, marginAll: 6),
-        build: (context) {
-          return pw.Center(
-            child: pw.Column(
+
+    pw.Widget etiqueta() {
+      return pw.Container(
+        width: double.infinity,
+        margin: const pw.EdgeInsets.symmetric(vertical: 2),
+        padding: const pw.EdgeInsets.symmetric(vertical: 3, horizontal: 4),
+        decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.75)),
+        child: pw.Column(
+          mainAxisSize: pw.MainAxisSize.min,
+          children: [
+            pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.center,
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
-                pw.Text(
-                  producto.nombre,
-                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
-                  textAlign: pw.TextAlign.center,
-                  maxLines: 2,
-                ),
-                pw.SizedBox(height: 6),
-                pw.BarcodeWidget(barcode: bc.Barcode.code128(), data: codigo, width: 220, height: 60),
-                pw.SizedBox(height: 4),
-                pw.Text(codigo, style: const pw.TextStyle(fontSize: 8)),
-                pw.SizedBox(height: 2),
-                pw.Text(formatearMoneda(producto.precioVenta), style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                pw.Text(nombreNegocio, style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(width: 3),
+                pw.Image(iconoPulgar, height: 10),
               ],
             ),
-          );
-        },
-      ),
-    );
+            pw.SizedBox(height: 3),
+            pw.BarcodeWidget(barcode: bc.Barcode.code128(), data: codigo, width: 180, height: 35, drawText: false),
+            pw.SizedBox(height: 3),
+            pw.Text(codigo, style: const pw.TextStyle(fontSize: 7)),
+            if (producto.nombre.trim().isNotEmpty) ...[
+              pw.SizedBox(height: 3),
+              pw.Text(
+                producto.nombre,
+                style: pw.TextStyle(fontSize: 5, fontStyle: pw.FontStyle.italic),
+                textAlign: pw.TextAlign.center,
+                maxLines: 1,
+                overflow: pw.TextOverflow.clip,
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    for (var i = 0; i < cantidad; i++) {
+      doc.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat(76.2 * PdfPageFormat.mm, 76.2 * PdfPageFormat.mm, marginAll: 10),
+          build: (context) => pw.Column(
+            mainAxisSize: pw.MainAxisSize.min,
+            children: [etiqueta(), etiqueta(), etiqueta()],
+          ),
+        ),
+      );
+    }
     return doc.save();
   }
 }

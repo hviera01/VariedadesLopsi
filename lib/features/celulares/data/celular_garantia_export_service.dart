@@ -11,11 +11,11 @@ import '../../../core/utils/logo_pdf.dart';
 /// dos veces (Original y Copia).
 class CelularGarantiaExportService {
   static const _condiciones = [
-    'No cubre daños por golpes, caídas o líquidos.',
-    'No cubre mal uso o manipulación por terceros no autorizados.',
-    'Aplica solo a defectos de fábrica.',
-    'Debe presentar esta nota de garantía junto con el equipo.',
-    'No cubre accesorios (cargador, cable, funda) salvo que se indique lo contrario.',
+    'Garantía válida por 30 días a partir de la fecha de compra.',
+    'Cubre únicamente desperfectos de fábrica y/o sistema.',
+    'Para hacer efectiva la garantía, el teléfono debe conservar el mismo estado en que salió de la tienda (sin golpes, rayones ni signos de humedad).',
+    'Durante el período de garantía, el cliente deberá revisar y probar el equipo de forma completa en todas sus funciones.',
+    'Una vez vencida la garantía, la empresa no responderá por desperfectos en el software del sistema ni por deterioro, mal funcionamiento o sustitución de las piezas que componen el dispositivo.',
   ];
 
   Future<Uint8List> generarPdfGarantia(CelularModel celular, NegocioModel negocio) async {
@@ -55,38 +55,40 @@ class CelularGarantiaExportService {
             _separador(),
             pw.Center(
               child: pw.Text(
-                'NOTA DE GARANTÍA — ${esCopia ? 'COPIA' : 'ORIGINAL'}',
+                'Nota de Garantía — ${esCopia ? 'Copia' : 'Original'}',
                 style: pw.TextStyle(fontSize: fNormal, fontWeight: pw.FontWeight.bold),
                 textAlign: pw.TextAlign.center,
               ),
             ),
-            pw.Center(child: pw.Text('Vigencia: 30 días desde la fecha de venta', style: const pw.TextStyle(fontSize: fSmall))),
+            pw.Center(child: pw.Text('Vigencia: 30 días', style: const pw.TextStyle(fontSize: fSmall))),
             _separador(),
             _dato('IMEI', celular.imei),
             _dato('Marca', celular.marca),
             _dato('Modelo', celular.modelo),
             _dato('Color', celular.color),
-            _dato('Fecha de venta', celular.fechaVenta != null ? formatoFecha.format(celular.fechaVenta!) : '-'),
+            _dato('Fecha', celular.fechaVenta != null ? formatoFecha.format(celular.fechaVenta!) : '-'),
             _dato('Cliente', celular.nombreClienteFinal.isEmpty ? '-' : celular.nombreClienteFinal),
             _separador(),
-            pw.Text('Condiciones de la garantía:', style: pw.TextStyle(fontSize: fNormal, fontWeight: pw.FontWeight.bold)),
-            pw.SizedBox(height: 3),
+            pw.Text('CONDICIONES DE GARANTÍA', style: pw.TextStyle(fontSize: fNormal, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 6),
             ..._condiciones.map((c) => pw.Padding(
                   padding: const pw.EdgeInsets.only(bottom: 3),
                   child: pw.Row(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('•  ', style: const pw.TextStyle(fontSize: fSmall)),
+                      pw.Text('*  ', style: const pw.TextStyle(fontSize: fSmall)),
                       pw.Expanded(child: pw.Text(c, style: const pw.TextStyle(fontSize: fSmall))),
                     ],
                   ),
                 )),
             pw.SizedBox(height: 18),
-            pw.Center(child: pw.Text('_____________________', style: const pw.TextStyle(fontSize: fNormal))),
-            pw.Center(child: pw.Text('Firma del Cliente', style: const pw.TextStyle(fontSize: fSmall))),
+            pw.Text('Firma Cliente:', style: const pw.TextStyle(fontSize: fSmall)),
+            pw.SizedBox(height: 26),
+            pw.Text('_' * 26, style: const pw.TextStyle(fontSize: fNormal)),
             pw.SizedBox(height: 16),
-            pw.Center(child: pw.Text('_____________________', style: const pw.TextStyle(fontSize: fNormal))),
-            pw.Center(child: pw.Text('Firma del Negocio', style: const pw.TextStyle(fontSize: fSmall))),
+            pw.Text('Firma Negocio:', style: const pw.TextStyle(fontSize: fSmall)),
+            pw.SizedBox(height: 26),
+            pw.Text('_' * 26, style: const pw.TextStyle(fontSize: fNormal)),
             pw.SizedBox(height: 12),
             _separador(),
             pw.Center(child: pw.Text('¡Gracias por confiar en nosotros!', style: pw.TextStyle(fontSize: fNormal, fontWeight: pw.FontWeight.bold))),

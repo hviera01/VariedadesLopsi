@@ -5,6 +5,10 @@ import 'package:intl/intl.dart';
 import '../../data/celular_model.dart';
 import '../../providers/celulares_provider.dart';
 import '../../../../core/utils/texto_utils.dart';
+import '../../data/celular_garantia_export_service.dart';
+import '../../../negocio/data/negocio_model.dart';
+import '../../../negocio/providers/negocio_provider.dart';
+import '../../../../core/widgets/pdf_preview_dialog.dart';
 import '../widgets/celular_form_dialog.dart';
 import '../widgets/vender_celular_dialog.dart';
 import '../widgets/cambiar_estado_celular_dialog.dart';
@@ -52,6 +56,20 @@ class _CelularesScreenState extends ConsumerState<CelularesScreen> {
     showDialog(context: context, builder: (context) => CambiarEstadoCelularDialog(celular: celular, estadoNuevo: estadoNuevo, titulo: titulo));
   }
 
+  Future<void> _reimprimirGarantia(CelularModel celular) async {
+    final negocioActual = ref.read(negocioStreamProvider).value ?? const NegocioModel();
+    final servicio = CelularGarantiaExportService();
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => PdfPreviewDialog(
+        titulo: 'Nota de Garantía · ${celular.codigo}',
+        generarPdf: () => servicio.generarPdfGarantia(celular, negocioActual),
+        nombreArchivo: 'garantia_${celular.codigo}.pdf',
+      ),
+    );
+  }
+
   void _manejarAccion(String valor, CelularModel celular) {
     switch (valor) {
       case 'editar':
@@ -59,6 +77,9 @@ class _CelularesScreenState extends ConsumerState<CelularesScreen> {
         break;
       case 'vender':
         _marcarVendido(celular);
+        break;
+      case 'reimprimir_garantia':
+        _reimprimirGarantia(celular);
         break;
       case 'historial':
         _verHistorial(celular);
@@ -83,6 +104,7 @@ class _CelularesScreenState extends ConsumerState<CelularesScreen> {
     return [
       _opcionMenu(valor: 'editar', icono: Icons.edit_outlined, texto: 'Editar'),
       if (esDisponible) _opcionMenu(valor: 'vender', icono: Icons.sell_outlined, texto: 'Marcar Vendido'),
+      if (celular.estado == EstadoCelular.vendido) _opcionMenu(valor: 'reimprimir_garantia', icono: Icons.print_outlined, texto: 'Reimprimir Garantía'),
       _opcionMenu(valor: 'historial', icono: Icons.history, texto: 'Ver Historial'),
       const PopupMenuDivider(),
       if (celular.estado != EstadoCelular.devuelto) _opcionMenu(valor: 'devuelto', icono: Icons.assignment_return_outlined, texto: 'Marcar Devuelto'),

@@ -180,7 +180,44 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
     );
   }
 
+  /// Pide la cantidad de etiquetas a imprimir, igual que "¿Cuántas etiquetas
+  /// desea imprimir?" del sistema viejo. Devuelve null si se cancela.
+  Future<int?> _pedirCantidadEtiquetas() async {
+    final controller = TextEditingController(text: '1');
+    final cantidad = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Cantidad a imprimir', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          style: GoogleFonts.poppins(fontSize: 14),
+          decoration: InputDecoration(
+            labelText: '¿Cuántas etiquetas desea imprimir?',
+            labelStyle: GoogleFonts.poppins(fontSize: 12.5),
+            filled: true,
+            fillColor: const Color(0xFFE8EAF0),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancelar', style: GoogleFonts.poppins())),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D)),
+            onPressed: () => Navigator.pop(context, int.tryParse(controller.text.trim())),
+            child: Text('Aceptar', style: GoogleFonts.poppins()),
+          ),
+        ],
+      ),
+    );
+    return (cantidad != null && cantidad > 0) ? cantidad : null;
+  }
+
   Future<void> _abrirCodigoBarras(ProductoModel producto) async {
+    final cantidad = await _pedirCantidadEtiquetas();
+    if (cantidad == null || !mounted) return;
     final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
     if (!mounted) return;
     final impresora = negocio.impresoraEtiquetasUrl.isEmpty ? null : Printer(url: negocio.impresoraEtiquetasUrl, name: negocio.impresoraEtiquetasNombre);
@@ -189,7 +226,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
       builder: (context) => PdfPreviewDialog(
         titulo: 'Código de barras · ${producto.nombre}',
         nombreArchivo: 'codigo_${producto.codigo}.pdf',
-        generarPdf: () => _servicioExport.generarPdfCodigoBarras(producto),
+        generarPdf: () => _servicioExport.generarPdfCodigoBarras(producto, negocio, cantidad: cantidad),
         impresora: impresora,
       ),
     );
