@@ -7,6 +7,7 @@ import '../../../../core/utils/texto_utils.dart';
 import '../../../../core/utils/permisos_usuario.dart';
 import '../../../negocio/data/negocio_model.dart';
 import '../widgets/cliente_form_dialog.dart';
+import '../widgets/puntos_cliente_dialog.dart';
 
 class ClientesScreen extends ConsumerStatefulWidget {
   const ClientesScreen({super.key});
@@ -67,11 +68,15 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
       case 'eliminar':
         _eliminar(cliente);
         break;
+      case 'puntos':
+        showDialog(context: context, builder: (context) => PuntosClienteDialog(cliente: cliente));
+        break;
     }
   }
 
   List<PopupMenuEntry<String>> _opcionesMenu() {
     return [
+      _opcionMenu(valor: 'puntos', icono: Icons.stars_rounded, texto: 'Ver puntos'),
       if (puedeRealizarAccion(ref, PermisosEspeciales.clientesEditar))
         _opcionMenu(valor: 'editar', icono: Icons.edit_outlined, texto: 'Editar'),
       if (puedeRealizarAccion(ref, PermisosEspeciales.clientesEliminar))

@@ -600,6 +600,10 @@ class VentaExportService {
                 for (final pago in venta.pagosMixtos)
                   pw.Text('${pago.metodoPago}: ${formatearMoneda(pago.monto)}', style: const pw.TextStyle(fontSize: fNormal)),
             ],
+            if (venta.puntosGanados > 0) ...[
+              _separador(),
+              pw.Text('Puntos Ganados: ${venta.puntosGanados.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: fNormal)),
+            ],
             _separador(),
             if (esFacturable) ...[
               if (negocio.rangoPrefijo.isNotEmpty || negocio.rangoDesde.isNotEmpty)
@@ -665,6 +669,7 @@ class VentaExportService {
     if (venta.regExonerado.isNotEmpty) alto += 6.0;
     if (venta.regSag.isNotEmpty) alto += 6.0;
     if (venta.descuentoGlobal > 0) alto += 6.0;
+    if (venta.puntosGanados > 0) alto += 10.0;
     // "Rango Aut.: 000-0001-01-00005401 al 000-0001-01-00006000" es largo y
     // casi siempre se parte en dos líneas dentro de los 80mm.
     if (negocio.rangoPrefijo.isNotEmpty || negocio.rangoDesde.isNotEmpty) alto += 10.0;

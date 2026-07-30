@@ -5,6 +5,7 @@ import 'item_venta_model.dart';
 import 'pago_detalle_model.dart';
 import '../../../core/utils/formato_moneda.dart';
 import '../../productos/data/lote_costo_repository.dart';
+import '../../clientes/data/cliente_repository.dart';
 
 class VentaRepository {
   final _db = FirebaseFirestore.instance;
@@ -13,6 +14,8 @@ class VentaRepository {
   final _lotes = LoteCostoRepository();
   final _colContadores = FirebaseFirestore.instance.collection('contadores');
   final _colVentasCredito = FirebaseFirestore.instance.collection('ventasCredito');
+  final _colClientes = FirebaseFirestore.instance.collection('clientes');
+  final _clientes = ClienteRepository();
 
   String _claveContador(String tipoDocumento) {
     switch (tipoDocumento) {
@@ -52,8 +55,14 @@ class VentaRepository {
     required String tipoDocumento,
     required String condicion,
     required String metodoPago,
+    // Cliente identificado de la lista (no solo texto libre): habilita la
+    // acumulación/canje de puntos. Vacío = venta sin cliente identificado.
+    String idCliente = '',
     required String documentoCliente,
     required String nombreCliente,
+    // Nivel de precio (1/2/3) con el que se cobró esta venta: solo Nivel 1
+    // acumula puntos, igual que el sistema viejo.
+    int nivelPrecioActivo = 1,
     required DateTime fechaRegistro,
     required DateTime? fechaVencimiento,
     required String oc,
@@ -88,6 +97,7 @@ class VentaRepository {
 
     late String numeroDocumento;
     late Map<ItemVentaModel, double> costosFifo;
+    var puntosGanadosFinal = 0.0;
 
     // Timeout corto (el default del SDK es 30s): en cajas con internet
     // lento/intermitente es mejor que el cajero vea rápido que falló y
@@ -103,15 +113,22 @@ class VentaRepository {
       // no depende de nada más, así que se lanza en paralelo con el resto
       // en vez de esperar a que terminen el contador y el stock primero.
       final idsProductoUnicos = itemsADescontar.map((i) => i.idProducto).toSet().toList();
+      // El cliente (si viene identificado) se lee en este mismo batch
+      // inicial: Firestore exige que todas las lecturas de una transacción
+      // pasen antes que cualquier escritura, y más abajo ya se escriben el
+      // contador y la venta — leerlo tarde rompería esa regla.
+      final clienteRef = idCliente.isEmpty ? null : _colClientes.doc(idCliente);
       final futureResultados = Future.wait([
         transaction.get(contadorRef),
+        if (clienteRef != null) transaction.get(clienteRef),
         ...itemsADescontar.map((item) => transaction.get(_db.collection('productos').doc(item.idProducto))),
       ]);
       final futureLotes = Future.wait(idsProductoUnicos.map((id) => _lotes.consultarLotes(id)));
 
       final resultados = await futureResultados;
       final contadorSnap = resultados[0];
-      final snapsStock = resultados.sublist(1);
+      final clienteSnap = clienteRef == null ? null : resultados[1];
+      final snapsStock = resultados.sublist(clienteRef == null ? 1 : 2);
 
       final actual = ((contadorSnap.data()?['ultimo'] ?? 0) as num).toInt();
       final nuevo = actual + 1;
@@ -141,11 +158,23 @@ class VentaRepository {
 
       transaction.set(contadorRef, {'ultimo': nuevo}, SetOptions(merge: true));
 
+      // Puntos: 4 por cada L.100 del total, truncado hacia abajo, solo si
+      // hay cliente identificado, el nivel de precio es Nivel 1, y no es una
+      // Cotización (todavía no es una venta concretada) ni un Canje (ahí se
+      // descuentan puntos, no se ganan). Igual que el sistema viejo.
+      final ganaPuntos = clienteRef != null && nivelPrecioActivo == 1 && tipoDocumento != 'Cotizacion' && tipoDocumento != 'Canje';
+      final puntosGanados = ganaPuntos ? ((totalAPagar / 100).truncate() * 4).toDouble() : 0.0;
+      puntosGanadosFinal = puntosGanados;
+      final esCanje = tipoDocumento == 'Canje';
+
       transaction.set(ventaRef, {
         'tipoDocumento': tipoDocumento,
         'numeroDocumento': numeroDocumento,
+        'idCliente': idCliente,
         'documentoCliente': documentoCliente,
         'nombreCliente': nombreCliente,
+        'nivelPrecioUsado': nivelPrecioActivo,
+        'puntosGanados': puntosGanados,
         'metodoPago': metodoPago,
         'montoPago': montoPago,
         'montoCambio': montoCambio,
@@ -174,6 +203,32 @@ class VentaRepository {
         'descuentoGlobal': descuentoGlobal,
         'pendienteImpresion': false,
       });
+
+      if (clienteRef != null) {
+        if (esCanje) {
+          await _clientes.registrarMovimientoPuntos(
+            transaction: transaction,
+            snapshotCliente: clienteSnap,
+            idCliente: idCliente,
+            puntos: -totalAPagar,
+            tipo: 'Canje',
+            descripcion: 'Canje de productos ($numeroDocumento)',
+            usuario: usuario,
+            idVentaRelacionada: ventaRef.id,
+          );
+        } else if (puntosGanados > 0) {
+          await _clientes.registrarMovimientoPuntos(
+            transaction: transaction,
+            snapshotCliente: clienteSnap,
+            idCliente: idCliente,
+            puntos: puntosGanados,
+            tipo: 'Acumulacion',
+            descripcion: 'Acumulación de puntos por venta ($numeroDocumento)',
+            usuario: usuario,
+            idVentaRelacionada: ventaRef.id,
+          );
+        }
+      }
 
       for (final item in items) {
         final itemRef = ventaRef.collection('detalle').doc();
@@ -250,8 +305,12 @@ class VentaRepository {
       id: ventaRef.id,
       tipoDocumento: tipoDocumento,
       numeroDocumento: numeroDocumento,
+      idCliente: idCliente,
       documentoCliente: documentoCliente,
       nombreCliente: nombreCliente,
+      nivelPrecioUsado: nivelPrecioActivo,
+      puntosGanados: puntosGanadosFinal,
+      usuarioAutorizaPrecio: usuarioAutorizaPrecio,
       metodoPago: metodoPago,
       montoPago: montoPago,
       montoCambio: montoCambio,

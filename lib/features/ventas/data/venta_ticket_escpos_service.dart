@@ -139,6 +139,10 @@ class VentaTicketEscPosService {
         }
       }
     }
+    if (venta.puntosGanados > 0) {
+      bytes += generador.hr();
+      bytes += generador.text('Puntos Ganados: ${venta.puntosGanados.toStringAsFixed(0)}');
+    }
     bytes += generador.hr();
 
     if (esFacturable) {

@@ -6,8 +6,17 @@ class VentaModel {
   final String id;
   final String tipoDocumento;
   final String numeroDocumento;
+  final String idCliente;
   final String documentoCliente;
   final String nombreCliente;
+  // Nivel de precio (1/2/3) con el que se cobró esta venta — se guarda para
+  // saber, incluso después de limpiar el carrito, si esta venta calificaba
+  // para acumular puntos (solo Nivel 1) al mostrarlo en el ticket o reimprimir.
+  final int nivelPrecioUsado;
+  // Puntos ganados por esta venta (0 si no calificó: sin cliente, nivel
+  // distinto de 1, o tipo Cotización/Canje). Desnormalizado para no tener
+  // que recalcularlo cada vez que se reimprime el ticket.
+  final double puntosGanados;
   final String metodoPago;
   final double montoPago;
   final double montoCambio;
@@ -67,8 +76,11 @@ class VentaModel {
       id: id,
       tipoDocumento: tipoDocumento,
       numeroDocumento: numeroDocumento,
+      idCliente: idCliente,
       documentoCliente: documentoCliente,
       nombreCliente: nombreCliente,
+      nivelPrecioUsado: nivelPrecioUsado,
+      puntosGanados: puntosGanados,
       metodoPago: metodoPago,
       montoPago: montoPago,
       montoCambio: montoCambio,
@@ -101,8 +113,11 @@ class VentaModel {
     required this.id,
     required this.tipoDocumento,
     required this.numeroDocumento,
+    this.idCliente = '',
     required this.documentoCliente,
     required this.nombreCliente,
+    this.nivelPrecioUsado = 1,
+    this.puntosGanados = 0,
     required this.metodoPago,
     required this.montoPago,
     required this.montoCambio,
@@ -135,8 +150,11 @@ class VentaModel {
       id: id,
       tipoDocumento: data['tipoDocumento'] ?? '',
       numeroDocumento: data['numeroDocumento'] ?? '',
+      idCliente: data['idCliente'] ?? '',
       documentoCliente: data['documentoCliente'] ?? '',
       nombreCliente: data['nombreCliente'] ?? '',
+      nivelPrecioUsado: ((data['nivelPrecioUsado'] ?? 1) as num).toInt(),
+      puntosGanados: (data['puntosGanados'] ?? 0).toDouble(),
       metodoPago: data['metodoPago'] ?? '',
       montoPago: (data['montoPago'] ?? 0).toDouble(),
       montoCambio: (data['montoCambio'] ?? 0).toDouble(),

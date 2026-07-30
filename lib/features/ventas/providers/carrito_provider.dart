@@ -4,6 +4,7 @@ import '../data/pago_detalle_model.dart';
 import '../data/venta_en_espera_model.dart';
 import '../data/venta_model.dart';
 import '../../productos/data/producto_model.dart';
+import '../../productos/providers/productos_provider.dart';
 import '../../../core/utils/formato_moneda.dart';
 
 /// [forzarFactura] distingue "Duplicar venta" (la cotización sigue siendo
@@ -41,8 +42,14 @@ class CarritoVentaState {
   final String tipoDocumento;
   final String condicion;
   final String metodoPago;
+  final String idCliente;
   final String documentoCliente;
   final String nombreCliente;
+  // Nivel de precio activo para TODA la venta (1/2/3): al cambiarlo se
+  // recalculan precio y subtotal de todas las líneas ya agregadas (ver
+  // CarritoVentaNotifier.establecerNivelPrecio). Nivel 1 es el único que
+  // acumula puntos de cliente.
+  final int nivelPrecioActivo;
   final DateTime fecha;
   final DateTime? fechaVencimiento;
   final String oc;
@@ -66,8 +73,10 @@ class CarritoVentaState {
     this.tipoDocumento = 'VentaSinFacturar',
     this.condicion = 'Contado',
     this.metodoPago = 'Efectivo',
+    this.idCliente = '',
     this.documentoCliente = '',
     this.nombreCliente = '',
+    this.nivelPrecioActivo = 1,
     DateTime? fecha,
     this.fechaVencimiento,
     this.oc = '',
@@ -125,8 +134,10 @@ class CarritoVentaState {
     String? tipoDocumento,
     String? condicion,
     String? metodoPago,
+    String? idCliente,
     String? documentoCliente,
     String? nombreCliente,
+    int? nivelPrecioActivo,
     DateTime? fecha,
     Object? fechaVencimiento = _sinCambio,
     String? oc,
@@ -144,8 +155,10 @@ class CarritoVentaState {
       tipoDocumento: tipoDocumento ?? this.tipoDocumento,
       condicion: condicion ?? this.condicion,
       metodoPago: metodoPago ?? this.metodoPago,
+      idCliente: idCliente ?? this.idCliente,
       documentoCliente: documentoCliente ?? this.documentoCliente,
       nombreCliente: nombreCliente ?? this.nombreCliente,
+      nivelPrecioActivo: nivelPrecioActivo ?? this.nivelPrecioActivo,
       fecha: fecha ?? this.fecha,
       fechaVencimiento: fechaVencimiento == _sinCambio ? this.fechaVencimiento : fechaVencimiento as DateTime?,
       oc: oc ?? this.oc,
@@ -180,7 +193,7 @@ class CarritoVentaNotifier extends Notifier<CarritoVentaState> {
   /// que decide si se suma 15% arriba de este precio, solo para una Factura
   /// o Boleta formal — acá no se le resta nada de entrada.)
   void agregarProductoDirecto(ProductoModel producto, {double? precioSeleccionado, double precioCompraUsado = 0, bool reembasado = false}) {
-    final precio = precioSeleccionado ?? producto.precioVenta;
+    final precio = precioSeleccionado ?? _precioSegunModo(producto, esCanje: state.tipoDocumento == 'Canje', nivel: state.nivelPrecioActivo);
     final item = ItemVentaModel(
       idProducto: producto.id,
       idCategoria: producto.idCategoria,
@@ -240,7 +253,64 @@ class CarritoVentaNotifier extends Notifier<CarritoVentaState> {
 
   void establecerDescuentoGlobal(double v) => state = state.copyWith(descuentoGlobalPorcentaje: v);
 
-  void establecerTipoDocumento(String v) => state = state.copyWith(tipoDocumento: v);
+  /// Precio de una línea según el modo actual: en "Canje" siempre sale de
+  /// `precioPuntos` (redondeado a entero, igual que el sistema viejo), fuera
+  /// de Canje sale del nivel de precio activo de la venta.
+  double _precioSegunModo(ProductoModel producto, {required bool esCanje, required int nivel}) {
+    return esCanje ? producto.precioPuntos.roundToDouble() : producto.precioSegunNivel(nivel);
+  }
+
+  /// Recalcula precio y subtotal de todas las líneas ya agregadas al pasar a
+  /// (o salir de) modo Canje, o al cambiar de nivel de precio.
+  List<ItemVentaModel> _itemsRecalculados({required bool esCanje, required int nivel}) {
+    final productos = ref.read(productosStreamProvider).value ?? const <ProductoModel>[];
+    return state.items.map((item) {
+      ProductoModel? producto;
+      for (final p in productos) {
+        if (p.id == item.idProducto) {
+          producto = p;
+          break;
+        }
+      }
+      if (producto == null) return item;
+      final nuevoPrecio = _precioSegunModo(producto, esCanje: esCanje, nivel: nivel);
+      return item.copyWith(precioVenta: nuevoPrecio, subtotal: _subtotalLinea(nuevoPrecio, item.cantidad, item.descuentoPorcentaje));
+    }).toList();
+  }
+
+  void establecerTipoDocumento(String v) {
+    final eraCanje = state.tipoDocumento == 'Canje';
+    final esCanjeAhora = v == 'Canje';
+    if (eraCanje == esCanjeAhora) {
+      state = state.copyWith(tipoDocumento: v);
+      return;
+    }
+    // Entrar o salir de Canje cambia de qué campo del producto sale el
+    // precio de cada línea (precioPuntos vs. los niveles 1/2/3): hay que
+    // recalcular todo lo ya agregado, igual que al cambiar de nivel. Canje
+    // siempre es "Contado" pagado en puntos, nunca a crédito.
+    state = state.copyWith(
+      tipoDocumento: v,
+      items: _itemsRecalculados(esCanje: esCanjeAhora, nivel: state.nivelPrecioActivo),
+      metodoPago: esCanjeAhora ? 'Puntos' : 'Efectivo',
+      condicion: esCanjeAhora ? 'Contado' : state.condicion,
+      pagosMixtos: const [],
+    );
+  }
+
+  /// Nivel de precio para TODA la venta: recalcula precio y subtotal de las
+  /// líneas ya agregadas (igual que `RecalcularPreciosYTotalesPorTipoDocumento`
+  /// del sistema viejo) y queda como default para los próximos productos que
+  /// se agreguen desde el buscador.
+  void establecerNivelPrecio(int nivel) {
+    if (state.tipoDocumento == 'Canje') {
+      // En Canje el precio no depende del nivel: solo se guarda la
+      // preferencia para cuando se salga de Canje.
+      state = state.copyWith(nivelPrecioActivo: nivel);
+      return;
+    }
+    state = state.copyWith(nivelPrecioActivo: nivel, items: _itemsRecalculados(esCanje: false, nivel: nivel));
+  }
 
   void establecerCondicion(String v) {
     state = state.copyWith(
@@ -256,10 +326,13 @@ class CarritoVentaNotifier extends Notifier<CarritoVentaState> {
   /// Guarda el desglose confirmado en PagoMixtoDialog. No cambia metodoPago:
   /// eso ya se hizo al elegir "Mixto" en el dropdown.
   void establecerPagosMixtos(List<PagoDetalle> pagos) => state = state.copyWith(pagosMixtos: pagos);
-  void establecerCliente({required String documento, required String nombre}) {
-    state = state.copyWith(documentoCliente: documento, nombreCliente: nombre);
+  void establecerCliente({required String idCliente, required String documento, required String nombre}) {
+    state = state.copyWith(idCliente: idCliente, documentoCliente: documento, nombreCliente: nombre);
   }
-  void establecerDocumentoCliente(String v) => state = state.copyWith(documentoCliente: v);
+  // Si el cajero edita el documento a mano DESPUÉS de haber elegido un
+  // cliente de la lista, se pierde el vínculo (idCliente vuelve a '') para no
+  // atribuirle puntos a un cliente que ya no coincide con lo escrito.
+  void establecerDocumentoCliente(String v) => state = state.copyWith(documentoCliente: v, idCliente: '');
   void establecerFecha(DateTime v) => state = state.copyWith(fecha: v);
   void establecerFechaVencimiento(DateTime v) => state = state.copyWith(fechaVencimiento: v);
   void establecerOc(String v) => state = state.copyWith(oc: v);
@@ -313,9 +386,11 @@ class CarritoVentaNotifier extends Notifier<CarritoVentaState> {
           .toList(),
       tipoDocumento: (forzarFactura && venta.tipoDocumento == 'Cotizacion') ? 'Factura' : venta.tipoDocumento,
       condicion: venta.condicion,
-      metodoPago: venta.condicion == 'Credito' ? '' : (venta.metodoPago.isEmpty ? 'Efectivo' : venta.metodoPago),
+      metodoPago: venta.tipoDocumento == 'Canje' ? 'Puntos' : (venta.condicion == 'Credito' ? '' : (venta.metodoPago.isEmpty ? 'Efectivo' : venta.metodoPago)),
+      idCliente: venta.idCliente,
       documentoCliente: venta.documentoCliente,
       nombreCliente: venta.nombreCliente,
+      nivelPrecioActivo: venta.nivelPrecioUsado > 0 ? venta.nivelPrecioUsado : 1,
       fechaVencimiento: venta.condicion == 'Credito' ? DateTime.now().add(const Duration(days: 30)) : null,
       oc: venta.oc,
       regExonerado: venta.regExonerado,

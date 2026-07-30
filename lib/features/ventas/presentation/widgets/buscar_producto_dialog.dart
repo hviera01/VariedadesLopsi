@@ -11,6 +11,7 @@ import '../../../../core/utils/texto_utils.dart';
 import '../../../../core/utils/formato_moneda.dart';
 import '../../../../core/utils/codigo_barras_utils.dart';
 import '../../../../core/widgets/barcode_scanner_screen.dart';
+import 'selector_nivel_precio.dart';
 
 /// Resultado de elegir un producto (y el nivel de precio con el que se va a
 /// vender) desde el buscador.
@@ -23,7 +24,14 @@ class ProductoConPrecio {
 }
 
 class BuscarProductoDialog extends ConsumerStatefulWidget {
-  const BuscarProductoDialog({super.key});
+  // Nivel de precio con el que arranca el selector de este diálogo: el nivel
+  // global elegido en la cabecera de Registrar Venta (ver
+  // CarritoVentaState.nivelPrecioActivo), para no tener que volver a elegirlo
+  // cada vez que se busca un producto. Se puede seguir cambiando solo para
+  // esta búsqueda puntual sin afectar el nivel de cabecera.
+  final int nivelInicial;
+
+  const BuscarProductoDialog({super.key, this.nivelInicial = 1});
 
   @override
   ConsumerState<BuscarProductoDialog> createState() => _BuscarProductoDialogState();
@@ -87,6 +95,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
   @override
   void initState() {
     super.initState();
+    _nivelActivo = widget.nivelInicial;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focusBusqueda.requestFocus();
     });
@@ -321,7 +330,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                     ),
                   ),
                   _selectorCategoria(categoriasLista, mapaCategorias),
-                  _selectorNivelPrecio(),
+                  SelectorNivelPrecio(nivelActivo: _nivelActivo, onCambiar: (nivel) => setState(() => _nivelActivo = nivel)),
                   // Escanear con la cámara solo tiene sentido en el celular
                   // (APK o navegador móvil): en escritorio no hay cámara
                   // para esto, ahí el escaneo es "Escanear con celular" (QR,
@@ -456,41 +465,6 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
     );
   }
 
-  Widget _selectorNivelPrecio() {
-    Widget opcion(String texto, int nivel) {
-      final activo = _nivelActivo == nivel;
-      return InkWell(
-        onTap: () => setState(() => _nivelActivo = nivel),
-        borderRadius: BorderRadius.circular(10),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          decoration: BoxDecoration(
-            color: activo ? const Color(0xFF0F1B3D) : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            texto,
-            style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: activo ? Colors.white : const Color(0xFF666A72)),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFB6BCC7))),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          opcion('Precio 1', 1),
-          opcion('Precio 2', 2),
-          opcion('Precio 3', 3),
-        ],
-      ),
-    );
-  }
 
   Widget _encabezadoTabla() {
     final estilo = GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.grey.shade600);

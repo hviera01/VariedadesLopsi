@@ -5,4 +5,5 @@ const tiposDocumento = {
   'Boleta': 'Boleta',
   'Cotizacion': 'Cotización',
   'VentaSinFacturar': 'Venta',
+  'Canje': 'Canje',
 };

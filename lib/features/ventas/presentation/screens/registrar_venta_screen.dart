@@ -31,6 +31,10 @@ import '../../../../core/widgets/barcode_scanner_screen.dart';
 import '../../../../core/widgets/pdf_preview_dialog.dart';
 import '../widgets/buscar_producto_dialog.dart';
 import '../widgets/buscar_cliente_dialog.dart';
+import '../widgets/selector_nivel_precio.dart';
+import '../../../clientes/data/cliente_model.dart';
+import '../../../clientes/providers/clientes_provider.dart';
+import '../../../clientes/presentation/widgets/puntos_cliente_dialog.dart';
 import '../widgets/cobrar_dialog.dart';
 import '../widgets/pago_mixto_dialog.dart';
 import '../../data/pago_detalle_model.dart';
@@ -60,6 +64,10 @@ class RegistrarVentaScreen extends ConsumerStatefulWidget {
 class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
   final _nombreClienteController = TextEditingController();
   final _documentoClienteController = TextEditingController();
+  // Cliente elegido de la lista (ver _buscarCliente), para el botón "Ver
+  // puntos". Se pierde si el cajero edita el documento a mano (mismo
+  // criterio que CarritoVentaState.idCliente).
+  ClienteModel? _clienteSeleccionado;
   final _ocController = TextEditingController();
   final _regExoneradoController = TextEditingController();
   final _regSagController = TextEditingController();
@@ -189,6 +197,15 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       _regExoneradoController.text = ventaOrigen.regExonerado;
       _regSagController.text = ventaOrigen.regSag;
       _descuentoGlobalController.text = ventaOrigen.descuentoGlobal == 0 ? '' : _formatoCantidad(ventaOrigen.descuentoGlobal);
+      // Solo para habilitar el botón "Ver puntos": el idCliente ya viaja en
+      // el carrito (cargarDesdeVenta) sin depender de este fetch.
+      if (ventaOrigen.idCliente.isNotEmpty) {
+        ref.read(clienteRepositoryProvider).obtenerClientes().first.then((clientes) {
+          if (!mounted) return;
+          final coincidencias = clientes.where((c) => c.id == ventaOrigen.idCliente).toList();
+          if (coincidencias.isNotEmpty) setState(() => _clienteSeleccionado = coincidencias.first);
+        });
+      }
     }
   }
 
@@ -376,19 +393,24 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
   // ---------- Cliente ----------
 
   Future<void> _buscarCliente() async {
-    final cliente = await showDialog(context: context, builder: (context) => const BuscarClienteDialog());
+    final cliente = await showDialog<ClienteModel>(context: context, builder: (context) => const BuscarClienteDialog());
     if (cliente == null) return;
-    final documento = (cliente as dynamic).dni ?? '';
-    final nombre = cliente.nombreCompleto ?? '';
     // Antes solo se actualizaba el nombre visible en el campo "Cliente": el
     // RTN/documento sí quedaba guardado en el carrito (se usaba al grabar la
     // venta), pero el campo "RTN / Documento" en pantalla no se refrescaba,
     // así que parecía que elegir un cliente solo traía el nombre.
     setState(() {
-      _nombreClienteController.text = nombre;
-      _documentoClienteController.text = documento;
+      _nombreClienteController.text = cliente.nombreCompleto;
+      _documentoClienteController.text = cliente.dni;
+      _clienteSeleccionado = cliente;
     });
-    ref.read(carritoVentaProvider.notifier).establecerCliente(documento: documento, nombre: nombre);
+    ref.read(carritoVentaProvider.notifier).establecerCliente(idCliente: cliente.id, documento: cliente.dni, nombre: cliente.nombreCompleto);
+  }
+
+  void _verPuntosCliente() {
+    final cliente = _clienteSeleccionado;
+    if (cliente == null) return;
+    showDialog(context: context, builder: (context) => PuntosClienteDialog(cliente: cliente));
   }
 
   // ---------- Producto: agregar directo desde el buscador ----------
@@ -411,8 +433,9 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
     // propósito: ahí sí tiene que seguir funcionando el escáner.
     _pausarLectorFisico = true;
     try {
+      final nivelInicial = ref.read(carritoVentaProvider).nivelPrecioActivo;
       final resultado = await Navigator.of(context).push<ProductoConPrecio>(
-        MaterialPageRoute(fullscreenDialog: true, builder: (context) => const BuscarProductoDialog()),
+        MaterialPageRoute(fullscreenDialog: true, builder: (context) => BuscarProductoDialog(nivelInicial: nivelInicial)),
       );
       if (resultado == null || !mounted) return;
       await _procesarProductoSeleccionado(resultado);
@@ -744,6 +767,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
 
   void _limpiarTodo() {
     ref.read(carritoVentaProvider.notifier).limpiar();
+    _clienteSeleccionado = null;
     _nombreClienteController.clear();
     _documentoClienteController.clear();
     _ocController.clear();
@@ -808,6 +832,17 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
     if (carrito.items.isEmpty) {
       _mostrarMensaje('Debe ingresar productos en la venta');
       return;
+    }
+    if (carrito.tipoDocumento == 'Canje') {
+      if (carrito.idCliente.isEmpty) {
+        _mostrarMensaje('Elegí un cliente de la lista para canjear puntos');
+        return;
+      }
+      final saldoActual = _clienteSeleccionado?.saldoPuntos ?? 0;
+      if (saldoActual < carrito.totalAPagar) {
+        _mostrarMensaje('El cliente no tiene puntos suficientes para este canje (saldo: ${saldoActual.toStringAsFixed(0)}, necesita: ${carrito.totalAPagar.toStringAsFixed(0)})');
+        return;
+      }
     }
 
     var montoPago = 0.0;
@@ -910,8 +945,10 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
             tipoDocumento: carrito.tipoDocumento,
             condicion: esCotizacion ? 'Contado' : carrito.condicion,
             metodoPago: esCotizacion ? 'N/A' : (carrito.condicion == 'Credito' ? 'N/A' : carrito.metodoPago),
+            idCliente: carrito.idCliente,
             documentoCliente: carrito.documentoCliente.trim().isEmpty ? 'N/A' : carrito.documentoCliente.trim(),
             nombreCliente: nombreCliente,
+            nivelPrecioActivo: carrito.nivelPrecioActivo,
             fechaRegistro: carrito.fecha,
             fechaVencimiento: (!esCotizacion && carrito.condicion == 'Credito') ? carrito.fechaVencimiento : null,
             oc: carrito.oc,
@@ -1381,6 +1418,14 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
                   },
                 ),
               ),
+              if (carrito.tipoDocumento != 'Canje')
+                SizedBox(
+                  width: esMovil ? double.infinity : 190,
+                  child: SelectorNivelPrecio(
+                    nivelActivo: carrito.nivelPrecioActivo,
+                    onCambiar: (nivel) => ref.read(carritoVentaProvider.notifier).establecerNivelPrecio(nivel),
+                  ),
+                ),
               SizedBox(
                 width: esMovil ? double.infinity : 220,
                 child: Row(
@@ -1401,6 +1446,15 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
                       icon: const Icon(Icons.search),
                       style: IconButton.styleFrom(backgroundColor: const Color(0xFFE8EAF0), padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     ),
+                    if (_clienteSeleccionado != null) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        tooltip: 'Ver puntos del cliente',
+                        onPressed: _verPuntosCliente,
+                        icon: const Icon(Icons.stars_rounded),
+                        style: IconButton.styleFrom(backgroundColor: const Color(0xFFE8EAF0), padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1410,7 +1464,10 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
                   controller: _documentoClienteController,
                   style: GoogleFonts.poppins(fontSize: 13),
                   decoration: _decoracion('RTN / Documento'),
-                  onChanged: (v) => ref.read(carritoVentaProvider.notifier).establecerDocumentoCliente(v),
+                  onChanged: (v) {
+                    setState(() => _clienteSeleccionado = null);
+                    ref.read(carritoVentaProvider.notifier).establecerDocumentoCliente(v);
+                  },
                 ),
               ),
               SizedBox(
@@ -1424,7 +1481,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
                     DropdownMenuItem(value: 'Contado', child: Text('Contado')),
                     DropdownMenuItem(value: 'Credito', child: Text('Crédito')),
                   ],
-                  onChanged: carrito.esCotizacion
+                  onChanged: (carrito.esCotizacion || carrito.tipoDocumento == 'Canje')
                       ? null
                       : (v) {
                           if (v == null) return;
@@ -1432,7 +1489,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
                         },
                 ),
               ),
-              if (!carrito.esCotizacion && carrito.condicion != 'Credito')
+              if (!carrito.esCotizacion && carrito.condicion != 'Credito' && carrito.tipoDocumento != 'Canje')
                 SizedBox(
                   width: esMovil ? double.infinity : 160,
                   child: DropdownButtonFormField<String>(
