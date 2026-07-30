@@ -141,15 +141,18 @@ class HomeScreen extends ConsumerWidget {
   Widget _resumenVentas(WidgetRef ref, bool esMovil) {
     final ventasAsync = ref.watch(ventasDelMesProvider);
     return ventasAsync.when(
-      loading: () => SizedBox(
-        height: esMovil ? 74 : 84,
-        child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F1B3D))),
+      loading: () => const SizedBox(
+        height: 54,
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F1B3D))),
       ),
-      error: (e, st) => const SizedBox.shrink(),
+      error: (e, st) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Text('No se pudo cargar el resumen de ventas: $e', style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.red.shade700)),
+      ),
       data: (ventas) {
         final resumen = calcularResumenVentas(ventas);
         return Wrap(
-          spacing: esMovil ? 10 : 14,
+          spacing: 10,
           runSpacing: 10,
           children: [
             _tarjetaResumen('Hoy', resumen.hoy, Icons.today_outlined, const Color(0xFF16A34A), esMovil),
@@ -163,36 +166,35 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _tarjetaResumen(String etiqueta, double monto, IconData icono, Color color, bool esMovil) {
     return Container(
-      width: esMovil ? double.infinity : 190,
-      padding: EdgeInsets.symmetric(horizontal: esMovil ? 14 : 16, vertical: esMovil ? 12 : 14),
+      width: esMovil ? (140) : 148,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 10, offset: const Offset(0, 3))],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(11)),
-            child: Icon(icono, color: color, size: 19),
+          Row(
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+                child: Icon(icono, color: color, size: 14),
+              ),
+              const SizedBox(width: 8),
+              Expanded(child: Text(etiqueta, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 10.5, color: Colors.grey.shade500))),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(etiqueta, style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500)),
-                Text(
-                  formatearMoneda(monto),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(fontSize: 15.5, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A)),
-                ),
-              ],
-            ),
+          const SizedBox(height: 6),
+          Text(
+            formatearMoneda(monto),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A)),
           ),
         ],
       ),

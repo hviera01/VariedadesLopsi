@@ -18,6 +18,7 @@ import '../../providers/carrito_provider.dart';
 import '../../../../core/providers/tabs_provider.dart';
 import '../../providers/ventas_provider.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../../core/utils/permisos_usuario.dart';
 import '../../../negocio/providers/negocio_provider.dart';
 import '../../../negocio/data/negocio_model.dart';
 import '../../../negocio/presentation/widgets/acceso_especial.dart';
@@ -672,6 +673,19 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
   Future<void> _actualizarPrecio(int index, double nuevoPrecio) async {
     if (nuevoPrecio < 0) {
       _mostrarMensaje('Precio inválido');
+      return;
+    }
+    // Un Encargado sin el permiso individual de "cambiar precio" queda
+    // bloqueado acá directamente: la clave especial global es un gate
+    // aparte (para Empleado/Semi Administrador), no reemplaza este control
+    // por usuario — si no, un Encargado sin permiso podía cambiar el precio
+    // libremente cuando la clave especial no estaba activa/configurada.
+    if (!puedeRealizarAccion(ref, PermisosEspeciales.ventasCambiarPrecio)) {
+      _mostrarMensaje('No tenés permiso para cambiar el precio');
+      final carrito = ref.read(carritoVentaProvider);
+      if (index < carrito.items.length) {
+        _ctrlPrecio[index]?.text = carrito.items[index].precioVenta.toStringAsFixed(2);
+      }
       return;
     }
     final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.ventasCambiarPrecio);
@@ -2122,6 +2136,11 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
         return;
       }
       if (nuevoTexto == nombreActual) return;
+      if (!puedeRealizarAccion(ref, PermisosEspeciales.ventasEditarDescripcion)) {
+        _mostrarMensaje('No tenés permiso para editar la descripción');
+        ctrl.text = nombreActual;
+        return;
+      }
       final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
       if (negocio.tienePermiso(PermisosEspeciales.ventasEditarDescripcion)) {
         if (!mounted) return;

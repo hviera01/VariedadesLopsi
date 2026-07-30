@@ -118,7 +118,11 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
   Future<void> _abrirFormulario([ProductoModel? producto]) async {
     if (producto != null) {
       final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.inventarioEditarProducto);
-      if (!resultado.autorizado || !mounted) return;
+      if (!mounted) return;
+      if (!resultado.autorizado) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No tenés permiso para editar productos')));
+        return;
+      }
     }
     if (!mounted) return;
     showDialog(context: context, builder: (context) => ProductoFormDialog(producto: producto));
@@ -126,7 +130,11 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
 
   Future<void> _abrirAjusteStock(ProductoModel producto) async {
     final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.inventarioAjustarStock);
-    if (!resultado.autorizado || !mounted) return;
+    if (!mounted) return;
+    if (!resultado.autorizado) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No tenés permiso para ajustar existencias')));
+      return;
+    }
     showDialog(context: context, builder: (context) => AjusteStockDialog(producto: producto, usuarioAutoriza: resultado.usuarioAutoriza));
   }
 

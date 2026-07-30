@@ -24,11 +24,21 @@ class ResultadoAccesoEspecial {
 /// pide la clave y quién autoriza antes de continuar. Si no está activado (o no hay
 /// clave configurada), retorna autorizado de inmediato sin mostrar nada, con el
 /// usuario logueado como responsable implícito. El Administrador nunca la pide: es
-/// el único rol que puede hacer todo sin restricciones.
+/// el único rol que puede hacer todo sin restricciones (siempre libre).
+///
+/// El rol Encargado se corta ACÁ, antes que nada: si el Administrador no le
+/// marcó esta acción puntual en `accionesPermitidas` al crear ese usuario,
+/// queda bloqueado directo (ni siquiera llega a mirar si hay clave especial
+/// configurada) — la clave especial es un gate aparte pensado para
+/// Empleado/Semi Administrador, no reemplaza el permiso individual del
+/// Encargado.
 Future<ResultadoAccesoEspecial> verificarAccesoEspecial(BuildContext context, WidgetRef ref, String permisoKey) async {
   final usuarioLogueado = ref.read(authProvider).usuario;
   if (usuarioLogueado?.rol == Roles.administrador) {
     return ResultadoAccesoEspecial(autorizado: true, usuarioAutoriza: usuarioLogueado?.nombreCompleto ?? '');
+  }
+  if (usuarioLogueado?.rol == Roles.encargado && usuarioLogueado?.accionesPermitidas[permisoKey] != true) {
+    return const ResultadoAccesoEspecial(autorizado: false);
   }
   final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
   if (!negocio.tieneClaveEspecial || !negocio.tienePermiso(permisoKey)) {

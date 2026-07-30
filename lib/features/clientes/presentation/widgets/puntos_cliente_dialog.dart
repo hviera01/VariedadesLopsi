@@ -39,7 +39,10 @@ class _PuntosClienteDialogState extends ConsumerState<PuntosClienteDialog> {
     }
     final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.actualizarPuntos);
     if (!mounted) return;
-    if (!resultado.autorizado) return;
+    if (!resultado.autorizado) {
+      setState(() => _error = 'No tenés permiso para ajustar puntos');
+      return;
+    }
 
     setState(() {
       _guardando = true;

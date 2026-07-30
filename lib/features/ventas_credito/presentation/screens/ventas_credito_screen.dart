@@ -99,7 +99,11 @@ class _VentasCreditoScreenState extends ConsumerState<VentasCreditoScreen> {
 
   Future<void> _eliminar(VentaCreditoModel credito) async {
     final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.ventasCreditoEliminar);
-    if (!resultado.autorizado || !mounted) return;
+    if (!mounted) return;
+    if (!resultado.autorizado) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No tenés permiso para eliminar créditos')));
+      return;
+    }
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
