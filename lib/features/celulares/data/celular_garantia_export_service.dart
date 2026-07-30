@@ -55,7 +55,7 @@ class CelularGarantiaExportService {
             _separador(),
             pw.Center(
               child: pw.Text(
-                'Nota de Garantía — ${esCopia ? 'Copia' : 'Original'}',
+                'Nota de Garantía - ${esCopia ? 'Copia' : 'Original'}',
                 style: pw.TextStyle(fontSize: fNormal, fontWeight: pw.FontWeight.bold),
                 textAlign: pw.TextAlign.center,
               ),

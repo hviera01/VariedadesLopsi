@@ -143,7 +143,7 @@ class VentaExportService {
       padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: pw.BoxDecoration(color: const PdfColor.fromInt(0xFFFCE4E4), borderRadius: pw.BorderRadius.circular(8), border: pw.Border.all(color: _colorMarca, width: 1)),
       child: pw.Text(
-        'DOCUMENTO ANULADO${venta.motivoAnulacion.isNotEmpty ? ' — ${venta.motivoAnulacion}' : ''}',
+        'DOCUMENTO ANULADO${venta.motivoAnulacion.isNotEmpty ? ' - ${venta.motivoAnulacion}' : ''}',
         style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: _colorMarca),
       ),
     );
@@ -334,7 +334,7 @@ class VentaExportService {
         ],
         pw.Center(
           child: pw.Text(
-            esCotizacion ? 'Documento no fiscal — solo de referencia' : '¡Gracias por su compra!',
+            esCotizacion ? 'Documento no fiscal - solo de referencia' : '¡Gracias por su compra!',
             style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: _colorGrisTexto),
           ),
         ),

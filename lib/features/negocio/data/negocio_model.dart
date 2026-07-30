@@ -156,7 +156,11 @@ class NegocioModel {
       logoColorBase64: data['logoColorBase64'] ?? '',
       logoBnBase64: data['logoBnBase64'] ?? '',
       claveEspecialHash: data['claveEspecialHash'] ?? '',
-      permisos: Map<String, bool>.from(data['permisos'] ?? {}),
+      // El campo `permisos` debe ser un mapa; si por algún motivo quedó
+      // guardado con otro tipo de dato (se dio un caso real en producción:
+      // apareció como el string literal "[object Object]"), se ignora en vez
+      // de tirar una excepción que deja la pantalla de Negocio en blanco.
+      permisos: data['permisos'] is Map ? Map<String, bool>.from(data['permisos'] as Map) : {},
       impresoraTermicaUrl: data['impresoraTermicaUrl'] ?? '',
       impresoraTermicaNombre: data['impresoraTermicaNombre'] ?? '',
       impresoraEtiquetasUrl: data['impresoraEtiquetasUrl'] ?? '',
