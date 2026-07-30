@@ -29,6 +29,18 @@ class SideMenu extends ConsumerWidget {
     mostrarDialogoActualizacion(context, actualizacion);
   }
 
+  // Administrador siempre ve todo. Encargado ve únicamente lo que el
+  // Administrador le marcó en `pantallasPermitidas` al crearlo (ver
+  // usuario_form_dialog.dart). Empleado/Semi Administrador siguen exactamente
+  // igual que antes, evaluados con la jerarquía de Roles.cumpleNivel.
+  bool _puedeVer(dynamic usuario, String rolUsuario, SubModulo s) {
+    if (rolUsuario == Roles.administrador) return true;
+    if (rolUsuario == Roles.encargado) {
+      return usuario?.pantallasPermitidas[s.moduleKey] == true;
+    }
+    return Roles.cumpleNivel(rolUsuario, s.nivelMinimo);
+  }
+
   void _abrirSubModulo(WidgetRef ref, SubModulo sub) {
     final esVentaNueva = sub.moduleKey == 'ventas_registrar';
     final id = esVentaNueva ? 'ventas_registrar_${DateTime.now().millisecondsSinceEpoch}' : sub.moduleKey;
@@ -45,9 +57,10 @@ class SideMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final rolUsuario = authState.usuario?.rol ?? Roles.empleado;
+    final usuario = authState.usuario;
+    final rolUsuario = usuario?.rol ?? Roles.empleado;
     final modulos = obtenerModulos().where((m) {
-      return m.subModulos.any((s) => Roles.cumpleNivel(rolUsuario, s.nivelMinimo));
+      return m.subModulos.any((s) => _puedeVer(usuario, rolUsuario, s));
     }).toList();
 
     return Material(
@@ -83,7 +96,7 @@ class SideMenu extends ConsumerWidget {
                   itemCount: modulos.length,
                   itemBuilder: (context, index) {
                     final modulo = modulos[index];
-                    final disponibles = modulo.subModulos.where((s) => Roles.cumpleNivel(rolUsuario, s.nivelMinimo)).toList();
+                    final disponibles = modulo.subModulos.where((s) => _puedeVer(usuario, rolUsuario, s)).toList();
                     if (disponibles.length == 1) {
                       return ListTile(
                         leading: Icon(modulo.icono, color: modulo.color, size: 22),

@@ -2,8 +2,13 @@ class Roles {
   static const administrador = 'Administrador';
   static const semiAdministrador = 'Semi Administrador';
   static const empleado = 'Empleado';
+  // Rol con permisos ad-hoc por usuario (pantallas y acciones elegidas a
+  // mano por el Administrador al crearlo): no tiene nivel dentro de la
+  // jerarquía de cumpleNivel, se evalúa aparte (ver side_menu.dart y
+  // core/utils/permisos_usuario.dart).
+  static const encargado = 'Encargado';
 
-  static const List<String> todos = [administrador, semiAdministrador, empleado];
+  static const List<String> todos = [administrador, semiAdministrador, empleado, encargado];
 
   static int _nivel(String rol) {
     switch (rol) {

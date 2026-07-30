@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../data/cliente_model.dart';
 import '../../providers/clientes_provider.dart';
 import '../../../../core/utils/texto_utils.dart';
+import '../../../../core/utils/permisos_usuario.dart';
+import '../../../negocio/data/negocio_model.dart';
 import '../widgets/cliente_form_dialog.dart';
 
 class ClientesScreen extends ConsumerStatefulWidget {
@@ -70,8 +72,10 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
 
   List<PopupMenuEntry<String>> _opcionesMenu() {
     return [
-      _opcionMenu(valor: 'editar', icono: Icons.edit_outlined, texto: 'Editar'),
-      _opcionMenu(valor: 'eliminar', icono: Icons.delete_outline, texto: 'Eliminar'),
+      if (puedeRealizarAccion(ref, PermisosEspeciales.clientesEditar))
+        _opcionMenu(valor: 'editar', icono: Icons.edit_outlined, texto: 'Editar'),
+      if (puedeRealizarAccion(ref, PermisosEspeciales.clientesEliminar))
+        _opcionMenu(valor: 'eliminar', icono: Icons.delete_outline, texto: 'Eliminar'),
     ];
   }
 
@@ -123,16 +127,17 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
-                      FilledButton.icon(
-                        onPressed: () => _abrirFormulario(),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: Text('Nuevo Cliente', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF0F1B3D),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      if (puedeRealizarAccion(ref, PermisosEspeciales.clientesCrear))
+                        FilledButton.icon(
+                          onPressed: () => _abrirFormulario(),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: Text('Nuevo Cliente', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF0F1B3D),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),

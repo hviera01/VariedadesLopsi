@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import '../../data/compra_model.dart';
 import '../../providers/compras_provider.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../negocio/data/negocio_model.dart';
 import '../../../../core/utils/formato_moneda.dart';
+import '../../../../core/utils/permisos_usuario.dart';
 
 /// Pantalla de consulta de una compra ya registrada: buscá por número de
 /// documento o de factura (o abrila directo desde Compras a Crédito pasando
@@ -294,7 +296,7 @@ class _DetalleCompraScreenState extends ConsumerState<DetalleCompraScreen> {
         const SizedBox(height: 16),
         _tarjetaTotales(compra),
         const SizedBox(height: 20),
-        if (!compra.estaAnulada)
+        if (!compra.estaAnulada && puedeRealizarAccion(ref, PermisosEspeciales.comprasEliminar))
           FilledButton.icon(
             onPressed: _anulando ? null : _anular,
             icon: _anulando

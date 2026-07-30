@@ -20,6 +20,7 @@ import '../../../../core/providers/tabs_provider.dart';
 import '../../../../core/services/impresora_red_service.dart';
 import '../../../../core/utils/formato_moneda.dart';
 import '../../../../core/utils/pantalla_builder.dart';
+import '../../../../core/utils/permisos_usuario.dart';
 import '../../../../core/widgets/pdf_preview_dialog.dart';
 import '../../../ventas_credito/data/abono_model.dart';
 import '../../../ventas_credito/data/venta_credito_export_service.dart';
@@ -631,7 +632,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
                 label: Text('Convertir a venta', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
                 style: FilledButton.styleFrom(backgroundColor: const Color(0xFF16A34A), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               ),
-            if (!esCotizacion && !venta.estaAnulada)
+            if (!esCotizacion && !venta.estaAnulada && puedeRealizarAccion(ref, PermisosEspeciales.ventasEliminar))
               FilledButton.icon(
                 onPressed: _anulando ? null : _anular,
                 icon: _anulando

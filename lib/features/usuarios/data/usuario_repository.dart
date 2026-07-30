@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../core/constants/roles.dart';
 import '../../../core/utils/clave_hash.dart';
 import 'usuario_model.dart';
 
@@ -11,12 +12,25 @@ class UsuarioRepository {
     });
   }
 
-  Future<void> crear(String documento, String nombreCompleto, String correo, String clave, String rol, bool estado) async {
+  Future<void> crear(
+    String documento,
+    String nombreCompleto,
+    String correo,
+    String clave,
+    String rol,
+    bool estado, [
+    Map<String, bool> pantallasPermitidas = const {},
+    Map<String, bool> accionesPermitidas = const {},
+  ]) async {
     final existe = await _col.where('documento', isEqualTo: documento).limit(1).get();
     if (existe.docs.isNotEmpty) {
       throw Exception('El número de documento ya existe');
     }
     final sal = ClaveHash.generarSal();
+    // Los mapas de permisos ad-hoc solo tienen sentido (y solo se guardan)
+    // para el rol Encargado: para cualquier otro rol se persisten vacíos,
+    // así los documentos no se ensucian con datos que no aplican.
+    final esEncargado = rol == Roles.encargado;
     await _col.add({
       'documento': documento,
       'nombreCompleto': nombreCompleto,
@@ -27,21 +41,36 @@ class UsuarioRepository {
       'estado': estado,
       'intentosFallidos': 0,
       'fechaRegistro': FieldValue.serverTimestamp(),
+      'pantallasPermitidas': esEncargado ? pantallasPermitidas : {},
+      'accionesPermitidas': esEncargado ? accionesPermitidas : {},
     });
   }
 
-  Future<void> actualizar(String id, String documento, String nombreCompleto, String correo, String rol, bool estado, [String? clave]) async {
+  Future<void> actualizar(
+    String id,
+    String documento,
+    String nombreCompleto,
+    String correo,
+    String rol,
+    bool estado, [
+    String? clave,
+    Map<String, bool> pantallasPermitidas = const {},
+    Map<String, bool> accionesPermitidas = const {},
+  ]) async {
     final existe = await _col.where('documento', isEqualTo: documento).limit(2).get();
     final duplicado = existe.docs.any((d) => d.id != id);
     if (duplicado) {
       throw Exception('El número de documento ya existe');
     }
+    final esEncargado = rol == Roles.encargado;
     final data = <String, dynamic>{
       'documento': documento,
       'nombreCompleto': nombreCompleto,
       'correo': correo,
       'rol': rol,
       'estado': estado,
+      'pantallasPermitidas': esEncargado ? pantallasPermitidas : {},
+      'accionesPermitidas': esEncargado ? accionesPermitidas : {},
     };
     if (clave != null && clave.trim().isNotEmpty) {
       // Cambiar la clave desbloquea al usuario y reinicia los intentos

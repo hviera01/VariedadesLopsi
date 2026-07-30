@@ -16,6 +16,8 @@ import '../../../../core/providers/tabs_provider.dart';
 import '../../../../core/utils/codigo_barras_utils.dart';
 import '../../../../core/utils/formato_moneda.dart';
 import '../../../../core/widgets/barcode_scanner_screen.dart';
+import '../../../../core/utils/permisos_usuario.dart';
+import '../../../negocio/data/negocio_model.dart';
 import '../../../ventas/presentation/widgets/teclado_numerico_dialog.dart';
 import '../widgets/buscar_producto_compra_dialog.dart';
 import 'detalle_compra_screen.dart';
@@ -1065,16 +1067,17 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
           const SizedBox(width: 20),
           total('Total a pagar', carrito.totalAPagar, destacado: true),
           const Spacer(),
-          SizedBox(
-            height: 38,
-            child: FilledButton(
-              onPressed: _guardando ? null : _confirmarCompra,
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF1A1A1A), padding: const EdgeInsets.symmetric(horizontal: 20), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              child: _guardando
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text('Registrar Compra', style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.white)),
+          if (puedeRealizarAccion(ref, PermisosEspeciales.comprasCrear))
+            SizedBox(
+              height: 38,
+              child: FilledButton(
+                onPressed: _guardando ? null : _confirmarCompra,
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF1A1A1A), padding: const EdgeInsets.symmetric(horizontal: 20), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                child: _guardando
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text('Registrar Compra', style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.white)),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -1337,16 +1340,17 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _guardando ? null : _confirmarCompra,
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF1A1A1A), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: _guardando
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2))
-                  : Text('Registrar Compra', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+          if (puedeRealizarAccion(ref, PermisosEspeciales.comprasCrear))
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _guardando ? null : _confirmarCompra,
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF1A1A1A), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                child: _guardando
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2))
+                    : Text('Registrar Compra', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+              ),
             ),
-          ),
         ],
       ),
     );

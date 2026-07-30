@@ -22,6 +22,7 @@ import '../../../negocio/providers/negocio_provider.dart';
 import '../../../negocio/presentation/widgets/acceso_especial.dart';
 import '../../../../core/widgets/barcode_scanner_screen.dart';
 import '../../../../core/utils/codigo_barras_utils.dart';
+import '../../../../core/utils/permisos_usuario.dart';
 
 class InventarioScreen extends ConsumerStatefulWidget {
   const InventarioScreen({super.key});
@@ -389,12 +390,13 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                         label: Text('Ticket', style: GoogleFonts.poppins(fontSize: 13)),
                         style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF1A1A1A), side: const BorderSide(color: Color(0xFFB6BCC7)), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                       ),
-                      FilledButton.icon(
-                        onPressed: () => _abrirFormulario(),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: Text('Nuevo Producto', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
-                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      ),
+                      if (puedeRealizarAccion(ref, PermisosEspeciales.inventarioCrearProducto))
+                        FilledButton.icon(
+                          onPressed: () => _abrirFormulario(),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: Text('Nuevo Producto', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
+                          style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        ),
                     ],
                   ),
                 ),
