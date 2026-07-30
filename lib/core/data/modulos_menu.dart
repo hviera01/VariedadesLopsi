@@ -56,6 +56,7 @@ List<ModuloMenu> obtenerModulos() {
       subModulos: [
         SubModulo(titulo: 'Registrar Venta', icono: Icons.add_shopping_cart_outlined, moduleKey: 'ventas_registrar'),
         SubModulo(titulo: 'Ver Detalle', icono: Icons.receipt_long_outlined, moduleKey: 'ventas_detalle'),
+        SubModulo(titulo: 'Celulares', icono: Icons.phone_iphone_outlined, moduleKey: 'celulares'),
       ],
     ),
     ModuloMenu(

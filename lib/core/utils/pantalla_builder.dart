@@ -22,6 +22,7 @@ import '../../features/compras/presentation/screens/hacer_pedido_screen.dart';
 import '../../features/compras/providers/carrito_compra_provider.dart';
 import '../../features/caja/presentation/screens/cierre_caja_screen.dart';
 import '../../features/egresos/presentation/screens/ingresos_egresos_screen.dart';
+import '../../features/celulares/presentation/screens/celulares_screen.dart';
 
 Widget construirPantalla(String moduleKey, String titulo, IconData icono, String tabId) {
   switch (moduleKey) {
@@ -40,6 +41,8 @@ Widget construirPantalla(String moduleKey, String titulo, IconData icono, String
       );
     case 'ventas_detalle':
       return const DetalleVentaScreen(esDialogo: false);
+    case 'celulares':
+      return const CelularesScreen();
     case 'compras_registrar':
       // Mismo aislamiento por pestaña que 'ventas_registrar': cada pestaña
       // de "Registrar Compra" tiene su propio carrito independiente.
