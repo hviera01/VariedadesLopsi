@@ -985,9 +985,15 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
         unawaited(ventaRepo.eliminarVentaEnEspera(carrito.idEnEspera!));
       }
 
-      if (esFacturable) {
+      // Igual que el sistema viejo (btnVentaSinFacturar_Click siempre
+      // llamaba a ImprimirFacturaV Original+Copia): se imprime automático
+      // para cualquier venta concretada, no solo Factura/Boleta — el tipo
+      // "Venta" (VentaSinFacturar) es el que de verdad usa este negocio a
+      // diario, y antes se quedaba sin imprimir nada. Solo una Cotización
+      // (que no es una venta concretada) no dispara impresión.
+      if (!esCotizacion) {
         unawaited(_imprimirEnSegundoPlano(venta));
-        if (negocio != null) _avisarSiRangoSuperado(negocio, venta);
+        if (esFacturable && negocio != null) _avisarSiRangoSuperado(negocio, venta);
       } else {
         _mostrarMensaje('${tiposDocumento[venta.tipoDocumento]} generada: ${venta.numeroDocumento}');
       }
