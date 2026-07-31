@@ -1443,7 +1443,23 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
                   width: esMovil ? double.infinity : 320,
                   child: SelectorNivelPrecio(
                     nivelActivo: carrito.nivelPrecioActivo,
-                    onCambiar: (nivel) => ref.read(carritoVentaProvider.notifier).establecerNivelPrecio(nivel),
+                    onCambiar: (nivel) {
+                      ref.read(carritoVentaProvider.notifier).establecerNivelPrecio(nivel);
+                      // establecerNivelPrecio ya recalculó item.precioVenta de
+                      // cada línea en el estado, pero el campo de "Precio
+                      // Unitario" de la tabla es un TextEditingController
+                      // propio (ver _filaCarritoTabla/_filaCarritoMovil, se
+                      // crea una sola vez con putIfAbsent para no perder lo
+                      // que el usuario esté escribiendo ahí): sin este
+                      // refresco explícito, seguía mostrando el precio del
+                      // nivel anterior aunque el total ya estuviera bien.
+                      final itemsActualizados = ref.read(carritoVentaProvider).items;
+                      for (var i = 0; i < itemsActualizados.length; i++) {
+                        final precioSinIsv = itemsActualizados[i].precioVenta;
+                        final precioMostrado = _precioCarritoConIsv ? redondearMoneda(precioSinIsv * 1.15) : precioSinIsv;
+                        _ctrlPrecio[i]?.text = precioMostrado.toStringAsFixed(2);
+                      }
+                    },
                   ),
                 ),
               SizedBox(

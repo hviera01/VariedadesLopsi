@@ -1,5 +1,7 @@
+import 'dart:io' show Platform;
 import 'dart:typed_data';
 import 'package:excel/excel.dart' as xls;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -94,14 +96,23 @@ class VentaCreditoExportService {
     final doc = pw.Document();
 
     final logo = decodificarLogoPdf(negocio.logoBnBase64);
+    final alturaMm = _estimarAlturaReciboMm(credito, abono, negocio, tieneLogo: logo != null);
+    // Mismo criterio de margen que el ticket de venta (ver
+    // venta_export_service._construirPaginaTicket): en el .exe de Windows,
+    // imprimiendo nativo, el driver de la impresora recorta el ticket si el
+    // margen declarado es muy chico.
+    final margenMm = (!kIsWeb && Platform.isWindows) ? 9.0 : 5.0;
 
     doc.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat(80 * PdfPageFormat.mm, double.infinity, marginAll: 10),
+      // pw.MultiPage (no pw.Page con altura infinita fija): con altura
+      // infinita el paquete arma la página mucho más alta que el contenido
+      // real y sale con un bloque de espacio en blanco grande arriba. Con
+      // una altura estimada (ver _estimarAlturaReciboMm) el recibo sale
+      // ajustado, igual que ya se corrigió en el ticket de venta.
+      pw.MultiPage(
+        pageFormat: PdfPageFormat(80 * PdfPageFormat.mm, alturaMm * PdfPageFormat.mm, marginAll: margenMm * PdfPageFormat.mm),
         build: (context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
+          return [
               if (logo != null) pw.Center(child: pw.Image(logo, height: 50)),
               if (negocio.nombre.isNotEmpty)
                 pw.Center(child: pw.Text(negocio.nombre, style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold))),
@@ -133,12 +144,28 @@ class VentaCreditoExportService {
               if (abono.usuario.isNotEmpty) pw.Text('Atendido por: ${abono.usuario}', style: const pw.TextStyle(fontSize: 8)),
               pw.SizedBox(height: 10),
               pw.Center(child: pw.Text('¡Gracias por su pago!', style: const pw.TextStyle(fontSize: 8))),
-            ],
-          );
+            ];
         },
       ),
     );
     return doc.save();
+  }
+
+  // Estima cuánto va a ocupar el recibo según lo que realmente se imprime
+  // (mismo criterio que _estimarAlturaTicketMm en venta_export_service).
+  // MultiPage no recorta si la estimación se queda corta, así que no hace
+  // falta que sea exacta al milímetro.
+  double _estimarAlturaReciboMm(VentaCreditoModel credito, AbonoModel abono, NegocioModel negocio, {required bool tieneLogo}) {
+    double alto = 85.0;
+    if (tieneLogo) alto += 20.0;
+    if (negocio.nombre.isNotEmpty) alto += 6.0;
+    if (negocio.eslogan.isNotEmpty) alto += 5.0;
+    if (negocio.direccion.isNotEmpty) alto += 8.0;
+    if (negocio.telefono.isNotEmpty) alto += 5.0;
+    if (negocio.rtn.isNotEmpty) alto += 5.0;
+    if (abono.numeroRecibo.isNotEmpty) alto += 5.0;
+    if (abono.usuario.isNotEmpty) alto += 5.0;
+    return alto;
   }
 
   pw.Widget _filaRecibo(String etiqueta, String valor, {bool negrita = false}) {

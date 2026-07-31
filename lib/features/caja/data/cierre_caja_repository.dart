@@ -79,7 +79,13 @@ class CierreCajaRepository {
 
   Future<void> registrarCierre(CierreCajaModel cierre) async {
     await _col.add(cierre.toMap());
-    await guardarMontoInicial(cierre.fechaFin, cierre.totalReal, cierre.usuarioResponsable);
+    // El siguiente periodo arranca al día siguiente del cierre a las 00:00,
+    // no en el minuto exacto en que se cerró: así el próximo cierre parte de
+    // un día calendario completo en vez de un instante arbitrario de la
+    // tarde/noche en que se cerró caja.
+    final finCierre = cierre.fechaFin;
+    final siguientePeriodo = DateTime(finCierre.year, finCierre.month, finCierre.day).add(const Duration(days: 1));
+    await guardarMontoInicial(siguientePeriodo, cierre.totalReal, cierre.usuarioResponsable);
   }
 
   Stream<List<CierreCajaModel>> obtenerHistorial() {

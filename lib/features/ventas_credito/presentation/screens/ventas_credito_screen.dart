@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -77,12 +79,59 @@ class _VentasCreditoScreenState extends ConsumerState<VentasCreditoScreen> {
     if (abono == null || !mounted) return;
     final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
     if (!mounted) return;
+
+    // Igual que Registrar Venta (ver registrar_venta_screen._manejarImpresion)
+    // y Cierre de Caja (ver cierre_caja_screen._preguntarReporte): con
+    // "imprimir sin preguntar" activo en Negocio, el recibo de abono se
+    // manda directo a la térmica sin mostrar la vista previa.
+    if (negocio.modoImpresion == ModoImpresion.directo) {
+      await _imprimirReciboAbonoDirecto(credito, abono, negocio);
+      return;
+    }
+
     final impresora = negocio.impresoraTermicaUrl.isEmpty
         ? null
         : Printer(url: negocio.impresoraTermicaUrl, name: negocio.impresoraTermicaNombre);
     await Future<void>.delayed(const Duration(milliseconds: 150));
     if (!mounted) return;
     showDialog(
+      context: context,
+      builder: (context) => PdfPreviewDialog(
+        titulo: 'Vista previa · Recibo de abono',
+        nombreArchivo: 'recibo_${credito.numeroDocumento}.pdf',
+        generarPdf: () => _servicioExport.generarPdfRecibo(credito, abono, negocio),
+        impresora: impresora,
+      ),
+    );
+  }
+
+  // Contraparte de _abrirRegistrarAbono para "imprimir sin preguntar": mismo
+  // criterio que cierre_caja_screen._imprimirCierreDirecto — imprime directo
+  // en escritorio/web con impresora térmica configurada; sin eso (o en
+  // Android/iOS nativo, sin un destino directo al que mandar el recibo) cae
+  // a la vista previa de siempre en vez de fallar en silencio.
+  Future<void> _imprimirReciboAbonoDirecto(VentaCreditoModel credito, AbonoModel abono, NegocioModel negocio) async {
+    final esMovilNativo = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+    if (!esMovilNativo && negocio.impresoraTermicaUrl.isNotEmpty) {
+      if (kIsWeb) {
+        try {
+          await Printing.layoutPdf(onLayout: (formato) => _servicioExport.generarPdfRecibo(credito, abono, negocio), name: 'recibo_${credito.numeroDocumento}.pdf');
+        } catch (_) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo imprimir el recibo de abono')));
+        }
+        return;
+      }
+      try {
+        final impresora = Printer(url: negocio.impresoraTermicaUrl, name: negocio.impresoraTermicaNombre);
+        await Printing.directPrintPdf(printer: impresora, onLayout: (formato) => _servicioExport.generarPdfRecibo(credito, abono, negocio));
+      } catch (_) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo imprimir en la impresora configurada')));
+      }
+      return;
+    }
+    if (!mounted) return;
+    final impresora = negocio.impresoraTermicaUrl.isEmpty ? null : Printer(url: negocio.impresoraTermicaUrl, name: negocio.impresoraTermicaNombre);
+    await showDialog(
       context: context,
       builder: (context) => PdfPreviewDialog(
         titulo: 'Vista previa · Recibo de abono',

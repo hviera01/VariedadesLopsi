@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,6 +9,7 @@ import '../../data/cierre_caja_model.dart';
 import '../../data/caja_export_service.dart';
 import '../../providers/caja_provider.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../negocio/data/negocio_model.dart';
 import '../../../negocio/providers/negocio_provider.dart';
 import '../../../../core/utils/formato_moneda.dart';
 import '../../../../core/widgets/pdf_preview_dialog.dart';
@@ -81,19 +84,21 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
     }
   }
 
+  // Solo corrige el número guardado del monto inicial del periodo YA
+  // seleccionado (_fechaInicio) — no lo mueve a "ahora" ni toca el resto de
+  // los datos ya cargados (ingresos/egresos del periodo, total real
+  // tecleado, etc.). Antes esto colapsaba _fechaInicio a _fechaFin y
+  // limpiaba el total real, lo que hacía "desaparecer" de la vista todo lo
+  // acumulado desde el inicio real del periodo con solo corregir este
+  // monto.
   Future<void> _guardarMontoInicial() async {
     if (_montoInicial <= 0) {
       _mostrarMensaje('Monto inicial inválido', esError: true);
       return;
     }
     final usuario = ref.read(authProvider).usuario?.nombreCompleto ?? 'Sistema';
-    await ref.read(cierreCajaRepositoryProvider).guardarMontoInicial(_fechaFin, _montoInicial, usuario);
+    await ref.read(cierreCajaRepositoryProvider).guardarMontoInicial(_fechaInicio, _montoInicial, usuario);
     _mostrarMensaje('Monto inicial guardado correctamente');
-    setState(() {
-      _fechaInicio = _fechaFin;
-      _totalRealController.clear();
-    });
-    await _recalcular();
   }
 
   Future<void> _cerrarCaja() async {
@@ -127,13 +132,13 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
       _mostrarMensaje('Cierre de caja registrado correctamente');
       await _preguntarReporte(cierre);
       if (!mounted) return;
-      setState(() {
-        _fechaInicio = cierre.fechaFin;
-        _montoInicialController.text = cierre.totalReal == cierre.totalReal.roundToDouble() ? cierre.totalReal.toStringAsFixed(0) : cierre.totalReal.toStringAsFixed(2);
-        _totalRealController.clear();
-        _observacionesController.clear();
-      });
-      await _recalcular();
+      _totalRealController.clear();
+      _observacionesController.clear();
+      // Recarga fresco desde Firestore (en vez de reconstruir el estado a
+      // mano) para que _fechaInicio quede exactamente en lo que
+      // registrarCierre acaba de guardar como próximo periodo (día
+      // siguiente del cierre a las 00:00, ver cierre_caja_repository).
+      await _cargarTodo();
     } catch (e) {
       _mostrarMensaje('Error al registrar el cierre: $e', esError: true);
     } finally {
@@ -142,6 +147,20 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
   }
 
   Future<void> _preguntarReporte(CierreCajaModel cierre) async {
+    final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
+    if (!mounted) return;
+
+    // Igual que Registrar Venta (ver registrar_venta_screen._manejarImpresion):
+    // con "imprimir sin preguntar" activo en Negocio, el ticket de cierre se
+    // manda directo a la térmica configurada sin mostrar ninguno de los tres
+    // diálogos de abajo (¿generar reporte? · ¿en qué formato? · vista
+    // previa) — antes se mostraban los tres sin importar esta configuración,
+    // lo que se sentía como "pregunta el diálogo de imprimir dos veces".
+    if (negocio.modoImpresion == ModoImpresion.directo) {
+      await _imprimirCierreDirecto(cierre, negocio);
+      return;
+    }
+
     final quiereReporte = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -169,9 +188,6 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
     );
     if (tipo == null || !mounted) return;
 
-    final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
-    if (!mounted) return;
-
     if (tipo == 'termico' || tipo == 'ambos') {
       final impresora = negocio.impresoraTermicaUrl.isEmpty ? null : Printer(url: negocio.impresoraTermicaUrl, name: negocio.impresoraTermicaNombre);
       await showDialog(
@@ -197,6 +213,93 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
     }
   }
 
+  // Imprime el ticket térmico de cierre directo, sin ningún diálogo de por
+  // medio: la contraparte de _preguntarReporte para cuando Negocio tiene
+  // "imprimir sin preguntar" activo. Mismas ramas por plataforma que
+  // registrar_venta_screen._manejarImpresion, pero sin la infraestructura de
+  // "venta pendiente de impresión" (no aplica acá, esto no es una venta) ni
+  // el envío por ESC/POS de red: en Android/iOS, o en escritorio sin
+  // impresora térmica configurada, no hay ningún destino al que mandar el
+  // ticket sin preguntar, así que ahí se cae a la vista previa de siempre en
+  // vez de fallar en silencio.
+  Future<void> _imprimirCierreDirecto(CierreCajaModel cierre, NegocioModel negocio) async {
+    final esMovilNativo = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+    if (!esMovilNativo && negocio.impresoraTermicaUrl.isNotEmpty) {
+      if (kIsWeb) {
+        try {
+          await Printing.layoutPdf(onLayout: (formato) => _servicioExport.generarTicketCierre(cierre, negocio), name: 'cierre_caja_ticket.pdf');
+        } catch (_) {
+          _mostrarMensaje('No se pudo imprimir el ticket de cierre', esError: true);
+        }
+        return;
+      }
+      try {
+        final impresora = Printer(url: negocio.impresoraTermicaUrl, name: negocio.impresoraTermicaNombre);
+        await Printing.directPrintPdf(printer: impresora, onLayout: (formato) => _servicioExport.generarTicketCierre(cierre, negocio));
+      } catch (_) {
+        _mostrarMensaje('No se pudo imprimir en la impresora configurada', esError: true);
+      }
+      return;
+    }
+    // Sin impresora térmica configurada (o en Android/iOS nativo, donde no
+    // hay un destino directo al que mandar el ticket): se muestra la vista
+    // previa de siempre en vez de dejar el cierre sin ningún ticket.
+    if (!mounted) return;
+    final impresora = negocio.impresoraTermicaUrl.isEmpty ? null : Printer(url: negocio.impresoraTermicaUrl, name: negocio.impresoraTermicaNombre);
+    await showDialog(
+      context: context,
+      builder: (context) => PdfPreviewDialog(
+        titulo: 'Ticket · Cierre de Caja',
+        nombreArchivo: 'cierre_caja_ticket.pdf',
+        generarPdf: () => _servicioExport.generarTicketCierre(cierre, negocio),
+        impresora: impresora,
+      ),
+    );
+  }
+
+  // Antes fecha inicio/fin del periodo eran fijas (solo texto, no se podían
+  // tocar): inicio salía siempre del último cierre guardado y fin siempre
+  // era "ahora". Ahora se pueden editar las dos a mano (por ejemplo para
+  // recalcular un periodo distinto al que quedó guardado), recalculando los
+  // totales del rango elegido al confirmar.
+  Future<void> _seleccionarFechaHora(bool esInicio) async {
+    final actual = esInicio ? _fechaInicio : _fechaFin;
+    final fecha = await showDatePicker(context: context, initialDate: actual, firstDate: DateTime(2000), lastDate: DateTime(2100));
+    if (fecha == null || !mounted) return;
+    final hora = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(actual));
+    if (hora == null || !mounted) return;
+    final nuevaFecha = DateTime(fecha.year, fecha.month, fecha.day, hora.hour, hora.minute);
+    setState(() {
+      if (esInicio) {
+        _fechaInicio = nuevaFecha;
+      } else {
+        _fechaFin = nuevaFecha;
+      }
+    });
+    await _recalcular();
+  }
+
+  Widget _selectorFechaHora(String etiqueta, DateTime valor, VoidCallback onTap) {
+    final formato = DateFormat('dd/MM/yyyy HH:mm');
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.event_outlined, size: 14, color: Colors.grey.shade600),
+            const SizedBox(width: 5),
+            Text('$etiqueta ${formato.format(valor)}', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
+            const SizedBox(width: 3),
+            Icon(Icons.edit_outlined, size: 13, color: Colors.grey.shade400),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _mostrarMensaje(String mensaje, {bool esError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -206,8 +309,6 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
-
     return Container(
       color: const Color(0xFFF2F3F7),
       child: _cargando
@@ -222,9 +323,13 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
                     children: [
                       Text('Cierre de Caja', style: GoogleFonts.poppins(fontSize: esMovil ? 19 : 22, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A))),
                       const SizedBox(height: 6),
-                      Text(
-                        'Periodo: ${formatoFecha.format(_fechaInicio)}  →  ${formatoFecha.format(_fechaFin)}',
-                        style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          _selectorFechaHora('Desde', _fechaInicio, () => _seleccionarFechaHora(true)),
+                          Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: Icon(Icons.arrow_forward, size: 14, color: Colors.grey.shade400)),
+                          _selectorFechaHora('Hasta', _fechaFin, () => _seleccionarFechaHora(false)),
+                        ],
                       ),
                       const SizedBox(height: 20),
                       Wrap(

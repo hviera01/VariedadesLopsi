@@ -527,11 +527,16 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
   Widget _filaTabla(ProductoModel p, Map<String, String> mapaCategorias) {
     final bajoStock = p.stock <= 0;
     final seleccionada = _filaSeleccionada == p.id;
+    // Mismo estilo plano de fila resaltada que usa Ventas a Crédito (ver
+    // ventas_credito_screen._filas): solo relleno de color, sin borde ni
+    // esquinas redondeadas. El InkWell con borderRadius + el Border.all que
+    // cambiaba de transparente a color de marca en cada toque hacían que el
+    // resaltado se sintiera pesado comparado con ese; acá no hace falta
+    // ninguna de las dos cosas para que se note la fila elegida.
     return Material(
       key: _filaKeys.putIfAbsent(p.id, () => GlobalKey()),
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
         onTap: () {
           _tomarFocoLista();
           setState(() => _filaSeleccionada = p.id);
@@ -539,11 +544,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
         onDoubleTap: () => _confirmarSeleccion(p),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-          decoration: BoxDecoration(
-            color: seleccionada ? const Color(0xFFFBEAEA) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: seleccionada ? Border.all(color: const Color(0xFF0F1B3D), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
-          ),
+          color: seleccionada ? const Color(0xFFFBEAEA) : Colors.transparent,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [

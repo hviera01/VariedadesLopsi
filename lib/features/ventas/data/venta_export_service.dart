@@ -420,8 +420,10 @@ class VentaExportService {
   pw.Page _construirPaginaTicket(VentaModel venta, NegocioModel negocio, pw.MemoryImage? logo, Map<String, pw.MemoryImage> iconos, {required bool esCopia, double? anchoMm, double? puntosTotales}) {
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
     final formatoDia = DateFormat('dd/MM/yyyy');
-    const fSmall = 7.5;
-    const fNormal = 8.0;
+    // Un poco más grande que antes (7.5/8.0): en la impresora térmica letra
+    // muy chica se ve "manchada" al imprimir, sobre todo en peso normal.
+    const fSmall = 8.5;
+    const fNormal = 9.5;
     final alturaMm = _estimarAlturaTicketMm(venta, negocio, tieneLogo: logo != null);
     // Todo lo fiscal (CAI, rango autorizado, desglose de ISV, leyenda legal)
     // solo tiene sentido en una Factura/Boleta formal. Una Venta normal (la
@@ -487,15 +489,21 @@ class VentaExportService {
                 ),
               ),
             if (negocio.eslogan.isNotEmpty) ...[
-              pw.SizedBox(height: 2),
+              pw.SizedBox(height: 4),
               pw.Center(child: pw.Text(negocio.eslogan, style: const pw.TextStyle(fontSize: 9))),
             ],
-            pw.SizedBox(height: 2),
+            pw.SizedBox(height: 4),
             pw.Center(child: pw.Text('Celulares, Accesorios y Otros Productos Más', style: const pw.TextStyle(fontSize: fSmall))),
-            if (negocio.direccion.isNotEmpty)
+            if (negocio.direccion.isNotEmpty) ...[
+              pw.SizedBox(height: 3),
               pw.Center(child: pw.Text('Dirección: ${negocio.direccion}', style: const pw.TextStyle(fontSize: fSmall), textAlign: pw.TextAlign.center)),
-            if (negocio.rtn.isNotEmpty) pw.Center(child: pw.Text('RTN: ${negocio.rtn}', style: const pw.TextStyle(fontSize: fSmall))),
-            if (negocio.telefono.isNotEmpty)
+            ],
+            if (negocio.rtn.isNotEmpty) ...[
+              pw.SizedBox(height: 3),
+              pw.Center(child: pw.Text('RTN: ${negocio.rtn}', style: const pw.TextStyle(fontSize: fSmall))),
+            ],
+            if (negocio.telefono.isNotEmpty) ...[
+              pw.SizedBox(height: 3),
               pw.Center(
                 child: pw.Row(
                   mainAxisSize: pw.MainAxisSize.min,
@@ -507,10 +515,18 @@ class VentaExportService {
                   ],
                 ),
               ),
-            if (negocio.correo.isNotEmpty) pw.Center(child: pw.Text('Email: ${negocio.correo}', style: const pw.TextStyle(fontSize: fSmall))),
-            if (esFacturable && negocio.cai.isNotEmpty) pw.Center(child: pw.Text('CAI: ${negocio.cai}', style: const pw.TextStyle(fontSize: fSmall))),
-            pw.SizedBox(height: 3),
+            ],
+            if (negocio.correo.isNotEmpty) ...[
+              pw.SizedBox(height: 3),
+              pw.Center(child: pw.Text('Email: ${negocio.correo}', style: const pw.TextStyle(fontSize: fSmall))),
+            ],
+            if (esFacturable && negocio.cai.isNotEmpty) ...[
+              pw.SizedBox(height: 3),
+              pw.Center(child: pw.Text('CAI: ${negocio.cai}', style: const pw.TextStyle(fontSize: fSmall))),
+            ],
+            pw.SizedBox(height: 6),
             pw.Center(child: pw.Text('Síguenos en nuestras redes sociales:', style: const pw.TextStyle(fontSize: fSmall))),
+            pw.SizedBox(height: 4),
             pw.Center(
               child: pw.Row(
                 mainAxisSize: pw.MainAxisSize.min,
@@ -522,6 +538,7 @@ class VentaExportService {
                 ],
               ),
             ),
+            pw.SizedBox(height: 3),
             pw.Center(
               child: pw.Row(
                 mainAxisSize: pw.MainAxisSize.min,
@@ -533,6 +550,7 @@ class VentaExportService {
                 ],
               ),
             ),
+            pw.SizedBox(height: 3),
             pw.Center(
               child: pw.Row(
                 mainAxisSize: pw.MainAxisSize.min,
@@ -544,9 +562,17 @@ class VentaExportService {
                 ],
               ),
             ),
-            pw.SizedBox(height: 6),
+            pw.SizedBox(height: 8),
             _separador(),
-            pw.Text('${(tiposDocumento[venta.tipoDocumento] ?? venta.tipoDocumento).toUpperCase()} ${negocio.rangoPrefijo}${venta.numeroDocumento}', style: const pw.TextStyle(fontSize: fNormal)),
+            // Sin negocio.rangoPrefijo acá: ese prefijo es el rango fiscal
+            // autorizado por la SAR para Factura/Boleta (ver _piePagina /
+            // negocio.rangoDesde-rangoHasta), no aplica a una Venta normal
+            // sin facturar — ahí el ticket debe decir solo "VENTA 0007", el
+            // número tal cual, sin ningún prefijo de negocio pegado.
+            pw.Text(
+              '${(tiposDocumento[venta.tipoDocumento] ?? venta.tipoDocumento).toUpperCase()} ${esFacturable ? negocio.rangoPrefijo : ''}${venta.numeroDocumento}',
+              style: const pw.TextStyle(fontSize: fNormal),
+            ),
             pw.Text('Fecha: ${venta.fechaRegistro != null ? formatoFecha.format(venta.fechaRegistro!) : '-'}', style: const pw.TextStyle(fontSize: fNormal)),
             pw.Text('Atendido por: ${venta.usuarioRegistro}', style: const pw.TextStyle(fontSize: fNormal)),
             pw.Text('Condición: ${venta.condicion}', style: const pw.TextStyle(fontSize: fNormal)),
@@ -678,22 +704,27 @@ class VentaExportService {
     // forma de pago, avisos legales de original/copia, agradecimiento y el
     // "ORIGINAL"/"COPIA" final — más margen de la página y colchón de
     // seguridad.
-    double alto = 200.0;
+    // Base más alta que antes (200 -> 215): la letra general del ticket
+    // creció (ver fSmall/fNormal) y el pie ahora tiene más espacio entre
+    // líneas (eslogan/redes sociales, ver _construirPaginaTicket), así que
+    // el bloque fijo ocupa más milímetros que antes.
+    double alto = 215.0;
 
     if (tieneLogo) alto += 26.0;
-    if (negocio.nombre.isNotEmpty) alto += 6.0;
-    if (negocio.eslogan.isNotEmpty) alto += 8.0;
+    if (negocio.nombre.isNotEmpty) alto += 7.0;
+    if (negocio.eslogan.isNotEmpty) alto += 10.0;
     // Línea fija "Celulares, Accesorios y Otros Productos Más", siempre se
     // imprime, igual que el ticket viejo.
-    alto += 8.0;
-    if (negocio.direccion.isNotEmpty) alto += 10.0;
-    if (negocio.rtn.isNotEmpty) alto += 6.0;
-    if (negocio.telefono.isNotEmpty) alto += 6.0;
-    if (negocio.correo.isNotEmpty) alto += 6.0;
-    if (negocio.cai.isNotEmpty) alto += 6.0;
-    // Bloque fijo de redes sociales (encabezado + Facebook/Instagram/TikTok),
-    // siempre se imprime, no depende de datos del negocio.
-    alto += 24.0;
+    alto += 10.0;
+    if (negocio.direccion.isNotEmpty) alto += 12.0;
+    if (negocio.rtn.isNotEmpty) alto += 7.0;
+    if (negocio.telefono.isNotEmpty) alto += 7.0;
+    if (negocio.correo.isNotEmpty) alto += 7.0;
+    if (negocio.cai.isNotEmpty) alto += 7.0;
+    // Bloque fijo de redes sociales (encabezado + Facebook/Instagram/TikTok,
+    // ahora con más separación entre cada línea), siempre se imprime, no
+    // depende de datos del negocio.
+    alto += 34.0;
     // SUBTOTAL + Descuentos, siempre se imprimen (ver _construirPaginaTicket).
     alto += 12.0;
 
