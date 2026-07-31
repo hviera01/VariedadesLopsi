@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:image/image.dart' as img;
@@ -30,6 +31,16 @@ class VentaTicketEscPosService {
     return chico;
   }
 
+  Future<double?> _obtenerPuntosTotales(VentaModel venta) async {
+    if (venta.puntosGanados <= 0 || venta.idCliente.isEmpty) return null;
+    try {
+      final snap = await FirebaseFirestore.instance.collection('clientes').doc(venta.idCliente).get();
+      return ((snap.data()?['saldoPuntos'] ?? 0) as num).toDouble();
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<int>> generarTicket(VentaModel venta, NegocioModel negocio) async {
     final perfil = await CapabilityProfile.load();
     final generador = Generator(PaperSize.mm80, perfil);
@@ -47,6 +58,7 @@ class VentaTicketEscPosService {
         logo = null;
       }
     }
+    final puntosTotales = await _obtenerPuntosTotales(venta);
     // Todo lo fiscal (CAI, rango autorizado, desglose de ISV, leyenda legal)
     // solo tiene sentido en una Factura/Boleta formal. Una Venta normal (la
     // que usa este negocio siempre) es un comprobante simple, sin nada de
@@ -63,7 +75,10 @@ class VentaTicketEscPosService {
     List<int> bytes = [];
     bytes += generador.reset();
 
-    if (logo != null) bytes += generador.image(logo, align: PosAlign.center);
+    if (logo != null) {
+      bytes += generador.image(logo, align: PosAlign.center);
+      bytes += generador.feed(1);
+    }
     if (negocio.nombre.isNotEmpty) {
       bytes += generador.text(negocio.nombre.toUpperCase(), styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2));
     }
@@ -72,6 +87,7 @@ class VentaTicketEscPosService {
     // renglón, así que se imprime chico e inmediatamente debajo del nombre.
     bytes += generador.image(iconoPulgar, align: PosAlign.center);
     if (negocio.eslogan.isNotEmpty) bytes += generador.text(negocio.eslogan, styles: const PosStyles(align: PosAlign.center));
+    bytes += generador.text('Celulares, Accesorios y Otros Productos Más', styles: const PosStyles(align: PosAlign.center));
     if (negocio.direccion.isNotEmpty) bytes += generador.text('Dirección: ${negocio.direccion}', styles: const PosStyles(align: PosAlign.center));
     if (negocio.rtn.isNotEmpty) bytes += generador.text('RTN: ${negocio.rtn}', styles: const PosStyles(align: PosAlign.center));
     if (negocio.telefono.isNotEmpty) bytes += generador.text('WhatsApp: ${negocio.telefono}', styles: const PosStyles(align: PosAlign.center));
@@ -86,9 +102,6 @@ class VentaTicketEscPosService {
     bytes += generador.text('${(tiposDocumento[venta.tipoDocumento] ?? venta.tipoDocumento).toUpperCase()} ${negocio.rangoPrefijo}${venta.numeroDocumento}', styles: const PosStyles(bold: true));
     bytes += generador.text('Fecha: ${venta.fechaRegistro != null ? formatoFecha.format(venta.fechaRegistro!) : '-'}');
     bytes += generador.text('Atendido por: ${venta.usuarioRegistro}');
-    if (venta.usuarioAutorizaPrecio.isNotEmpty) {
-      bytes += generador.text('Autorizó cambio de precio: ${venta.usuarioAutorizaPrecio}');
-    }
     bytes += generador.text('Condición: ${venta.condicion}');
     if (venta.condicion == 'Credito' && venta.fechaVencimiento != null) {
       bytes += generador.text('Fecha de vencimiento: ${formatoDia.format(venta.fechaVencimiento!)}');
@@ -113,13 +126,14 @@ class VentaTicketEscPosService {
     }
     bytes += generador.hr();
 
+    // SUBTOTAL / Descuentos / TOTAL A PAGAR se muestran siempre, igual que
+    // el ticket viejo ("Descuentos" fijo en 0.00, no calculado).
+    bytes += _filaTotal(generador, 'SUBTOTAL:', venta.subtotal);
+    if (venta.descuentoGlobal > 0) bytes += generador.text('Descuento global: ${_formatoCantidad(venta.descuentoGlobal)}%');
+    bytes += _filaTotal(generador, 'Descuentos:', 0);
     if (esFacturable) {
-      bytes += _filaTotal(generador, 'SUBTOTAL:', venta.subtotal);
-      if (venta.descuentoGlobal > 0) bytes += generador.text('Descuento global: ${_formatoCantidad(venta.descuentoGlobal)}%');
       bytes += _filaTotal(generador, 'Gravado 15%:', venta.subtotal);
       bytes += _filaTotal(generador, 'ISV 15%:', venta.impuesto);
-    } else if (venta.descuentoGlobal > 0) {
-      bytes += generador.text('Descuento global: ${_formatoCantidad(venta.descuentoGlobal)}%');
     }
     bytes += _filaTotal(generador, 'TOTAL A PAGAR:', venta.totalAPagar, negrita: true);
     bytes += generador.hr();
@@ -130,7 +144,7 @@ class VentaTicketEscPosService {
         bytes += generador.text('Efectivo: ${formatearMoneda(venta.montoPago)}');
         bytes += generador.text('Cambio: ${formatearMoneda(venta.montoCambio)}');
       } else if (venta.metodoPago == 'Tarjeta') {
-        bytes += generador.text('Pago con tarjeta: ${formatearMoneda(venta.totalAPagar)}');
+        bytes += generador.text('Terminal POS: ${formatearMoneda(venta.totalAPagar)}');
       } else if (venta.metodoPago == 'Transferencia') {
         bytes += generador.text('Transferencia');
       } else if (venta.metodoPago == 'Mixto') {
@@ -142,6 +156,7 @@ class VentaTicketEscPosService {
     if (venta.puntosGanados > 0) {
       bytes += generador.hr();
       bytes += generador.text('Puntos Ganados: ${venta.puntosGanados.toStringAsFixed(0)}');
+      if (puntosTotales != null) bytes += generador.text('Total de Puntos: ${puntosTotales.toStringAsFixed(0)}');
     }
     bytes += generador.hr();
 

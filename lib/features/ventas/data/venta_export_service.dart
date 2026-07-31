@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 import 'dart:typed_data';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:excel/excel.dart' as xls;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart' show rootBundle;
@@ -367,17 +368,33 @@ class VentaExportService {
     final logo = decodificarLogoPdf(negocio.logoBnBase64, maxDimension: 400);
     final iconos = await _cargarIconosTicket();
     final anchoMm = _anchoValidoDesdeFormato(formatoImpresora);
+    // "Total de Puntos" del ticket viejo: el saldo del cliente YA con esta
+    // venta sumada (acá la acumulación ya pasó, es parte de la misma
+    // transacción que registró la venta — a diferencia del sistema viejo,
+    // que imprimía el ticket ANTES de sumar los puntos y por eso tenía que
+    // sumar a mano `puntosActuales + puntosGanados`).
+    final puntosTotales = await _obtenerPuntosTotales(venta);
 
     if (forzarCopia != null) {
-      doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: forzarCopia, anchoMm: anchoMm));
+      doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: forzarCopia, anchoMm: anchoMm, puntosTotales: puntosTotales));
       return doc.save();
     }
 
-    doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: false, anchoMm: anchoMm));
+    doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: false, anchoMm: anchoMm, puntosTotales: puntosTotales));
     if (negocio.facturaImprimirCopia) {
-      doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: true, anchoMm: anchoMm));
+      doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: true, anchoMm: anchoMm, puntosTotales: puntosTotales));
     }
     return doc.save();
+  }
+
+  Future<double?> _obtenerPuntosTotales(VentaModel venta) async {
+    if (venta.puntosGanados <= 0 || venta.idCliente.isEmpty) return null;
+    try {
+      final snap = await FirebaseFirestore.instance.collection('clientes').doc(venta.idCliente).get();
+      return ((snap.data()?['saldoPuntos'] ?? 0) as num).toDouble();
+    } catch (_) {
+      return null;
+    }
   }
 
   double? _anchoValidoDesdeFormato(PdfPageFormat? formato) {
@@ -400,7 +417,7 @@ class VentaExportService {
   // que realmente va a imprimirse (ver _estimarAlturaTicketMm) en vez de un
   // valor fijo enorme: con una altura fija muy por encima de lo real, la
   // vista previa quedaba con un espacio en blanco gigante al final.
-  pw.Page _construirPaginaTicket(VentaModel venta, NegocioModel negocio, pw.MemoryImage? logo, Map<String, pw.MemoryImage> iconos, {required bool esCopia, double? anchoMm}) {
+  pw.Page _construirPaginaTicket(VentaModel venta, NegocioModel negocio, pw.MemoryImage? logo, Map<String, pw.MemoryImage> iconos, {required bool esCopia, double? anchoMm, double? puntosTotales}) {
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
     final formatoDia = DateFormat('dd/MM/yyyy');
     const fSmall = 7.5;
@@ -453,7 +470,10 @@ class VentaExportService {
             // desbordar el ticket de 80mm, sea cual sea la proporción del
             // logo que suba el negocio: antes salía muy chico porque solo se
             // limitaba el alto a 50pt.
-            if (logo != null) pw.Center(child: pw.Image(logo, width: 140)),
+            if (logo != null) ...[
+              pw.Center(child: pw.Image(logo, width: 140)),
+              pw.SizedBox(height: 6),
+            ],
             if (negocio.nombre.isNotEmpty)
               pw.Center(
                 child: pw.Row(
@@ -466,8 +486,12 @@ class VentaExportService {
                   ],
                 ),
               ),
-            if (negocio.eslogan.isNotEmpty)
+            if (negocio.eslogan.isNotEmpty) ...[
+              pw.SizedBox(height: 2),
               pw.Center(child: pw.Text(negocio.eslogan, style: const pw.TextStyle(fontSize: 9))),
+            ],
+            pw.SizedBox(height: 2),
+            pw.Center(child: pw.Text('Celulares, Accesorios y Otros Productos Más', style: const pw.TextStyle(fontSize: fSmall))),
             if (negocio.direccion.isNotEmpty)
               pw.Center(child: pw.Text('Dirección: ${negocio.direccion}', style: const pw.TextStyle(fontSize: fSmall), textAlign: pw.TextAlign.center)),
             if (negocio.rtn.isNotEmpty) pw.Center(child: pw.Text('RTN: ${negocio.rtn}', style: const pw.TextStyle(fontSize: fSmall))),
@@ -525,8 +549,6 @@ class VentaExportService {
             pw.Text('${(tiposDocumento[venta.tipoDocumento] ?? venta.tipoDocumento).toUpperCase()} ${negocio.rangoPrefijo}${venta.numeroDocumento}', style: const pw.TextStyle(fontSize: fNormal)),
             pw.Text('Fecha: ${venta.fechaRegistro != null ? formatoFecha.format(venta.fechaRegistro!) : '-'}', style: const pw.TextStyle(fontSize: fNormal)),
             pw.Text('Atendido por: ${venta.usuarioRegistro}', style: const pw.TextStyle(fontSize: fNormal)),
-            if (venta.usuarioAutorizaPrecio.isNotEmpty)
-              pw.Text('Autorizó cambio de precio: ${venta.usuarioAutorizaPrecio}', style: const pw.TextStyle(fontSize: fSmall)),
             pw.Text('Condición: ${venta.condicion}', style: const pw.TextStyle(fontSize: fNormal)),
             if (venta.condicion == 'Credito' && venta.fechaVencimiento != null)
               pw.Text('Fecha de vencimiento: ${formatoDia.format(venta.fechaVencimiento!)}', style: const pw.TextStyle(fontSize: fNormal)),
@@ -545,7 +567,7 @@ class VentaExportService {
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text('CANT  DESCRIPCIÓN', style: const pw.TextStyle(fontSize: fSmall)),
+                pw.Text('CANT  DESCRIPCION', style: const pw.TextStyle(fontSize: fSmall)),
                 pw.Text('IMPORTE', style: const pw.TextStyle(fontSize: fSmall)),
               ],
             ),
@@ -573,17 +595,23 @@ class VentaExportService {
                   ),
                 )),
             _separador(),
+            // SUBTOTAL / Descuentos / TOTAL A PAGAR se muestran siempre,
+            // igual que el ticket viejo (ahí "Descuentos" está fijo en
+            // 0.00, no calculado — no hay lógica de descuento por línea en
+            // el ticket, se replica tal cual). El desglose fiscal de abajo
+            // (Exento/Exonerado/Gravado/ISV) es propio de una Factura/Boleta
+            // formal y se agrega aparte, sin reemplazar estas 3 líneas base.
+            _filaTotal('SUBTOTAL:', venta.subtotal),
+            if (venta.descuentoGlobal > 0) pw.Text('Descuento global: ${_formatoCantidad(venta.descuentoGlobal)}%', style: const pw.TextStyle(fontSize: fSmall)),
+            _filaTotal('Descuentos:', 0),
             if (esFacturable) ...[
-              _filaTotal('SUBTOTAL:', venta.subtotal),
-              if (venta.descuentoGlobal > 0) pw.Text('Descuento global: ${_formatoCantidad(venta.descuentoGlobal)}%', style: const pw.TextStyle(fontSize: fSmall)),
               _filaTotal('Descuentos y rebajas:', descuentosYRebajas),
               _filaTotal('Importe Exento:', 0),
               _filaTotal('Importe Exonerado:', 0),
               _filaTotal('Gravado 15%:', venta.subtotal),
               _filaTotal('Gravado 18%:', 0),
               _filaTotal('ISV 15%:', venta.impuesto),
-            ] else if (venta.descuentoGlobal > 0)
-              pw.Text('Descuento global: ${_formatoCantidad(venta.descuentoGlobal)}%', style: const pw.TextStyle(fontSize: fSmall)),
+            ],
             _filaTotal('TOTAL A PAGAR:', venta.totalAPagar, negrita: true),
             pw.SizedBox(height: 6),
             _separador(),
@@ -593,7 +621,7 @@ class VentaExportService {
                 pw.Text('Efectivo: ${formatearMoneda(venta.montoPago)}', style: const pw.TextStyle(fontSize: fNormal)),
                 pw.Text('Cambio: ${formatearMoneda(venta.montoCambio)}', style: const pw.TextStyle(fontSize: fNormal)),
               ] else if (venta.metodoPago == 'Tarjeta')
-                pw.Text('Pago con tarjeta: ${formatearMoneda(venta.totalAPagar)}', style: const pw.TextStyle(fontSize: fNormal))
+                pw.Text('Terminal POS: ${formatearMoneda(venta.totalAPagar)}', style: const pw.TextStyle(fontSize: fNormal))
               else if (venta.metodoPago == 'Transferencia')
                 pw.Text('Transferencia', style: const pw.TextStyle(fontSize: fNormal))
               else if (venta.metodoPago == 'Mixto')
@@ -603,6 +631,7 @@ class VentaExportService {
             if (venta.puntosGanados > 0) ...[
               _separador(),
               pw.Text('Puntos Ganados: ${venta.puntosGanados.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: fNormal)),
+              if (puntosTotales != null) pw.Text('Total de Puntos: ${puntosTotales.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: fNormal)),
             ],
             _separador(),
             if (esFacturable) ...[
@@ -651,9 +680,12 @@ class VentaExportService {
     // seguridad.
     double alto = 200.0;
 
-    if (tieneLogo) alto += 20.0;
+    if (tieneLogo) alto += 26.0;
     if (negocio.nombre.isNotEmpty) alto += 6.0;
-    if (negocio.eslogan.isNotEmpty) alto += 6.0;
+    if (negocio.eslogan.isNotEmpty) alto += 8.0;
+    // Línea fija "Celulares, Accesorios y Otros Productos Más", siempre se
+    // imprime, igual que el ticket viejo.
+    alto += 8.0;
     if (negocio.direccion.isNotEmpty) alto += 10.0;
     if (negocio.rtn.isNotEmpty) alto += 6.0;
     if (negocio.telefono.isNotEmpty) alto += 6.0;
@@ -662,14 +694,15 @@ class VentaExportService {
     // Bloque fijo de redes sociales (encabezado + Facebook/Instagram/TikTok),
     // siempre se imprime, no depende de datos del negocio.
     alto += 24.0;
+    // SUBTOTAL + Descuentos, siempre se imprimen (ver _construirPaginaTicket).
+    alto += 12.0;
 
     if (venta.condicion == 'Credito' && venta.fechaVencimiento != null) alto += 6.0;
-    if (venta.usuarioAutorizaPrecio.isNotEmpty) alto += 6.0;
     if (venta.oc.isNotEmpty) alto += 6.0;
     if (venta.regExonerado.isNotEmpty) alto += 6.0;
     if (venta.regSag.isNotEmpty) alto += 6.0;
     if (venta.descuentoGlobal > 0) alto += 6.0;
-    if (venta.puntosGanados > 0) alto += 10.0;
+    if (venta.puntosGanados > 0) alto += 16.0;
     // "Rango Aut.: 000-0001-01-00005401 al 000-0001-01-00006000" es largo y
     // casi siempre se parte en dos líneas dentro de los 80mm.
     if (negocio.rangoPrefijo.isNotEmpty || negocio.rangoDesde.isNotEmpty) alto += 10.0;
