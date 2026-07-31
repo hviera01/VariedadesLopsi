@@ -9,6 +9,7 @@ import 'venta_credito_model.dart';
 import 'abono_model.dart';
 import '../../../core/utils/formato_moneda.dart';
 import '../../../core/utils/logo_pdf.dart';
+import '../../../core/utils/pdf_fuente.dart';
 import '../../negocio/data/negocio_model.dart';
 
 class VentaCreditoExportService {
@@ -48,7 +49,7 @@ class VentaCreditoExportService {
 
   Future<Uint8List> generarPdfListado(List<VentaCreditoModel> lista) async {
     final formato = DateFormat('dd/MM/yyyy');
-    final doc = pw.Document();
+    final doc = pw.Document(theme: await obtenerTemaPdfConFuenteEmbebida());
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4.landscape,
@@ -93,7 +94,7 @@ class VentaCreditoExportService {
 
   Future<Uint8List> generarPdfRecibo(VentaCreditoModel credito, AbonoModel abono, NegocioModel negocio) async {
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
-    final doc = pw.Document();
+    final doc = pw.Document(theme: await obtenerTemaPdfConFuenteEmbebida());
 
     final logo = decodificarLogoPdf(negocio.logoBnBase64);
     final alturaMm = _estimarAlturaReciboMm(credito, abono, negocio, tieneLogo: logo != null);
@@ -156,7 +157,11 @@ class VentaCreditoExportService {
   // MultiPage no recorta si la estimación se queda corta, así que no hace
   // falta que sea exacta al milímetro.
   double _estimarAlturaReciboMm(VentaCreditoModel credito, AbonoModel abono, NegocioModel negocio, {required bool tieneLogo}) {
-    double alto = 85.0;
+    // Medido contra un PDF real generado con datos de prueba: 85 de base
+    // sobraba bastante papel en blanco al final; 65 se quedó corto y partió
+    // el recibo en 2 páginas. 86 deja un margen prudente sin desperdiciar
+    // tanto papel.
+    double alto = 86.0;
     if (tieneLogo) alto += 20.0;
     if (negocio.nombre.isNotEmpty) alto += 6.0;
     if (negocio.eslogan.isNotEmpty) alto += 5.0;

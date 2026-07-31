@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../data/venta_credito_model.dart';
 import '../../data/abono_model.dart';
 import '../../providers/ventas_credito_provider.dart';
@@ -21,6 +22,10 @@ class _RegistrarAbonoDialogState extends ConsumerState<RegistrarAbonoDialog> {
   final _interesController = TextEditingController(text: '0');
   final _numeroReciboController = TextEditingController();
   String _metodoPago = 'Efectivo';
+  // Por defecto hoy, pero editable: para asentar un abono que en realidad
+  // se recibió otro día (ej. cargando abonos atrasados) sin que quede
+  // registrado con la fecha en que se cargó al sistema.
+  DateTime _fecha = DateTime.now();
   bool _guardando = false;
   String? _error;
 
@@ -64,13 +69,14 @@ class _RegistrarAbonoDialogState extends ConsumerState<RegistrarAbonoDialog> {
             metodoPago: _metodoPago,
             numeroRecibo: _numeroReciboController.text.trim(),
             usuario: usuario,
+            fecha: _fecha,
           );
       if (!mounted) return;
       Navigator.pop(
         context,
         AbonoModel(
           id: '',
-          fecha: DateTime.now(),
+          fecha: _fecha,
           montoAbonado: _montoAbonado,
           saldoAnterior: saldoAnterior,
           interes: _interes,
@@ -86,6 +92,17 @@ class _RegistrarAbonoDialogState extends ConsumerState<RegistrarAbonoDialog> {
         _guardando = false;
       });
     }
+  }
+
+  Future<void> _seleccionarFecha() async {
+    final fecha = await showDatePicker(
+      context: context,
+      initialDate: _fecha,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (fecha == null) return;
+    setState(() => _fecha = DateTime(fecha.year, fecha.month, fecha.day, _fecha.hour, _fecha.minute));
   }
 
   InputDecoration _decoracion(String label) {
@@ -170,6 +187,25 @@ class _RegistrarAbonoDialogState extends ConsumerState<RegistrarAbonoDialog> {
                       style: GoogleFonts.poppins(fontSize: 14),
                       decoration: _decoracion('Monto abonado'),
                       onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 14),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: _seleccionarFecha,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(color: const Color(0xFFE8EAF0), borderRadius: BorderRadius.circular(12)),
+                        child: Row(
+                          children: [
+                            Icon(Icons.event_outlined, size: 18, color: Colors.grey.shade600),
+                            const SizedBox(width: 10),
+                            Text('Fecha del abono', style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey.shade600)),
+                            const Spacer(),
+                            Text(DateFormat('dd/MM/yyyy').format(_fecha), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A))),
+                          ],
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 14),
                     _filaSoloLectura('Saldo anterior', formatearMoneda(widget.credito.saldoPendiente)),

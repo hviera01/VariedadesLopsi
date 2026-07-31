@@ -12,6 +12,7 @@ import 'numero_a_letras.dart';
 import 'tipos_documento.dart';
 import '../../../core/utils/formato_moneda.dart';
 import '../../../core/utils/logo_pdf.dart';
+import '../../../core/utils/pdf_fuente.dart';
 import '../../negocio/data/negocio_model.dart';
 
 class VentaExportService {
@@ -52,7 +53,7 @@ class VentaExportService {
   /// defecto del negocio, igual que hacía antes.
   Future<Uint8List> generarPdfDetalleVenta(VentaModel venta, NegocioModel negocio, {bool? preciosConIsv}) async {
     final conIsv = preciosConIsv ?? negocio.facturaPreciosConIsv;
-    final doc = pw.Document();
+    final doc = pw.Document(theme: await obtenerTemaPdfConFuenteEmbebida());
     final logo = decodificarLogoPdf(negocio.logoColorBase64);
     final formatoDia = DateFormat('dd/MM/yyyy');
     final esCotizacion = venta.tipoDocumento == 'Cotizacion';
@@ -361,7 +362,7 @@ class VentaExportService {
   // 120mm de ancho) se usa ese ancho real en vez del fijo; si no, se sigue
   // usando 80mm como hasta ahora.
   Future<Uint8List> generarPdfFactura(VentaModel venta, NegocioModel negocio, {bool? forzarCopia, PdfPageFormat? formatoImpresora}) async {
-    final doc = pw.Document();
+    final doc = pw.Document(theme: await obtenerTemaPdfConFuenteEmbebida());
     // maxDimension más alto que el default acá: el logo del ticket ahora se
     // imprime más grande (ver _construirPaginaTicket), y con la resolución
     // chica que alcanza para un logo de cabecera normal se vería borroso.
@@ -606,7 +607,15 @@ class VentaExportService {
                       // Sin negrita: en la impresora térmica el texto en
                       // negrita se ve más "manchado" y termina siendo menos
                       // claro que el peso normal, sobre todo en letra chica.
-                      pw.Text(item.nombreProducto, style: const pw.TextStyle(fontSize: fSmall)),
+                      // Con un margen a la derecha (en vez del ancho
+                      // completo del ticket) un nombre largo pasa a una
+                      // segunda línea un poco antes de llegar al borde, en
+                      // vez de correr pegado hasta donde queda alineado el
+                      // importe de la línea de abajo.
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.only(right: 14),
+                        child: pw.Text(item.nombreProducto, style: const pw.TextStyle(fontSize: fSmall)),
+                      ),
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
@@ -704,11 +713,11 @@ class VentaExportService {
     // forma de pago, avisos legales de original/copia, agradecimiento y el
     // "ORIGINAL"/"COPIA" final — más margen de la página y colchón de
     // seguridad.
-    // Base más alta que antes (200 -> 215): la letra general del ticket
-    // creció (ver fSmall/fNormal) y el pie ahora tiene más espacio entre
-    // líneas (eslogan/redes sociales, ver _construirPaginaTicket), así que
-    // el bloque fijo ocupa más milímetros que antes.
-    double alto = 215.0;
+    // Ajustado con un PDF real generado con datos de prueba: con 215 (que
+    // yo mismo había subido "a ojo" al agrandar la letra) el ticket salía
+    // con casi la mitad de la página en blanco al final. 110 deja el
+    // contenido usando la mayor parte de la página sin llegar a cortarse.
+    double alto = 110.0;
 
     if (tieneLogo) alto += 26.0;
     if (negocio.nombre.isNotEmpty) alto += 7.0;

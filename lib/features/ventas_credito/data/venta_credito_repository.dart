@@ -60,13 +60,18 @@ class VentaCreditoRepository {
     required String metodoPago,
     required String numeroRecibo,
     required String usuario,
+    // Fecha que el cajero eligió en el diálogo (por defecto hoy, pero
+    // editable para asentar un abono con fecha distinta a la de hoy). Sin
+    // esto, la fecha real del pago se perdía: siempre quedaba grabado el
+    // momento exacto de guardar, sin poder corregirlo.
+    DateTime? fecha,
   }) async {
     final nuevoSaldo = (saldoAnterior - montoAbonado + interes).clamp(0, double.infinity).toDouble();
     final batch = _db.batch();
     batch.update(_col.doc(idCredito), {'saldoPendiente': nuevoSaldo});
     final abonoRef = _col.doc(idCredito).collection('abonos').doc();
     batch.set(abonoRef, {
-      'fecha': FieldValue.serverTimestamp(),
+      'fecha': fecha != null ? Timestamp.fromDate(fecha) : FieldValue.serverTimestamp(),
       'montoAbonado': montoAbonado,
       'saldoAnterior': saldoAnterior,
       'interes': interes,

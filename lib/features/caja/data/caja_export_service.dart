@@ -7,6 +7,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'cierre_caja_model.dart';
 import '../../../core/utils/formato_moneda.dart';
 import '../../../core/utils/logo_pdf.dart';
+import '../../../core/utils/pdf_fuente.dart';
 import '../../negocio/data/negocio_model.dart';
 
 class CajaExportService {
@@ -15,7 +16,7 @@ class CajaExportService {
   static const _colorGrisClaro = PdfColor.fromInt(0xFFF2F3F7);
 
   Future<Uint8List> generarTicketCierre(CierreCajaModel cierre, NegocioModel negocio) async {
-    final doc = pw.Document();
+    final doc = pw.Document(theme: await obtenerTemaPdfConFuenteEmbebida());
     final logo = decodificarLogoPdf(negocio.logoBnBase64);
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
     const fSmall = 8.5;
@@ -84,7 +85,13 @@ class CajaExportService {
   // recorta si la estimación se queda corta (a lo sumo pasa a una segunda
   // página), así que no hace falta que sea exacta al milímetro.
   double _estimarAlturaTicketCierreMm(CierreCajaModel cierre, NegocioModel negocio, {required bool tieneLogo}) {
-    double alto = 95.0;
+    // Medido contra un PDF real generado con datos de prueba (título +
+    // desde/hasta/usuario + 11 renglones de montos + separadores + pie):
+    // con 95 de base el ticket se estaba partiendo en 2 páginas, lo que en
+    // una impresora térmica de rollo continuo se ve como un salto/espacio
+    // en blanco grande entre el "final" de la página 1 y el arranque de la
+    // página 2.
+    double alto = 140.0;
     if (tieneLogo) alto += 20.0;
     if (negocio.nombre.isNotEmpty) alto += 7.0;
     if (cierre.observaciones.isNotEmpty) {
@@ -97,7 +104,7 @@ class CajaExportService {
   }
 
   Future<Uint8List> generarPdfCierre(CierreCajaModel cierre, NegocioModel negocio) async {
-    final doc = pw.Document();
+    final doc = pw.Document(theme: await obtenerTemaPdfConFuenteEmbebida());
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
 
     doc.addPage(
