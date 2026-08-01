@@ -37,7 +37,7 @@ class ReporteFinancieroExportService {
           _seccionProductosSinVenta(data),
           _seccionVentasPorUsuario(data),
           _seccionAbonos(data),
-          _seccionRecomendacion(data),
+          _seccionCierresCaja(data, formatoFecha),
           _seccionBalance(data),
         ],
       ),
@@ -200,8 +200,18 @@ class ReporteFinancieroExportService {
       children: [
         _titulo('Ventas por Usuario'),
         _tabla(
-          ['Usuario', 'Transacciones', 'Total vendido'],
-          [for (final u in data.ventasPorUsuario) [u.usuario, u.cantidadTransacciones.toString(), formatearMoneda(u.totalVentas)]],
+          ['Usuario', 'Transacciones', 'Efectivo', 'Tarjeta', 'Transferencia', 'Total vendido'],
+          [
+            for (final u in data.ventasPorUsuario)
+              [
+                u.usuario,
+                u.cantidadTransacciones.toString(),
+                formatearMoneda(u.totalEfectivo),
+                formatearMoneda(u.totalTarjeta),
+                formatearMoneda(u.totalTransferencia),
+                formatearMoneda(u.totalVentas),
+              ],
+          ],
         ),
       ],
     );
@@ -221,25 +231,29 @@ class ReporteFinancieroExportService {
     );
   }
 
-  pw.Widget _seccionRecomendacion(ReporteFinancieroData data) {
-    final r = data.recomendacionPago;
+  pw.Widget _seccionCierresCaja(ReporteFinancieroData data, DateFormat formatoFecha) {
+    final lista = data.cierresCaja;
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        _titulo('Recomendación de Pago a Proveedores'),
-        pw.Text('Son referencias, no reglas fijas.', style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey700)),
-        pw.SizedBox(height: 6),
-        _filaValor('Sugerido según caja disponible', r.sugeridoPorCaja),
-        pw.Text(
-          'Efectivo estimado (${formatearMoneda(r.efectivoEstimado)}) menos reserva de gastos fijos (${formatearMoneda(r.reservaGastosFijos)}) menos colchón de seguridad del 20%.',
-          style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey700),
-        ),
-        pw.SizedBox(height: 6),
-        _filaValor('Sugerido según ventas cobradas', r.sugeridoPorVentas),
-        pw.Text(
-          '35% de lo cobrado en efectivo en el rango seleccionado (${formatearMoneda(r.ingresoEfectivoCobrado)}).',
-          style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey700),
-        ),
+        _titulo('Cierres de Caja (${lista.length})'),
+        if (lista.isEmpty)
+          pw.Text('Sin cierres de caja en el rango seleccionado.', style: const pw.TextStyle(fontSize: 9))
+        else
+          _tabla(
+            ['Fecha cierre', 'Responsable', 'Monto inicial', 'Gran total', 'Total real', 'Diferencia'],
+            [
+              for (final c in lista)
+                [
+                  formatoFecha.format(c.fechaFin),
+                  c.usuarioResponsable,
+                  formatearMoneda(c.montoInicial),
+                  formatearMoneda(c.granTotal),
+                  formatearMoneda(c.totalReal),
+                  formatearMoneda(c.diferencia),
+                ],
+            ],
+          ),
       ],
     );
   }

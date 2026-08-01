@@ -51,6 +51,17 @@ class VentaRepository {
     await _colContadores.doc('venta').set({'ultimo': nuevoUltimo < 0 ? 0 : nuevoUltimo}, SetOptions(merge: true));
   }
 
+  /// Próximo número que le tocaría a la próxima Venta (tipo 'VentaSinFacturar',
+  /// el documento que de verdad usa este negocio siempre -a diferencia de
+  /// Factura/Boleta, contador aparte, ver obtenerProximoNumeroFactura-). Solo
+  /// lectura: se muestra en Negocio para que quien vende sepa qué número le
+  /// va a tocar al siguiente documento y no se confunda con el cliente.
+  Future<int> obtenerProximoNumeroVenta() async {
+    final snap = await _colContadores.doc('ventaSinFacturar').get();
+    final actual = ((snap.data()?['ultimo'] ?? 0) as num).toInt();
+    return actual + 1;
+  }
+
   Future<VentaModel> registrarVenta({
     required String tipoDocumento,
     required String condicion,

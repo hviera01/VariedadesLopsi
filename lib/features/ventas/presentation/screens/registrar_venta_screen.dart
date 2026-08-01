@@ -18,7 +18,6 @@ import '../../providers/carrito_provider.dart';
 import '../../../../core/providers/tabs_provider.dart';
 import '../../providers/ventas_provider.dart';
 import '../../../auth/providers/auth_provider.dart';
-import '../../../../core/utils/permisos_usuario.dart';
 import '../../../negocio/providers/negocio_provider.dart';
 import '../../../negocio/data/negocio_model.dart';
 import '../../../negocio/presentation/widgets/acceso_especial.dart';
@@ -675,19 +674,10 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       _mostrarMensaje('Precio inválido');
       return;
     }
-    // Un Encargado sin el permiso individual de "cambiar precio" queda
-    // bloqueado acá directamente: la clave especial global es un gate
-    // aparte (para Empleado/Semi Administrador), no reemplaza este control
-    // por usuario — si no, un Encargado sin permiso podía cambiar el precio
-    // libremente cuando la clave especial no estaba activa/configurada.
-    if (!puedeRealizarAccion(ref, PermisosEspeciales.ventasCambiarPrecio)) {
-      _mostrarMensaje('No tenés permiso para cambiar el precio');
-      final carrito = ref.read(carritoVentaProvider);
-      if (index < carrito.items.length) {
-        _ctrlPrecio[index]?.text = carrito.items[index].precioVenta.toStringAsFixed(2);
-      }
-      return;
-    }
+    // Siempre pasa por acá (sin pre-chequeos de bloqueo): verificarAccesoEspecial
+    // ya decide sola si hace falta pedir la clave (Empleado/Semi Administrador
+    // con el toggle activo, o un Encargado sin este permiso puntual) o dejar
+    // pasar directo (Administrador, o Encargado que sí lo tiene marcado).
     final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.ventasCambiarPrecio);
     if (!mounted) return;
     if (!resultado.autorizado) {
@@ -2158,19 +2148,15 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
         return;
       }
       if (nuevoTexto == nombreActual) return;
-      if (!puedeRealizarAccion(ref, PermisosEspeciales.ventasEditarDescripcion)) {
-        _mostrarMensaje('No tenés permiso para editar la descripción');
+      // Siempre pasa por acá (sin pre-chequeos de bloqueo): verificarAccesoEspecial
+      // ya decide sola si hace falta pedir la clave (Empleado/Semi Administrador
+      // con el toggle activo, o un Encargado sin este permiso puntual) o dejar
+      // pasar directo (Administrador, o Encargado que sí lo tiene marcado).
+      final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.ventasEditarDescripcion);
+      if (!mounted) return;
+      if (!resultado.autorizado) {
         ctrl.text = nombreActual;
         return;
-      }
-      final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
-      if (negocio.tienePermiso(PermisosEspeciales.ventasEditarDescripcion)) {
-        if (!mounted) return;
-        final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.ventasEditarDescripcion);
-        if (!resultado.autorizado) {
-          ctrl.text = nombreActual;
-          return;
-        }
       }
       ref.read(carritoVentaProvider.notifier).actualizarDescripcion(index, nuevoTexto);
     }

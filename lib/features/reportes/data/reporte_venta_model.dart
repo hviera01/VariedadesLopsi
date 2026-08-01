@@ -49,6 +49,7 @@ class ReporteVentaModel {
 
   bool get esActiva => estado == 'Activa';
   bool get esCotizacion => tipoDocumento == 'Cotizacion';
+  bool get esCanje => tipoDocumento == 'Canje';
 
   factory ReporteVentaModel.fromMap(String id, Map<String, dynamic> data) {
     return ReporteVentaModel(

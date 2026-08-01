@@ -1,3 +1,5 @@
+import '../../caja/data/cierre_caja_model.dart';
+
 /// Un producto dentro de un ranking (más vendido, más comprado o más
 /// rentable). El campo `monto` cambia de significado según el ranking en el
 /// que aparezca (ingreso, costo o ganancia) — lo interpreta quien arma la
@@ -24,8 +26,18 @@ class VentasPorUsuario {
   final String usuario;
   final double totalVentas;
   final int cantidadTransacciones;
+  final double totalEfectivo;
+  final double totalTarjeta;
+  final double totalTransferencia;
 
-  VentasPorUsuario({required this.usuario, required this.totalVentas, required this.cantidadTransacciones});
+  VentasPorUsuario({
+    required this.usuario,
+    required this.totalVentas,
+    required this.cantidadTransacciones,
+    this.totalEfectivo = 0,
+    this.totalTarjeta = 0,
+    this.totalTransferencia = 0,
+  });
 }
 
 /// Ganancia de una venta individual: para responder "qué tan rentable fue
@@ -81,24 +93,6 @@ class FlujoEfectivo {
   double get neto => totalIngresos - totalEgresos;
 }
 
-/// Sugerencias de cuánto destinar a pagos a proveedores sin comprometer el
-/// flujo del negocio. Son referencias, no reglas — ver notas en la pantalla.
-class RecomendacionPago {
-  final double efectivoEstimado;
-  final double reservaGastosFijos;
-  final double sugeridoPorCaja;
-  final double ingresoEfectivoCobrado;
-  final double sugeridoPorVentas;
-
-  RecomendacionPago({
-    required this.efectivoEstimado,
-    required this.reservaGastosFijos,
-    required this.sugeridoPorCaja,
-    required this.ingresoEfectivoCobrado,
-    required this.sugeridoPorVentas,
-  });
-}
-
 /// Balance general simplificado: no reemplaza un balance contable formal (no
 /// hay partida doble, activos fijos ni capital aportado en el sistema). El
 /// patrimonio es el residuo Activos − Pasivos, no una cuenta llevada aparte.
@@ -152,7 +146,7 @@ class ReporteFinancieroData {
   final double totalAbonosComprasCredito;
   final List<AbonoPorProveedor> abonosPorProveedor;
 
-  final RecomendacionPago recomendacionPago;
+  final List<CierreCajaModel> cierresCaja;
   final BalanceGeneral balanceGeneral;
 
   ReporteFinancieroData({
@@ -175,7 +169,7 @@ class ReporteFinancieroData {
     required this.ventasPorUsuario,
     required this.totalAbonosComprasCredito,
     required this.abonosPorProveedor,
-    required this.recomendacionPago,
+    required this.cierresCaja,
     required this.balanceGeneral,
   });
 

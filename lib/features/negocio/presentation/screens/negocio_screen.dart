@@ -62,6 +62,7 @@ class _NegocioFormState extends ConsumerState<_NegocioForm> {
   int? _proximoFacturaActual;
   bool _cargandoProximoFactura = true;
   bool _guardandoProximoFactura = false;
+  int? _proximaVenta;
   String? _error;
 
   @override
@@ -83,6 +84,7 @@ class _NegocioFormState extends ConsumerState<_NegocioForm> {
     _ipRedController.text = m.impresoraRedIp;
     _puertoRedController.text = m.impresoraRedPuerto.toString();
     _cargarProximoFactura();
+    _cargarProximaVenta();
   }
 
   Future<void> _cargarProximoFactura() async {
@@ -93,6 +95,12 @@ class _NegocioFormState extends ConsumerState<_NegocioForm> {
       _cargandoProximoFactura = false;
       _ctrlProximoFactura.text = proximo.toString();
     });
+  }
+
+  Future<void> _cargarProximaVenta() async {
+    final proximo = await ref.read(ventaRepositoryProvider).obtenerProximoNumeroVenta();
+    if (!mounted) return;
+    setState(() => _proximaVenta = proximo);
   }
 
   Future<void> _guardarProximoFactura() async {
@@ -660,15 +668,38 @@ class _NegocioFormState extends ConsumerState<_NegocioForm> {
           Divider(color: Colors.grey.shade200, height: 28),
           _filaSwitchFactura(
             titulo: 'Mostrar precios con ISV incluido',
-            descripcion: 'El precio unitario y el importe de cada producto en el ticket se muestran con ISV incluido (el total y el desglose de ISV no cambian).',
+            descripcion: 'Solo afecta a Factura/Boleta: el precio unitario y el importe de cada producto se muestran con ISV incluido (el total y el desglose de ISV no cambian). Una Venta normal nunca lleva ISV, así que esta opción no le hace nada.',
             valor: widget.modelo.facturaPreciosConIsv,
             onChanged: (v) => ref.read(negocioRepositoryProvider).establecerFacturaPreciosConIsv(v),
+          ),
+          Divider(color: Colors.grey.shade200, height: 28),
+          Text('Próxima numeración de Ventas', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
+          const SizedBox(height: 3),
+          Text(
+            'El número que le va a tocar al próximo documento de Venta (el que usa este negocio siempre). Solo informativo, para que quien vende no se confunda con el cliente.',
+            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(color: const Color(0xFFE8EAF0), borderRadius: BorderRadius.circular(12)),
+            child: Row(
+              children: [
+                Icon(Icons.tag_outlined, size: 18, color: Colors.grey.shade600),
+                const SizedBox(width: 10),
+                Text(
+                  _proximaVenta != null ? 'Próxima Venta: ${_proximaVenta!.toString().padLeft(4, '0')}' : 'Cargando...',
+                  style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A)),
+                ),
+              ],
+            ),
           ),
           Divider(color: Colors.grey.shade200, height: 28),
           Text('Numeración de facturas', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
           const SizedBox(height: 3),
           Text(
-            'El número que le va a tocar a la próxima Factura o Boleta que registrés. Sirve para continuar la numeración de un talonario físico en vez de arrancar siempre desde 1 (por ejemplo, después de vaciar los datos de prueba).',
+            'El número que le va a tocar a la próxima Factura o Boleta que registrés (distinto al de Venta de arriba). Sirve para continuar la numeración de un talonario físico en vez de arrancar siempre desde 1 (por ejemplo, después de vaciar los datos de prueba).',
             style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 12),

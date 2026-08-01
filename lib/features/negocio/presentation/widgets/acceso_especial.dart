@@ -26,25 +26,43 @@ class ResultadoAccesoEspecial {
 /// usuario logueado como responsable implícito. El Administrador nunca la pide: es
 /// el único rol que puede hacer todo sin restricciones (siempre libre).
 ///
-/// El rol Encargado se corta ACÁ, antes que nada: si el Administrador no le
-/// marcó esta acción puntual en `accionesPermitidas` al crear ese usuario,
-/// queda bloqueado directo (ni siquiera llega a mirar si hay clave especial
-/// configurada) — la clave especial es un gate aparte pensado para
-/// Empleado/Semi Administrador, no reemplaza el permiso individual del
-/// Encargado.
+/// El rol Encargado tiene, además del toggle compartido de Negocio, su propio
+/// permiso individual (`accionesPermitidas`, marcado por el Administrador al
+/// crear ese usuario). Si a este Encargado puntual no se lo marcaron para
+/// [permisoKey], NO se lo deja pasar directo aunque el toggle de Negocio esté
+/// apagado para todos los demás -pero tampoco se lo bloquea en seco-: se le
+/// muestra el mismo diálogo de clave especial, para que alguien autorizado
+/// (por ejemplo un Administrador cerca de la caja) pueda destrabarlo ahí
+/// mismo sin que el Encargado tenga que ir a buscarlo a otra pantalla.
 Future<ResultadoAccesoEspecial> verificarAccesoEspecial(BuildContext context, WidgetRef ref, String permisoKey) async {
   final usuarioLogueado = ref.read(authProvider).usuario;
   if (usuarioLogueado?.rol == Roles.administrador) {
     return ResultadoAccesoEspecial(autorizado: true, usuarioAutoriza: usuarioLogueado?.nombreCompleto ?? '');
   }
-  if (usuarioLogueado?.rol == Roles.encargado && usuarioLogueado?.accionesPermitidas[permisoKey] != true) {
-    return const ResultadoAccesoEspecial(autorizado: false);
-  }
+  final esEncargadoSinPermiso = usuarioLogueado?.rol == Roles.encargado && usuarioLogueado?.accionesPermitidas[permisoKey] != true;
+
   final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
-  if (!negocio.tieneClaveEspecial || !negocio.tienePermiso(permisoKey)) {
+  if (!context.mounted) return const ResultadoAccesoEspecial(autorizado: false);
+
+  // Pasa directo sin pedir nada solo si esto NO es un Encargado sin su
+  // permiso individual, y además el toggle compartido de Negocio para este
+  // permiso está apagado (o nunca se configuró una clave especial).
+  if (!esEncargadoSinPermiso && (!negocio.tieneClaveEspecial || !negocio.tienePermiso(permisoKey))) {
     return ResultadoAccesoEspecial(autorizado: true, usuarioAutoriza: usuarioLogueado?.nombreCompleto ?? '');
   }
-  if (!context.mounted) return const ResultadoAccesoEspecial(autorizado: false);
+
+  // A partir de acá hace falta la clave especial. Si nunca se configuró una
+  // (Negocio > Seguridad), no hay forma de que nadie la destrabe: se avisa
+  // en vez de abrir un diálogo que jamás podría tener éxito.
+  if (!negocio.tieneClaveEspecial) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No tenés permiso para esto y todavía no hay una clave especial configurada en Negocio para que alguien lo autorice.')),
+      );
+    }
+    return const ResultadoAccesoEspecial(autorizado: false);
+  }
+
   final repo = ref.read(negocioRepositoryProvider);
   final usuarios = await ref.read(usuariosStreamProvider.future);
   if (!context.mounted) return const ResultadoAccesoEspecial(autorizado: false);

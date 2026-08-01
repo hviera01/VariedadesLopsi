@@ -14,7 +14,12 @@ class TotalesLibro {
 
   const TotalesLibro({this.ingresos = 0, this.aProveedores = 0, this.gastosNegocio = 0, this.gastosCasa = 0});
 
-  double get utilidad => ingresos - (aProveedores + gastosNegocio + gastosCasa);
+  double get egresos => aProveedores + gastosNegocio + gastosCasa;
+
+  // No es una "utilidad" real (no resta costo de mercadería, solo suma
+  // ingresos menos egresos de caja) — se muestra como diferencia simple,
+  // igual que el Libro Financiero del sistema viejo.
+  double get diferencia => ingresos - egresos;
 
   factory TotalesLibro.desde(List<MovimientoFinanciero> movimientos) {
     double ingresos = 0, aProveedores = 0, gastosNegocio = 0, gastosCasa = 0;
@@ -146,10 +151,8 @@ class EgresoExportService {
               columnWidths: const {0: pw.FlexColumnWidth(2), 1: pw.FlexColumnWidth(1)},
               children: [
                 _filaTotal('Ingresos', totales.ingresos),
-                _filaTotal('A proveedores', totales.aProveedores),
-                _filaTotal('Gastos operativos', totales.gastosNegocio),
-                _filaTotal('Gastos casa', totales.gastosCasa),
-                _filaTotal('Utilidad', totales.utilidad, negrita: true),
+                _filaTotal('Egresos', totales.egresos),
+                _filaTotal('Diferencia', totales.diferencia, negrita: true),
               ],
             ),
           ),

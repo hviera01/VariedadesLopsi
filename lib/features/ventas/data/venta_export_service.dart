@@ -435,10 +435,13 @@ class VentaExportService {
     // El total y el desglose de ISV siempre reflejan el monto real de la
     // venta; esto solo cambia cómo se ve el precio unitario y el importe de
     // cada línea (con o sin ISV incluido), según la configuración del
-    // negocio.
-    double precioMostrado(dynamic item) => negocio.facturaPreciosConIsv ? redondearMoneda((item.precioVenta as double) * 1.15) : item.precioVenta as double;
+    // negocio. OJO: solo aplica en Factura/Boleta -una Venta normal (la que
+    // usa este negocio siempre) no lleva ISV de ningún tipo, ni desglosado
+    // ni incluido: el precio que se ve es el precio final, punto-.
+    final mostrarConIsv = esFacturable && negocio.facturaPreciosConIsv;
+    double precioMostrado(dynamic item) => mostrarConIsv ? redondearMoneda((item.precioVenta as double) * 1.15) : item.precioVenta as double;
     double importeMostrado(dynamic item) {
-      if (!negocio.facturaPreciosConIsv) return item.subtotal as double;
+      if (!mostrarConIsv) return item.subtotal as double;
       final precio = precioMostrado(item);
       return redondearMoneda(precio * (item.cantidad as double) * (1 - (item.descuentoPorcentaje as double) / 100));
     }

@@ -103,7 +103,7 @@ List<ModuloMenu> obtenerModulos() {
         SubModulo(titulo: 'Reporte de Ventas', icono: Icons.trending_up_outlined, moduleKey: 'reporte_ventas'),
         SubModulo(titulo: 'Reporte de Compras', icono: Icons.trending_down_outlined, moduleKey: 'reporte_compras'),
         SubModulo(titulo: 'Reporte Financiero', icono: Icons.account_balance_outlined, moduleKey: 'reporte_financiero', nivelMinimo: Roles.semiAdministrador),
-        SubModulo(titulo: 'Cierre de Caja', icono: Icons.point_of_sale_outlined, moduleKey: 'cierre_caja'),
+        SubModulo(titulo: 'Cierre de Caja', icono: Icons.point_of_sale_outlined, moduleKey: 'cierre_caja', nivelMinimo: Roles.semiAdministrador),
         SubModulo(titulo: 'Ingresos-Egresos', icono: Icons.swap_vert_outlined, moduleKey: 'ingresos_egresos'),
       ],
     ),

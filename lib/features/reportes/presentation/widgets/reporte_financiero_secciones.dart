@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:printing/printing.dart';
 import '../../data/reporte_financiero_model.dart';
 import '../../../../core/utils/formato_moneda.dart';
+import '../../../../core/widgets/pdf_preview_dialog.dart';
+import '../../../caja/data/cierre_caja_model.dart';
+import '../../../caja/data/caja_export_service.dart';
+import '../../../negocio/providers/negocio_provider.dart';
 
 const colorVentasFinanciero = Color(0xFF0F1B3D);
 const colorComprasFinanciero = Color(0xFFF59E0B);
@@ -109,12 +115,6 @@ Widget seccionUtilidad(ReporteFinancieroData data, bool esMovil) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      _explicacion(
-        'Utilidad bruta: lo que dejan las ventas activas del período (al contado y a crédito) después de su costo, sin importar si el crédito ya se cobró. '
-        'Utilidad neta: al contado se reconoce igual que la bruta, pero un crédito recién entra cuando se termina de pagar (en la fecha del abono que lo cancela), '
-        'y los gastos operativos no incluyen las devoluciones por facturas anuladas (esas ventas ya no suman como ingreso, así que no deben restar de nuevo como gasto). '
-        'Ventas Canceladas es el total de lo anulado en el período, como referencia de cuánto se está perdiendo por anulaciones.',
-      ),
       Text('VENTAS − COSTOS = UTILIDAD BRUTA', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade500, letterSpacing: 0.3)),
       const SizedBox(height: 10),
       filaBruta,
@@ -433,6 +433,19 @@ Widget seccionVentasPorUsuario(ReporteFinancieroData data, bool esMovil) {
   final tabla = Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
+      if (!esMovil)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6, left: 18),
+          child: Row(
+            children: [
+              const Expanded(child: SizedBox()),
+              SizedBox(width: 90, child: Text('EFECTIVO', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
+              SizedBox(width: 90, child: Text('TARJETA', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
+              SizedBox(width: 90, child: Text('TRANSFER.', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
+              SizedBox(width: 100, child: Text('TOTAL', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
+            ],
+          ),
+        ),
       for (var i = 0; i < lista.length; i++)
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 5),
@@ -442,6 +455,11 @@ Widget seccionVentasPorUsuario(ReporteFinancieroData data, bool esMovil) {
               const SizedBox(width: 8),
               Expanded(child: Text(lista[i].usuario, style: GoogleFonts.poppins(fontSize: 12.5), overflow: TextOverflow.ellipsis)),
               Text('${lista[i].cantidadTransacciones} vtas.', style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.grey.shade500)),
+              if (!esMovil) ...[
+                SizedBox(width: 90, child: Text(formatearMoneda(lista[i].totalEfectivo), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.grey.shade600))),
+                SizedBox(width: 90, child: Text(formatearMoneda(lista[i].totalTarjeta), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.grey.shade600))),
+                SizedBox(width: 90, child: Text(formatearMoneda(lista[i].totalTransferencia), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.grey.shade600))),
+              ],
               const SizedBox(width: 10),
               SizedBox(width: 100, child: Text(formatearMoneda(lista[i].totalVentas), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700))),
             ],
@@ -499,44 +517,86 @@ Widget seccionAbonosComprasCredito(ReporteFinancieroData data, bool esMovil) {
   );
 }
 
-// ---------- Recomendación de pago ----------
+// ---------- Cierres de Caja ----------
 
-Widget seccionRecomendacionPago(ReporteFinancieroData data, bool esMovil) {
-  final r = data.recomendacionPago;
-  final tarjetas = [
-    _tarjetaRecomendacion(
-      'Según caja disponible',
-      r.sugeridoPorCaja,
-      'Efectivo estimado (${formatearMoneda(r.efectivoEstimado)}) menos reserva de gastos fijos (${formatearMoneda(r.reservaGastosFijos)}) menos un colchón de seguridad del 20%.',
+Widget seccionCierresCaja(ReporteFinancieroData data, bool esMovil) {
+  final lista = data.cierresCaja;
+  if (lista.isEmpty) {
+    return _tarjeta(child: Text('Sin cierres de caja en el rango seleccionado.', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600)));
+  }
+  final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
+  return _tarjeta(
+    child: Column(
+      children: [
+        Row(
+          children: [
+            Expanded(flex: 2, child: Text('FECHA CIERRE', style: _estiloHeaderTabla())),
+            if (!esMovil) Expanded(flex: 2, child: Text('RESPONSABLE', style: _estiloHeaderTabla())),
+            if (!esMovil) Expanded(child: Text('MONTO INICIAL', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
+            Expanded(child: Text('GRAN TOTAL', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
+            Expanded(child: Text('DIFERENCIA', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
+            const SizedBox(width: 40),
+          ],
+        ),
+        Divider(height: 16, color: Colors.grey.shade300),
+        for (final c in lista) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(formatoFecha.format(c.fechaFin), style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600)),
+                      if (esMovil) Text(c.usuarioResponsable, style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500), overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ),
+                if (!esMovil) Expanded(flex: 2, child: Text(c.usuarioResponsable, style: GoogleFonts.poppins(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                if (!esMovil) Expanded(child: Text(formatearMoneda(c.montoInicial), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12))),
+                Expanded(child: Text(formatearMoneda(c.granTotal), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700))),
+                Expanded(
+                  child: Text(
+                    formatearMoneda(c.diferencia),
+                    textAlign: TextAlign.right,
+                    style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: c.diferencia == 0 ? const Color(0xFF16A34A) : const Color(0xFFDC2626)),
+                  ),
+                ),
+                SizedBox(
+                  width: 40,
+                  child: Consumer(
+                    builder: (context, ref, _) => IconButton(
+                      icon: const Icon(Icons.print_outlined, size: 18, color: Color(0xFF0F1B3D)),
+                      tooltip: 'Reimprimir',
+                      onPressed: () => _reimprimirCierre(context, ref, c),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (c != lista.last) Divider(height: 1, color: Colors.grey.shade200),
+        ],
+      ],
     ),
-    _tarjetaRecomendacion(
-      'Según ventas cobradas',
-      r.sugeridoPorVentas,
-      '35% de lo cobrado en efectivo en el rango seleccionado (${formatearMoneda(r.ingresoEfectivoCobrado)}).',
-    ),
-  ];
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _explicacion('Dos referencias distintas para decidir cuánto abonar a proveedores sin quedarte sin flujo — son sugerencias, no reglas fijas.'),
-      esMovil
-          ? Column(children: [for (final t in tarjetas) Padding(padding: const EdgeInsets.only(bottom: 12), child: t)])
-          : Row(children: [for (final t in tarjetas) Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: t))]),
-    ],
   );
 }
 
-Widget _tarjetaRecomendacion(String titulo, double monto, String explicacion) {
-  return _tarjeta(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(titulo.toUpperCase(), style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w700, color: Colors.grey.shade500, letterSpacing: 0.4)),
-        const SizedBox(height: 6),
-        Text(formatearMoneda(monto), style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w800, color: const Color(0xFF16A34A))),
-        const SizedBox(height: 8),
-        Text(explicacion, style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.grey.shade600)),
-      ],
+Future<void> _reimprimirCierre(BuildContext context, WidgetRef ref, CierreCajaModel cierre) async {
+  final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
+  if (!context.mounted) return;
+  final servicioExport = CajaExportService();
+  final impresora = negocio.impresoraTermicaUrl.isEmpty ? null : Printer(url: negocio.impresoraTermicaUrl, name: negocio.impresoraTermicaNombre);
+  showDialog(
+    context: context,
+    builder: (context) => PdfPreviewDialog(
+      titulo: 'Cierre de Caja · ${DateFormat('dd/MM/yyyy').format(cierre.fechaFin)}',
+      nombreArchivo: 'cierre_caja_reimpresion.pdf',
+      generarPdf: () => servicioExport.generarPdfCierre(cierre, negocio),
+      impresora: impresora,
     ),
   );
 }

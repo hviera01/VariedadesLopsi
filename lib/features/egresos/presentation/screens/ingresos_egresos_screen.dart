@@ -411,10 +411,8 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
       runSpacing: 10,
       children: [
         _statChip('Ingresos', totales.ingresos, const Color(0xFF16A34A)),
-        _statChip('A proveedores', totales.aProveedores, const Color(0xFFF59E0B)),
-        _statChip('Gastos negocio', totales.gastosNegocio, const Color(0xFF0F1B3D)),
-        _statChip('Gastos casa', totales.gastosCasa, const Color(0xFF8B5CF6)),
-        _statChip('Utilidad', totales.utilidad, const Color(0xFF1A1A1A)),
+        _statChip('Egresos', totales.egresos, const Color(0xFFF59E0B)),
+        _statChip('Diferencia', totales.diferencia, const Color(0xFF1A1A1A)),
       ],
     );
   }

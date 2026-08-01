@@ -13,14 +13,7 @@ import '../../compras_credito/data/abono_compra_model.dart';
 import '../../ventas_credito/data/venta_credito_repository.dart';
 import '../../ventas_credito/data/abono_model.dart';
 import '../../caja/data/cierre_caja_repository.dart';
-
-/// Cuánto del efectivo estimado se sugiere reservar como colchón de
-/// seguridad antes de recomendar pagos a proveedores.
-const _colchonSeguridadPorcentaje = 0.20;
-
-/// Porcentaje del efectivo cobrado en el periodo que, como referencia
-/// alternativa, se sugiere destinar a pagos a proveedores.
-const _porcentajeVentasParaProveedores = 0.35;
+import '../../caja/data/cierre_caja_model.dart';
 
 const _topN = 10;
 
@@ -62,9 +55,6 @@ class ReporteFinancieroRepository {
   DateTime? _ventasCreditoCacheEn;
   QuerySnapshot<Map<String, dynamic>>? _comprasCreditoCache;
   DateTime? _comprasCreditoCacheEn;
-  // "Últimos 3 meses desde hoy": tampoco depende del rango elegido.
-  List<EgresoModel>? _egresosUltimos3MesesCache;
-  DateTime? _egresosUltimos3MesesCacheEn;
 
   Future<List<ProductoModel>> _obtenerProductosCacheados() async {
     final ahora = DateTime.now();
@@ -106,18 +96,16 @@ class ReporteFinancieroRepository {
     return snap;
   }
 
-  Future<List<EgresoModel>> _egresosUltimos3MesesCacheados() async {
-    final ahora = DateTime.now();
-    final cache = _egresosUltimos3MesesCache;
-    final cacheEn = _egresosUltimos3MesesCacheEn;
-    if (cache != null && cacheEn != null && ahora.difference(cacheEn) < _vigenciaCache) {
-      return cache;
-    }
-    final hace3Meses = DateTime(ahora.year, ahora.month - 2, 1);
-    final egresos = await _egresoRepository.obtenerEgresosPorRango(hace3Meses, ahora);
-    _egresosUltimos3MesesCache = egresos;
-    _egresosUltimos3MesesCacheEn = ahora;
-    return egresos;
+  /// Cierres de caja del rango elegido (por fechaFin), más recientes primero,
+  /// para la pestaña "Cierres de Caja" del Reporte Financiero.
+  Future<List<CierreCajaModel>> _cierresCajaPorRango(DateTime inicio, DateTime finInclusive) async {
+    final snap = await _db
+        .collection('cierresCaja')
+        .where('fechaFin', isGreaterThanOrEqualTo: Timestamp.fromDate(inicio))
+        .where('fechaFin', isLessThanOrEqualTo: Timestamp.fromDate(finInclusive))
+        .orderBy('fechaFin', descending: true)
+        .get();
+    return snap.docs.map((d) => CierreCajaModel.fromMap(d.id, d.data())).toList();
   }
 
   Future<List<ItemVentaModel>> _detalleVenta(String idVenta) async {
@@ -313,8 +301,8 @@ class ReporteFinancieroRepository {
     final comprasCreditoFuture = _comprasCreditoAbiertasCacheadas();
     final serieMensualFuture = _obtenerSerieMensual();
     final efectivoEstimadoFuture = _efectivoEstimado();
-    final egresosUltimos3MesesFuture = _egresosUltimos3MesesCacheados();
     final creditoCanceladoFuture = _creditoCanceladoEnRango(inicio, finInclusive);
+    final cierresCajaFuture = _cierresCajaPorRango(inicio, finInclusive);
 
     final ventasHeaders = await ventasHeadersFuture;
     final comprasHeaders = await comprasHeadersFuture;
@@ -327,15 +315,18 @@ class ReporteFinancieroRepository {
     final comprasCreditoSnap = await comprasCreditoFuture;
     final serieMensual = await serieMensualFuture;
     final efectivoEstimado = await efectivoEstimadoFuture;
-    final egresosUltimos3Meses = await egresosUltimos3MesesFuture;
     final creditoCancelado = await creditoCanceladoFuture;
+    final cierresCaja = await cierresCajaFuture;
 
-    final ventasValidas = ventasHeaders.where((v) => v.esActiva && !v.esCotizacion).toList();
+    // Igual que sp_ReporteUtilidadBruta del sistema viejo: activas, sin
+    // contar Cotización (todavía no es una venta concretada) ni Canje (no
+    // genera ingreso real, se paga con puntos).
+    final ventasValidas = ventasHeaders.where((v) => v.esActiva && !v.esCotizacion && !v.esCanje).toList();
     final comprasValidas = comprasHeaders.where((c) => c.esActiva).toList();
     // Ventas anuladas del período: en Lopsi la Utilidad Neta la mueve mucho
     // más lo que se anula que un desglose contable formal, así que se
     // muestra como referencia directa en vez de repetir la Utilidad Bruta.
-    final ventasCanceladas = ventasHeaders.where((v) => !v.esActiva && !v.esCotizacion).fold<double>(0, (s, v) => s + v.totalAPagar);
+    final ventasCanceladas = ventasHeaders.where((v) => !v.esActiva && !v.esCotizacion && !v.esCanje).fold<double>(0, (s, v) => s + v.totalAPagar);
 
     final detalleVentasPorVenta = await _resolverDetalleVentas(ventasValidas, detalleRapido.ventas);
     final detalleComprasPorCompra = await _resolverDetalleCompras(comprasValidas, detalleRapido.compras);
@@ -404,19 +395,6 @@ class ReporteFinancieroRepository {
     final totalAbonosComprasCredito = abonosCompra.fold<double>(0, (s, a) => s + a.montoAbonado);
     final abonosPorProveedor = _agruparAbonosPorProveedor(abonosCompra);
 
-    final reservaGastosFijos = egresosUltimos3Meses.fold<double>(0, (s, e) => s + e.monto) / 3;
-    final colchon = efectivoEstimado * _colchonSeguridadPorcentaje;
-    final sugeridoPorCaja = (efectivoEstimado - reservaGastosFijos - colchon).clamp(0, double.infinity).toDouble();
-    final sugeridoPorVentas = flujoEfectivo.ingresosEfectivo * _porcentajeVentasParaProveedores;
-
-    final recomendacionPago = RecomendacionPago(
-      efectivoEstimado: efectivoEstimado,
-      reservaGastosFijos: reservaGastosFijos,
-      sugeridoPorCaja: sugeridoPorCaja,
-      ingresoEfectivoCobrado: flujoEfectivo.ingresosEfectivo,
-      sugeridoPorVentas: sugeridoPorVentas,
-    );
-
     final cuentasPorCobrar = ventasCreditoSnap.docs.fold<double>(0, (s, d) => s + ((d.data()['saldoPendiente'] ?? 0) as num).toDouble().clamp(0, double.infinity));
     final cuentasPorPagar = comprasCreditoSnap.docs.fold<double>(0, (s, d) => s + ((d.data()['saldoPendiente'] ?? 0) as num).toDouble().clamp(0, double.infinity));
 
@@ -447,7 +425,7 @@ class ReporteFinancieroRepository {
       ventasPorUsuario: ventasPorUsuario,
       totalAbonosComprasCredito: totalAbonosComprasCredito,
       abonosPorProveedor: abonosPorProveedor,
-      recomendacionPago: recomendacionPago,
+      cierresCaja: cierresCaja,
       balanceGeneral: balanceGeneral,
     );
   }
@@ -490,16 +468,53 @@ class ReporteFinancieroRepository {
     return lista.take(_topN).toList();
   }
 
+  // Igual que sp_ReporteVentasPorVendedor del sistema viejo: desglosa el
+  // total de cada usuario por método de pago, no solo el total general. Una
+  // venta con pago Mixto reparte su monto entre los métodos reales de
+  // pagosMixtos en vez de contarla entera bajo "Mixto" (que no es un método
+  // real al que atribuirle una columna).
   List<VentasPorUsuario> _agruparPorUsuario(List<ReporteVentaModel> ventas) {
     final totalPorUsuario = <String, double>{};
     final conteoPorUsuario = <String, int>{};
+    final efectivoPorUsuario = <String, double>{};
+    final tarjetaPorUsuario = <String, double>{};
+    final transferenciaPorUsuario = <String, double>{};
     for (final v in ventas) {
       final usuario = v.usuarioRegistro.isEmpty ? 'Sin usuario' : v.usuarioRegistro;
       totalPorUsuario[usuario] = (totalPorUsuario[usuario] ?? 0) + v.totalAPagar;
       conteoPorUsuario[usuario] = (conteoPorUsuario[usuario] ?? 0) + 1;
+
+      void sumar(String metodo, double monto) {
+        switch (metodo) {
+          case 'Efectivo':
+            efectivoPorUsuario[usuario] = (efectivoPorUsuario[usuario] ?? 0) + monto;
+            break;
+          case 'Tarjeta':
+            tarjetaPorUsuario[usuario] = (tarjetaPorUsuario[usuario] ?? 0) + monto;
+            break;
+          case 'Transferencia':
+            transferenciaPorUsuario[usuario] = (transferenciaPorUsuario[usuario] ?? 0) + monto;
+            break;
+        }
+      }
+
+      if (v.metodoPago == 'Mixto' && v.pagosMixtos.isNotEmpty) {
+        for (final pago in v.pagosMixtos) {
+          sumar(pago.metodoPago, pago.monto);
+        }
+      } else {
+        sumar(v.metodoPago, v.totalAPagar);
+      }
     }
     final lista = totalPorUsuario.keys
-        .map((u) => VentasPorUsuario(usuario: u, totalVentas: totalPorUsuario[u] ?? 0, cantidadTransacciones: conteoPorUsuario[u] ?? 0))
+        .map((u) => VentasPorUsuario(
+              usuario: u,
+              totalVentas: totalPorUsuario[u] ?? 0,
+              cantidadTransacciones: conteoPorUsuario[u] ?? 0,
+              totalEfectivo: efectivoPorUsuario[u] ?? 0,
+              totalTarjeta: tarjetaPorUsuario[u] ?? 0,
+              totalTransferencia: transferenciaPorUsuario[u] ?? 0,
+            ))
         .toList()
       ..sort((a, b) => b.totalVentas.compareTo(a.totalVentas));
     return lista;
@@ -538,7 +553,7 @@ class ReporteFinancieroRepository {
     final comprasFuture = _reporteRepository.obtenerReporteCompras(primerMesDeLaSerie, finRango);
     final ventas = await ventasFuture;
     final compras = await comprasFuture;
-    final ventasValidas = ventas.where((v) => v.esActiva && !v.esCotizacion);
+    final ventasValidas = ventas.where((v) => v.esActiva && !v.esCotizacion && !v.esCanje);
     final comprasValidas = compras.where((c) => c.esActiva);
 
     final ventasPorMes = <String, double>{};

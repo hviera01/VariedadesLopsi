@@ -18,7 +18,7 @@ const _tabs = <(String, IconData, _SeccionBuilder)>[
   ('Sin Movimiento', Icons.inventory_2_outlined, seccionProductosSinVenta),
   ('Ventas por Usuario', Icons.people_outline, seccionVentasPorUsuario),
   ('Abonos a Proveedores', Icons.payments_outlined, seccionAbonosComprasCredito),
-  ('Recomendación de Pago', Icons.lightbulb_outline, seccionRecomendacionPago),
+  ('Cierres de Caja', Icons.point_of_sale_outlined, seccionCierresCaja),
   ('Balance General', Icons.account_balance_outlined, seccionBalanceGeneral),
 ];
 
