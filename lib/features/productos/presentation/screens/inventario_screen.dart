@@ -228,6 +228,24 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
     if (cantidad == null || !mounted) return;
     final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
     if (!mounted) return;
+
+    // Igual que Registrar Venta y Cierre de Caja: con "imprimir sin
+    // preguntar" activo en Negocio, la etiqueta se manda directo a imprimir
+    // sin mostrar la vista previa ni pedir un clic extra en "Imprimir".
+    if (negocio.modoImpresion == ModoImpresion.directo) {
+      try {
+        await Printing.layoutPdf(
+          onLayout: (_) => _servicioExport.generarPdfCodigoBarras(producto, negocio, cantidad: cantidad),
+          name: 'codigo_${producto.codigo}.pdf',
+        );
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No se pudo imprimir el código de barras: $e')));
+        }
+      }
+      return;
+    }
+
     final impresora = negocio.impresoraEtiquetasUrl.isEmpty ? null : Printer(url: negocio.impresoraEtiquetasUrl, name: negocio.impresoraEtiquetasNombre);
     showDialog(
       context: context,

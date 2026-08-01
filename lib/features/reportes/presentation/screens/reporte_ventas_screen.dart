@@ -11,6 +11,7 @@ import '../../../../core/utils/exportador.dart';
 import '../../../../core/widgets/pdf_preview_dialog.dart';
 import '../../../usuarios/providers/usuarios_provider.dart';
 import '../../../ventas/presentation/screens/detalle_venta_screen.dart';
+import '../../../ventas/data/tipos_documento.dart';
 
 class ReporteVentasScreen extends ConsumerStatefulWidget {
   const ReporteVentasScreen({super.key});
@@ -259,7 +260,7 @@ class _ReporteVentasScreenState extends ConsumerState<ReporteVentasScreen> {
                       ),
                       SizedBox(
                         width: esMovil ? constraints.maxWidth : 190,
-                        child: _selectorGenerico('Tipo de documento', _tipoDocumentoFiltro, _tiposDocumento, (v) => setState(() => _tipoDocumentoFiltro = v)),
+                        child: _selectorGenerico('Tipo de documento', _tipoDocumentoFiltro, _tiposDocumento, (v) => setState(() => _tipoDocumentoFiltro = v), etiquetas: tiposDocumento),
                       ),
                       SizedBox(
                         width: esMovil ? constraints.maxWidth : 190,
@@ -356,7 +357,7 @@ class _ReporteVentasScreenState extends ConsumerState<ReporteVentasScreen> {
     );
   }
 
-  Widget _selectorGenerico(String etiqueta, String? valor, List<String> opciones, void Function(String?) onChanged) {
+  Widget _selectorGenerico(String etiqueta, String? valor, List<String> opciones, void Function(String?) onChanged, {Map<String, String>? etiquetas}) {
     return Container(
       height: 46,
       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -369,7 +370,7 @@ class _ReporteVentasScreenState extends ConsumerState<ReporteVentasScreen> {
           style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFF1A1A1A)),
           items: [
             DropdownMenuItem<String?>(value: null, child: Text('$etiqueta: Todos', style: GoogleFonts.poppins(fontSize: 13))),
-            ...opciones.map((o) => DropdownMenuItem<String?>(value: o, child: Text(o, overflow: TextOverflow.ellipsis))),
+            ...opciones.map((o) => DropdownMenuItem<String?>(value: o, child: Text(etiquetas?[o] ?? o, overflow: TextOverflow.ellipsis))),
           ],
           onChanged: onChanged,
         ),
@@ -410,7 +411,7 @@ class _ReporteVentasScreenState extends ConsumerState<ReporteVentasScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(color: esCotizacion ? const Color(0xFFFFF6D8) : const Color(0xFFEFF4FF), borderRadius: BorderRadius.circular(8)),
-      child: Text(v.tipoDocumento, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: esCotizacion ? const Color(0xFF92720B) : const Color(0xFF3B82F6))),
+      child: Text(tiposDocumento[v.tipoDocumento] ?? v.tipoDocumento, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: esCotizacion ? const Color(0xFF92720B) : const Color(0xFF3B82F6))),
     );
   }
 

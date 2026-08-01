@@ -27,6 +27,28 @@ class ActualizacionService {
 
   static String get _extensionEsperada => Platform.isAndroid ? '.apk' : '.exe';
 
+  /// Última versión publicada como GitHub Release, sin importar si es más
+  /// nueva que la instalada (a diferencia de buscarActualizacion()). Null si
+  /// no hay internet o GitHub no responde. La usa la pantalla de
+  /// Dispositivos para marcar como desactualizado cualquier equipo que
+  /// reportó una versión menor a esta.
+  static Future<int?> obtenerUltimaVersionPublicada() async {
+    try {
+      final respuesta = await http
+          .get(
+            Uri.parse('https://api.github.com/repos/$_repo/releases/latest'),
+            headers: {'Accept': 'application/vnd.github+json'},
+          )
+          .timeout(const Duration(seconds: 8));
+      if (respuesta.statusCode != 200) return null;
+      final datos = jsonDecode(respuesta.body) as Map<String, dynamic>;
+      final tag = (datos['tag_name'] as String? ?? '').replaceFirst('v', '');
+      return int.tryParse(tag);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Devuelve null si no aplica, si no hay internet/GitHub no responde, si no
   /// hay un asset para esta plataforma, o si la versión publicada no es más
   /// nueva que la instalada -en todos esos casos no hay que interrumpir el
@@ -81,7 +103,7 @@ class ActualizacionService {
     void Function(double progreso) onProgreso,
   ) async {
     final carpetaTemp = await getTemporaryDirectory();
-    final nombreArchivo = Platform.isAndroid ? 'LopsiActualizacion.apk' : 'LopsiActualizacion.exe';
+    final nombreArchivo = Platform.isAndroid ? 'LopsiActualizacion_v${actualizacion.version}.apk' : 'LopsiActualizacion_v${actualizacion.version}.exe';
     final archivoDestino = File('${carpetaTemp.path}${Platform.pathSeparator}$nombreArchivo');
 
     final cliente = http.Client();
