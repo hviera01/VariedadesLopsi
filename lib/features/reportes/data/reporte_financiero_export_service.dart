@@ -95,7 +95,10 @@ class ReporteFinancieroExportService {
         _filaValor('Costo de ventas', data.costoVentas),
         _filaValor('Utilidad Bruta', data.utilidadBruta),
         pw.Text('Margen bruto: ${data.margenBrutoPorcentaje.toStringAsFixed(1)}%', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
-        _filaValor('Gastos (Egresos)', data.gastosPeriodo),
+        pw.SizedBox(height: 6),
+        _filaValor('Total Ventas (Neta)', data.ventasNeta),
+        _filaValor('Total Costos (Neta)', data.costoNeta),
+        _filaValor('Total Egresos', data.gastosPeriodo),
         _filaValor('Utilidad Neta', data.utilidadNeta),
       ],
     );

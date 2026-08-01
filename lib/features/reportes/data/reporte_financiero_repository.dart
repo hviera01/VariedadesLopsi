@@ -323,10 +323,6 @@ class ReporteFinancieroRepository {
     // genera ingreso real, se paga con puntos).
     final ventasValidas = ventasHeaders.where((v) => v.esActiva && !v.esCotizacion && !v.esCanje).toList();
     final comprasValidas = comprasHeaders.where((c) => c.esActiva).toList();
-    // Ventas anuladas del período: en Lopsi la Utilidad Neta la mueve mucho
-    // más lo que se anula que un desglose contable formal, así que se
-    // muestra como referencia directa en vez de repetir la Utilidad Bruta.
-    final ventasCanceladas = ventasHeaders.where((v) => !v.esActiva && !v.esCotizacion && !v.esCanje).fold<double>(0, (s, v) => s + v.totalAPagar);
 
     final detalleVentasPorVenta = await _resolverDetalleVentas(ventasValidas, detalleRapido.ventas);
     final detalleComprasPorCompra = await _resolverDetalleCompras(comprasValidas, detalleRapido.compras);
@@ -412,7 +408,8 @@ class ReporteFinancieroRepository {
       comprasPeriodo: comprasPeriodo,
       costoVentas: costoVentas,
       utilidadBruta: utilidadBruta,
-      ventasCanceladas: ventasCanceladas,
+      ventasNeta: ventasNeta,
+      costoNeta: costoNeta,
       gastosPeriodo: gastosPeriodo,
       utilidadNeta: utilidadNeta,
       flujoEfectivo: flujoEfectivo,

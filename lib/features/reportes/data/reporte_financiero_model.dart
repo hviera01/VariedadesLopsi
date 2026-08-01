@@ -125,10 +125,14 @@ class ReporteFinancieroData {
   final double comprasPeriodo;
   final double costoVentas;
   final double utilidadBruta;
-  // Suma de ventas anuladas del período (no cotizaciones): se muestra en la
-  // sección de Utilidad Neta porque en este negocio es lo que más golpea
-  // esa cifra, más que un ajuste contable formal.
-  final double ventasCanceladas;
+  // Base de la Utilidad Neta: distinta de ventasPeriodo/costoVentas (esos
+  // son de la Utilidad Bruta, que cuenta todo crédito activo aunque no se
+  // haya cobrado) — acá solo entra lo de contado más el crédito que se
+  // terminó de cobrar en el rango. Mismas columnas que el reporte de
+  // Utilidad Neta del sistema viejo (Total Ventas/Total Costos/Total
+  // Egresos/Utilidad Neta).
+  final double ventasNeta;
+  final double costoNeta;
   final double gastosPeriodo;
   final double utilidadNeta;
 
@@ -156,7 +160,8 @@ class ReporteFinancieroData {
     required this.comprasPeriodo,
     required this.costoVentas,
     required this.utilidadBruta,
-    required this.ventasCanceladas,
+    required this.ventasNeta,
+    required this.costoNeta,
     required this.gastosPeriodo,
     required this.utilidadNeta,
     required this.flujoEfectivo,
