@@ -103,7 +103,16 @@ class _ReporteComprasScreenState extends ConsumerState<ReporteComprasScreen> {
     });
   }
 
+  // Memoizado igual que en reporte_ventas_screen (ver el mismo comentario
+  // ahí): evita recorrer todo el reporte del rango en cada rebuild cuando
+  // ningún filtro cambió.
+  List<ReporteCompraModel>? _listaFiltradaCache;
+  Object? _clavesListaFiltradaCache;
+
   List<ReporteCompraModel> get _listaFiltrada {
+    final claves = (_compras, _busqueda, _metodoPagoFiltro, _condicionFiltro, _usuarioFiltro);
+    if (_clavesListaFiltradaCache == claves) return _listaFiltradaCache!;
+
     var lista = _compras ?? [];
     if (_busqueda.isNotEmpty) {
       lista = lista.where((c) => coincideFuzzy(c.textoBusqueda, _busqueda)).toList();
@@ -117,6 +126,9 @@ class _ReporteComprasScreenState extends ConsumerState<ReporteComprasScreen> {
     if (_usuarioFiltro != null) {
       lista = lista.where((c) => c.usuarioRegistro == _usuarioFiltro).toList();
     }
+
+    _clavesListaFiltradaCache = claves;
+    _listaFiltradaCache = lista;
     return lista;
   }
 

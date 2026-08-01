@@ -1,12 +1,37 @@
+// Antes hacía 6 pasadas de replaceAll (una por cada vocal acentuada + ñ) más
+// toLowerCase, cada una recorriendo y realocando el string completo: con
+// buscar_producto_dialog llamando esto para cada producto del catálogo en
+// cada Enter (ver coincideFuzzy más abajo), esas 6-7 pasadas de más por
+// producto eran una buena parte de por qué la búsqueda se sentía lenta con
+// catálogos grandes. Con una sola pasada por code unit alcanza.
 String normalizarTexto(String texto) {
-  final mapaAcentos = {
-    'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ñ': 'n',
-  };
-  var resultado = texto.toLowerCase();
-  mapaAcentos.forEach((k, v) {
-    resultado = resultado.replaceAll(k, v);
-  });
-  return resultado.trim();
+  final minuscula = texto.toLowerCase();
+  final buffer = StringBuffer();
+  for (final unidad in minuscula.codeUnits) {
+    switch (unidad) {
+      case 0xE1: // á
+        buffer.writeCharCode(0x61); // a
+        break;
+      case 0xE9: // é
+        buffer.writeCharCode(0x65); // e
+        break;
+      case 0xED: // í
+        buffer.writeCharCode(0x69); // i
+        break;
+      case 0xF3: // ó
+        buffer.writeCharCode(0x6F); // o
+        break;
+      case 0xFA: // ú
+        buffer.writeCharCode(0x75); // u
+        break;
+      case 0xF1: // ñ
+        buffer.writeCharCode(0x6E); // n
+        break;
+      default:
+        buffer.writeCharCode(unidad);
+    }
+  }
+  return buffer.toString().trim();
 }
 
 int distanciaLevenshtein(String a, String b) {

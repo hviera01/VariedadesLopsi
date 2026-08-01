@@ -12,6 +12,7 @@ import 'numero_a_letras.dart';
 import 'tipos_documento.dart';
 import '../../../core/utils/formato_moneda.dart';
 import '../../../core/utils/logo_pdf.dart';
+import '../../../core/utils/pdf_fuente.dart';
 import '../../negocio/data/negocio_model.dart';
 
 class VentaExportService {
@@ -52,7 +53,7 @@ class VentaExportService {
   /// defecto del negocio, igual que hacía antes.
   Future<Uint8List> generarPdfDetalleVenta(VentaModel venta, NegocioModel negocio, {bool? preciosConIsv}) async {
     final conIsv = preciosConIsv ?? negocio.facturaPreciosConIsv;
-    final doc = pw.Document();
+    final doc = pw.Document(theme: await obtenerTemaPdfConFuenteEmbebida());
     final logo = decodificarLogoPdf(negocio.logoColorBase64);
     final formatoDia = DateFormat('dd/MM/yyyy');
     final esCotizacion = venta.tipoDocumento == 'Cotizacion';
@@ -361,7 +362,7 @@ class VentaExportService {
   // 120mm de ancho) se usa ese ancho real en vez del fijo; si no, se sigue
   // usando 80mm como hasta ahora.
   Future<Uint8List> generarPdfFactura(VentaModel venta, NegocioModel negocio, {bool? forzarCopia, PdfPageFormat? formatoImpresora}) async {
-    final doc = pw.Document();
+    final doc = pw.Document(theme: await obtenerTemaPdfConFuenteEmbebida());
     // maxDimension más alto que el default acá: el logo del ticket ahora se
     // imprime más grande (ver _construirPaginaTicket), y con la resolución
     // chica que alcanza para un logo de cabecera normal se vería borroso.
@@ -420,8 +421,10 @@ class VentaExportService {
   pw.Page _construirPaginaTicket(VentaModel venta, NegocioModel negocio, pw.MemoryImage? logo, Map<String, pw.MemoryImage> iconos, {required bool esCopia, double? anchoMm, double? puntosTotales}) {
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
     final formatoDia = DateFormat('dd/MM/yyyy');
-    const fSmall = 7.5;
-    const fNormal = 8.0;
+    // Un poco más grande que antes (7.5/8.0): en la impresora térmica letra
+    // muy chica se ve "manchada" al imprimir, sobre todo en peso normal.
+    const fSmall = 8.5;
+    const fNormal = 9.5;
     final alturaMm = _estimarAlturaTicketMm(venta, negocio, tieneLogo: logo != null);
     // Todo lo fiscal (CAI, rango autorizado, desglose de ISV, leyenda legal)
     // solo tiene sentido en una Factura/Boleta formal. Una Venta normal (la
@@ -487,15 +490,21 @@ class VentaExportService {
                 ),
               ),
             if (negocio.eslogan.isNotEmpty) ...[
-              pw.SizedBox(height: 2),
+              pw.SizedBox(height: 4),
               pw.Center(child: pw.Text(negocio.eslogan, style: const pw.TextStyle(fontSize: 9))),
             ],
-            pw.SizedBox(height: 2),
+            pw.SizedBox(height: 4),
             pw.Center(child: pw.Text('Celulares, Accesorios y Otros Productos Más', style: const pw.TextStyle(fontSize: fSmall))),
-            if (negocio.direccion.isNotEmpty)
+            if (negocio.direccion.isNotEmpty) ...[
+              pw.SizedBox(height: 3),
               pw.Center(child: pw.Text('Dirección: ${negocio.direccion}', style: const pw.TextStyle(fontSize: fSmall), textAlign: pw.TextAlign.center)),
-            if (negocio.rtn.isNotEmpty) pw.Center(child: pw.Text('RTN: ${negocio.rtn}', style: const pw.TextStyle(fontSize: fSmall))),
-            if (negocio.telefono.isNotEmpty)
+            ],
+            if (negocio.rtn.isNotEmpty) ...[
+              pw.SizedBox(height: 3),
+              pw.Center(child: pw.Text('RTN: ${negocio.rtn}', style: const pw.TextStyle(fontSize: fSmall))),
+            ],
+            if (negocio.telefono.isNotEmpty) ...[
+              pw.SizedBox(height: 3),
               pw.Center(
                 child: pw.Row(
                   mainAxisSize: pw.MainAxisSize.min,
@@ -507,10 +516,18 @@ class VentaExportService {
                   ],
                 ),
               ),
-            if (negocio.correo.isNotEmpty) pw.Center(child: pw.Text('Email: ${negocio.correo}', style: const pw.TextStyle(fontSize: fSmall))),
-            if (esFacturable && negocio.cai.isNotEmpty) pw.Center(child: pw.Text('CAI: ${negocio.cai}', style: const pw.TextStyle(fontSize: fSmall))),
-            pw.SizedBox(height: 3),
+            ],
+            if (negocio.correo.isNotEmpty) ...[
+              pw.SizedBox(height: 3),
+              pw.Center(child: pw.Text('Email: ${negocio.correo}', style: const pw.TextStyle(fontSize: fSmall))),
+            ],
+            if (esFacturable && negocio.cai.isNotEmpty) ...[
+              pw.SizedBox(height: 3),
+              pw.Center(child: pw.Text('CAI: ${negocio.cai}', style: const pw.TextStyle(fontSize: fSmall))),
+            ],
+            pw.SizedBox(height: 6),
             pw.Center(child: pw.Text('Síguenos en nuestras redes sociales:', style: const pw.TextStyle(fontSize: fSmall))),
+            pw.SizedBox(height: 4),
             pw.Center(
               child: pw.Row(
                 mainAxisSize: pw.MainAxisSize.min,
@@ -522,6 +539,7 @@ class VentaExportService {
                 ],
               ),
             ),
+            pw.SizedBox(height: 3),
             pw.Center(
               child: pw.Row(
                 mainAxisSize: pw.MainAxisSize.min,
@@ -533,6 +551,7 @@ class VentaExportService {
                 ],
               ),
             ),
+            pw.SizedBox(height: 3),
             pw.Center(
               child: pw.Row(
                 mainAxisSize: pw.MainAxisSize.min,
@@ -544,9 +563,17 @@ class VentaExportService {
                 ],
               ),
             ),
-            pw.SizedBox(height: 6),
+            pw.SizedBox(height: 8),
             _separador(),
-            pw.Text('${(tiposDocumento[venta.tipoDocumento] ?? venta.tipoDocumento).toUpperCase()} ${negocio.rangoPrefijo}${venta.numeroDocumento}', style: const pw.TextStyle(fontSize: fNormal)),
+            // Sin negocio.rangoPrefijo acá: ese prefijo es el rango fiscal
+            // autorizado por la SAR para Factura/Boleta (ver _piePagina /
+            // negocio.rangoDesde-rangoHasta), no aplica a una Venta normal
+            // sin facturar — ahí el ticket debe decir solo "VENTA 0007", el
+            // número tal cual, sin ningún prefijo de negocio pegado.
+            pw.Text(
+              '${(tiposDocumento[venta.tipoDocumento] ?? venta.tipoDocumento).toUpperCase()} ${esFacturable ? negocio.rangoPrefijo : ''}${venta.numeroDocumento}',
+              style: const pw.TextStyle(fontSize: fNormal),
+            ),
             pw.Text('Fecha: ${venta.fechaRegistro != null ? formatoFecha.format(venta.fechaRegistro!) : '-'}', style: const pw.TextStyle(fontSize: fNormal)),
             pw.Text('Atendido por: ${venta.usuarioRegistro}', style: const pw.TextStyle(fontSize: fNormal)),
             pw.Text('Condición: ${venta.condicion}', style: const pw.TextStyle(fontSize: fNormal)),
@@ -580,7 +607,15 @@ class VentaExportService {
                       // Sin negrita: en la impresora térmica el texto en
                       // negrita se ve más "manchado" y termina siendo menos
                       // claro que el peso normal, sobre todo en letra chica.
-                      pw.Text(item.nombreProducto, style: const pw.TextStyle(fontSize: fSmall)),
+                      // Con un margen a la derecha (en vez del ancho
+                      // completo del ticket) un nombre largo pasa a una
+                      // segunda línea un poco antes de llegar al borde, en
+                      // vez de correr pegado hasta donde queda alineado el
+                      // importe de la línea de abajo.
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.only(right: 14),
+                        child: pw.Text(item.nombreProducto, style: const pw.TextStyle(fontSize: fSmall)),
+                      ),
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
@@ -678,22 +713,27 @@ class VentaExportService {
     // forma de pago, avisos legales de original/copia, agradecimiento y el
     // "ORIGINAL"/"COPIA" final — más margen de la página y colchón de
     // seguridad.
-    double alto = 200.0;
+    // Ajustado con un PDF real generado con datos de prueba: con 215 (que
+    // yo mismo había subido "a ojo" al agrandar la letra) el ticket salía
+    // con casi la mitad de la página en blanco al final. 110 deja el
+    // contenido usando la mayor parte de la página sin llegar a cortarse.
+    double alto = 110.0;
 
     if (tieneLogo) alto += 26.0;
-    if (negocio.nombre.isNotEmpty) alto += 6.0;
-    if (negocio.eslogan.isNotEmpty) alto += 8.0;
+    if (negocio.nombre.isNotEmpty) alto += 7.0;
+    if (negocio.eslogan.isNotEmpty) alto += 10.0;
     // Línea fija "Celulares, Accesorios y Otros Productos Más", siempre se
     // imprime, igual que el ticket viejo.
-    alto += 8.0;
-    if (negocio.direccion.isNotEmpty) alto += 10.0;
-    if (negocio.rtn.isNotEmpty) alto += 6.0;
-    if (negocio.telefono.isNotEmpty) alto += 6.0;
-    if (negocio.correo.isNotEmpty) alto += 6.0;
-    if (negocio.cai.isNotEmpty) alto += 6.0;
-    // Bloque fijo de redes sociales (encabezado + Facebook/Instagram/TikTok),
-    // siempre se imprime, no depende de datos del negocio.
-    alto += 24.0;
+    alto += 10.0;
+    if (negocio.direccion.isNotEmpty) alto += 12.0;
+    if (negocio.rtn.isNotEmpty) alto += 7.0;
+    if (negocio.telefono.isNotEmpty) alto += 7.0;
+    if (negocio.correo.isNotEmpty) alto += 7.0;
+    if (negocio.cai.isNotEmpty) alto += 7.0;
+    // Bloque fijo de redes sociales (encabezado + Facebook/Instagram/TikTok,
+    // ahora con más separación entre cada línea), siempre se imprime, no
+    // depende de datos del negocio.
+    alto += 34.0;
     // SUBTOTAL + Descuentos, siempre se imprimen (ver _construirPaginaTicket).
     alto += 12.0;
 

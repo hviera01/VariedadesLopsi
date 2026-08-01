@@ -76,7 +76,17 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
     }
   }
 
+  // Memoizado igual que en reporte_ventas_screen/reporte_compras_screen: sin
+  // esto, cada rebuild recorría todo `_movimientos` (ventas + compras +
+  // abonos + egresos del rango, potencialmente miles de filas en un mes
+  // activo) aunque ningún filtro hubiera cambiado.
+  List<MovimientoFinanciero>? _listaFiltradaCache;
+  Object? _clavesListaFiltradaCache;
+
   List<MovimientoFinanciero> get _listaFiltrada {
+    final claves = (_movimientos, _busqueda, _tipoFiltro, _metodoFiltro, _categoriaFiltro, _pagadoFiltro);
+    if (_clavesListaFiltradaCache == claves) return _listaFiltradaCache!;
+
     var lista = _movimientos ?? [];
     if (_busqueda.isNotEmpty) {
       lista = lista.where((m) => coincideFuzzy('${m.descripcion} ${m.tipoMovimiento} ${m.metodoPago} ${m.usuario}', _busqueda)).toList();
@@ -88,6 +98,9 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
       final quierePagado = _pagadoFiltro == 'Pagado';
       lista = lista.where((m) => !m.esEgresoManual || m.esPagado == quierePagado).toList();
     }
+
+    _clavesListaFiltradaCache = claves;
+    _listaFiltradaCache = lista;
     return lista;
   }
 
@@ -568,8 +581,14 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
             child: TextField(
               controller: _busquedaController,
               style: GoogleFonts.poppins(fontSize: 13),
-              decoration: InputDecoration(hintText: 'Buscar...', hintStyle: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade400), border: InputBorder.none, isDense: true),
-              onChanged: (v) => setState(() => _busqueda = v.trim()),
+              decoration: InputDecoration(hintText: 'Buscar... (Enter para buscar)', hintStyle: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade400), border: InputBorder.none, isDense: true),
+              // onSubmitted (no onChanged): antes cada tecla reconstruía la
+              // pantalla y reprocesaba todo `_movimientos` con coincideFuzzy
+              // (ventas+compras+abonos+egresos del rango, puede ser miles de
+              // filas), lo que se sentía pesado al escribir. Ahora se aplica
+              // una sola vez al presionar Enter, igual que el resto de los
+              // buscadores de la app (ver reporte_ventas_screen, buscar_producto_dialog).
+              onSubmitted: (v) => setState(() => _busqueda = v.trim()),
             ),
           ),
         ],

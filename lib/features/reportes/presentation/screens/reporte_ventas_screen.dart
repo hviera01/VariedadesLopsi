@@ -113,7 +113,18 @@ class _ReporteVentasScreenState extends ConsumerState<ReporteVentasScreen> {
     });
   }
 
+  // Memoizado igual que buscar_producto_dialog._listaFiltradaYOrdenada: sin
+  // esto, cada rebuild (por ejemplo al tocar una fila para ver el detalle, o
+  // cualquier setState de la pantalla) volvía a correr hasta 6 pasadas
+  // .where().toList() sobre todo el reporte del rango, aunque ninguno de los
+  // filtros hubiera cambiado.
+  List<ReporteVentaModel>? _listaFiltradaCache;
+  Object? _clavesListaFiltradaCache;
+
   List<ReporteVentaModel> get _listaFiltrada {
+    final claves = (_ventas, _busqueda, _metodoPagoFiltro, _condicionFiltro, _estadoFiltro, _tipoDocumentoFiltro, _usuarioFiltro);
+    if (_clavesListaFiltradaCache == claves) return _listaFiltradaCache!;
+
     var lista = _ventas ?? [];
     if (_busqueda.isNotEmpty) {
       lista = lista.where((v) => coincideFuzzy(v.textoBusqueda, _busqueda)).toList();
@@ -133,6 +144,9 @@ class _ReporteVentasScreenState extends ConsumerState<ReporteVentasScreen> {
     if (_usuarioFiltro != null) {
       lista = lista.where((v) => v.usuarioRegistro == _usuarioFiltro).toList();
     }
+
+    _clavesListaFiltradaCache = claves;
+    _listaFiltradaCache = lista;
     return lista;
   }
 

@@ -1,10 +1,13 @@
+import 'dart:io' show Platform;
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'cierre_caja_model.dart';
 import '../../../core/utils/formato_moneda.dart';
 import '../../../core/utils/logo_pdf.dart';
+import '../../../core/utils/pdf_fuente.dart';
 import '../../negocio/data/negocio_model.dart';
 
 class CajaExportService {
@@ -13,19 +16,30 @@ class CajaExportService {
   static const _colorGrisClaro = PdfColor.fromInt(0xFFF2F3F7);
 
   Future<Uint8List> generarTicketCierre(CierreCajaModel cierre, NegocioModel negocio) async {
-    final doc = pw.Document();
+    final doc = pw.Document(theme: await obtenerTemaPdfConFuenteEmbebida());
     final logo = decodificarLogoPdf(negocio.logoBnBase64);
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
-    const fSmall = 7.5;
-    const fNormal = 8.0;
+    const fSmall = 8.5;
+    const fNormal = 9.5;
+    final alturaMm = _estimarAlturaTicketCierreMm(cierre, negocio, tieneLogo: logo != null);
+    // Mismo criterio de margen que el ticket de venta (ver
+    // venta_export_service._construirPaginaTicket): en el .exe de Windows,
+    // imprimiendo nativo, el driver de la impresora recorta el ticket si el
+    // margen declarado es muy chico.
+    final margenMm = (!kIsWeb && Platform.isWindows) ? 9.0 : 5.0;
 
     doc.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat(80 * PdfPageFormat.mm, double.infinity, marginAll: 10),
+      // pw.MultiPage (no pw.Page con altura infinita fija): con una altura
+      // fija en "infinito" el paquete arma la página mucho más alta que lo
+      // que realmente se imprime y el resultado sale con un bloque de
+      // espacio en blanco enorme arriba del contenido. Con una altura
+      // estimada según lo que de verdad va a imprimirse (igual que ya hace
+      // el ticket de venta, ver _estimarAlturaTicketCierreMm) el ticket sale
+      // ajustado, sin ese hueco.
+      pw.MultiPage(
+        pageFormat: PdfPageFormat(80 * PdfPageFormat.mm, alturaMm * PdfPageFormat.mm, marginAll: margenMm * PdfPageFormat.mm),
         build: (context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
+          return [
               if (logo != null) pw.Center(child: pw.Image(logo, height: 50)),
               if (negocio.nombre.isNotEmpty)
                 pw.Center(child: pw.Text(negocio.nombre.toUpperCase(), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold))),
@@ -57,16 +71,40 @@ class CajaExportService {
               ],
               pw.SizedBox(height: 6),
               pw.Center(child: pw.Text('REPORTE CIERRE DE CAJA', style: pw.TextStyle(fontSize: fSmall, fontWeight: pw.FontWeight.bold))),
-            ],
-          );
+            ];
         },
       ),
     );
     return doc.save();
   }
 
+  // Estima cuánto va a ocupar el ticket según lo que realmente se imprime
+  // (mismo criterio que _estimarAlturaTicketMm en venta_export_service):
+  // título, desde/hasta/usuario, los 11 renglones de montos, separadores
+  // entre cada bloque y el pie, más colchón de seguridad. MultiPage no
+  // recorta si la estimación se queda corta (a lo sumo pasa a una segunda
+  // página), así que no hace falta que sea exacta al milímetro.
+  double _estimarAlturaTicketCierreMm(CierreCajaModel cierre, NegocioModel negocio, {required bool tieneLogo}) {
+    // Medido contra un PDF real generado con datos de prueba (título +
+    // desde/hasta/usuario + 11 renglones de montos + separadores + pie):
+    // con 95 de base el ticket se estaba partiendo en 2 páginas, lo que en
+    // una impresora térmica de rollo continuo se ve como un salto/espacio
+    // en blanco grande entre el "final" de la página 1 y el arranque de la
+    // página 2.
+    double alto = 140.0;
+    if (tieneLogo) alto += 20.0;
+    if (negocio.nombre.isNotEmpty) alto += 7.0;
+    if (cierre.observaciones.isNotEmpty) {
+      alto += 14.0;
+      // Texto libre: a este tamaño de letra entra aprox. una línea nueva
+      // cada 45 caracteres dentro del ancho del ticket (80mm).
+      alto += (cierre.observaciones.length / 45).ceil() * 4.0;
+    }
+    return alto;
+  }
+
   Future<Uint8List> generarPdfCierre(CierreCajaModel cierre, NegocioModel negocio) async {
-    final doc = pw.Document();
+    final doc = pw.Document(theme: await obtenerTemaPdfConFuenteEmbebida());
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
 
     doc.addPage(
