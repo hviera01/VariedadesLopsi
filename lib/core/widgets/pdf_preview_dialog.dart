@@ -85,13 +85,23 @@ class _PdfPreviewDialogState extends State<PdfPreviewDialog> {
               ),
             ],
             const SizedBox(height: 10),
-            // En la web, la vista previa dentro del diálogo necesita cargar
-            // pdf.js desde un CDN externo (unpkg.com) la primera vez, sin
-            // límite de tiempo: si esa carga falla o tarda (red restringida,
-            // CDN caído), el diálogo queda "cargando" para siempre. Para no
-            // depender de eso, en web se ofrece descargar/imprimir directo
-            // (no necesita pdf.js) en vez de mostrar la vista previa en pantalla.
-            if (kIsWeb) _accionesWeb() else _vistaPreviaNativa(),
+            // En la web, mostrar la vista previa real (pdf.js) además de los
+            // botones de descargar/imprimir directo: antes se omitía la
+            // vista previa por completo acá porque pdf.js se carga de un CDN
+            // externo (unpkg.com) y, si esa carga fallaba o tardaba, el
+            // diálogo quedaba "cargando" para siempre sin ninguna salida. El
+            // problema real de no tener vista previa en pantalla es que
+            // "Ver / imprimir" abre el diálogo de impresión nativo del
+            // navegador, que para un tamaño de página angosto (el ticket de
+            // 80mm) por defecto imprime a "tamaño real" en vez de "ajustar
+            // al área de impresión" -recorta el ticket hasta que alguien
+            // cambia esa opción a mano en el diálogo del navegador, algo que
+            // esta app no puede fijar por código: es una opción del propio
+            // diálogo de impresión del navegador, fuera de su control-. Con
+            // la vista previa embebida acá, al menos se ve el ticket
+            // completo y proporcionado antes de imprimir, en vez de
+            // enterarse recién en el papel.
+            if (kIsWeb) ...[_vistaPreviaWeb(), const SizedBox(height: 10), _accionesWeb()] else _vistaPreviaNativa(),
           ],
         ),
       ),
@@ -110,6 +120,25 @@ class _PdfPreviewDialogState extends State<PdfPreviewDialog> {
           allowPrinting: true,
           allowSharing: true,
           useActions: true,
+        ),
+      ),
+    );
+  }
+
+  Widget _vistaPreviaWeb() {
+    return SizedBox(
+      height: 380,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: PdfPreview(
+          build: (format) => widget.generarPdf(),
+          pdfFileName: widget.nombreArchivo,
+          canChangeOrientation: false,
+          canChangePageFormat: false,
+          allowPrinting: false,
+          allowSharing: false,
+          useActions: false,
+          loadingWidget: const Center(child: CircularProgressIndicator()),
         ),
       ),
     );

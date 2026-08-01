@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -231,12 +232,35 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
 
     // Igual que Registrar Venta y Cierre de Caja: con "imprimir sin
     // preguntar" activo en Negocio, la etiqueta se manda directo a imprimir
-    // sin mostrar la vista previa ni pedir un clic extra en "Imprimir".
+    // sin mostrar la vista previa ni pedir un clic extra en "Imprimir". En
+    // escritorio real esto tiene que ser directPrintPdf con la impresora
+    // explícita -layoutPdf en Windows SIEMPRE abre el diálogo nativo de
+    // "Configurar impresión", sin importar el modo configurado-.
     if (negocio.modoImpresion == ModoImpresion.directo) {
+      if (kIsWeb) {
+        try {
+          await Printing.layoutPdf(
+            onLayout: (_) => _servicioExport.generarPdfCodigoBarras(producto, negocio, cantidad: cantidad),
+            name: 'codigo_${producto.codigo}.pdf',
+          );
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No se pudo imprimir el código de barras: $e')));
+          }
+        }
+        return;
+      }
+      if (negocio.impresoraEtiquetasUrl.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay impresora de etiquetas configurada')));
+        }
+        return;
+      }
       try {
-        await Printing.layoutPdf(
+        final impresoraDirecta = Printer(url: negocio.impresoraEtiquetasUrl, name: negocio.impresoraEtiquetasNombre);
+        await Printing.directPrintPdf(
+          printer: impresoraDirecta,
           onLayout: (_) => _servicioExport.generarPdfCodigoBarras(producto, negocio, cantidad: cantidad),
-          name: 'codigo_${producto.codigo}.pdf',
         );
       } catch (e) {
         if (mounted) {

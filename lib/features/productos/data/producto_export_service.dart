@@ -154,15 +154,18 @@ class ProductoExportService {
     return doc.save();
   }
 
-  /// Etiquetas de código de barras, mismo diseño que el sistema viejo
-  /// (`frmProducto.GenerarPrintDocumentCodigoBarras`): página de 3x3
-  /// pulgadas con 3 etiquetas apiladas, cada una con el nombre del negocio +
-  /// el ícono de pulgar arriba, el código de barras, el código en texto, el
-  /// nombre del producto en itálica chica, y un recuadro alrededor de todo.
-  /// [cantidad] es cuántas páginas de 3 etiquetas imprimir (igual que
-  /// "¿Cuántas etiquetas desea imprimir?" del sistema viejo, que en realidad
-  /// pregunta cuántas veces repetir la página de 3).
+  /// Etiquetas de código de barras, mismo diseño y medidas que el sistema
+  /// viejo (`frmProducto.GenerarPrintDocumentCodigoBarras`): página de 3x3
+  /// pulgadas (76.2x76.2mm) con hasta 3 etiquetas apiladas por página
+  /// -`cantidadEtiquetas = 3` hardcodeado ahí-, cada una con el nombre del
+  /// negocio + el ícono de pulgar arriba, el código de barras (alto 0.35in
+  /// = 25pt), el código en texto, el nombre del producto en itálica chica,
+  /// y un recuadro alrededor de todo. [cantidad] es el TOTAL de etiquetas a
+  /// imprimir (igual que "¿Cuántas etiquetas desea imprimir?" del sistema
+  /// viejo): si pide 3, sale 1 sola página con esas 3; si pide 4, sale una
+  /// página con 3 y una segunda con 1 sola.
   Future<Uint8List> generarPdfCodigoBarras(ProductoModel producto, NegocioModel negocio, {int cantidad = 1}) async {
+    const etiquetasPorPagina = 3;
     final codigo = producto.codigoBarras.isNotEmpty ? producto.codigoBarras : producto.codigo;
     final iconoPulgar = await _cargarIconoPulgar();
     final nombreNegocio = negocio.nombre.isEmpty ? 'MI NEGOCIO' : negocio.nombre.toUpperCase();
@@ -171,8 +174,8 @@ class ProductoExportService {
     pw.Widget etiqueta() {
       return pw.Container(
         width: double.infinity,
-        margin: const pw.EdgeInsets.symmetric(vertical: 2),
-        padding: const pw.EdgeInsets.symmetric(vertical: 3, horizontal: 4),
+        margin: const pw.EdgeInsets.symmetric(vertical: 1.5),
+        padding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 4),
         decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.75)),
         child: pw.Column(
           mainAxisSize: pw.MainAxisSize.min,
@@ -186,12 +189,16 @@ class ProductoExportService {
                 pw.Image(iconoPulgar, height: 10),
               ],
             ),
-            pw.SizedBox(height: 3),
-            pw.BarcodeWidget(barcode: bc.Barcode.code128(), data: codigo, width: 180, height: 35, drawText: false),
-            pw.SizedBox(height: 3),
+            pw.SizedBox(height: 2),
+            // 25pt = 0.35in, igual que barcodeHeight del sistema viejo. El
+            // ancho (150pt) también se achicó de 180 -no lo fija el sistema
+            // viejo, pero con 180 solo entraban 2 etiquetas por página en
+            // vez de las 3 que deben ir-.
+            pw.BarcodeWidget(barcode: bc.Barcode.code128(), data: codigo, width: 150, height: 25, drawText: false),
+            pw.SizedBox(height: 2),
             pw.Text(codigo, style: const pw.TextStyle(fontSize: 7)),
             if (producto.nombre.trim().isNotEmpty) ...[
-              pw.SizedBox(height: 3),
+              pw.SizedBox(height: 2),
               pw.Text(
                 producto.nombre,
                 style: pw.TextStyle(fontSize: 5, fontStyle: pw.FontStyle.italic),
@@ -205,13 +212,16 @@ class ProductoExportService {
       );
     }
 
-    for (var i = 0; i < cantidad; i++) {
+    var restantes = cantidad;
+    while (restantes > 0) {
+      final enEstaPagina = restantes >= etiquetasPorPagina ? etiquetasPorPagina : restantes;
+      restantes -= enEstaPagina;
       doc.addPage(
         pw.Page(
           pageFormat: PdfPageFormat(76.2 * PdfPageFormat.mm, 76.2 * PdfPageFormat.mm, marginAll: 10),
           build: (context) => pw.Column(
             mainAxisSize: pw.MainAxisSize.min,
-            children: [etiqueta(), etiqueta(), etiqueta()],
+            children: List.generate(enEstaPagina, (_) => etiqueta()),
           ),
         ),
       );

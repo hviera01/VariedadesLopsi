@@ -477,7 +477,10 @@ class VentaExportService {
             // logo que suba el negocio: antes salía muy chico porque solo se
             // limitaba el alto a 50pt.
             if (logo != null) ...[
-              pw.Center(child: pw.Image(logo, width: 140)),
+              // 144pt = 2in, igual que el sistema viejo (200/100 in en
+              // frmVentas.cs, PrintPagVSF): ahí el logo ocupa ~71% del ancho
+              // del ticket -no es chico, es un cuadrado grande a propósito-.
+              pw.Center(child: pw.Image(logo, width: 144)),
               pw.SizedBox(height: 6),
             ],
             if (negocio.nombre.isNotEmpty)

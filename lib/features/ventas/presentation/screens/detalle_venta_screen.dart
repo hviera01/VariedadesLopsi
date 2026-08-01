@@ -242,12 +242,33 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
 
       // Igual que Registrar Venta, Cierre de Caja y el recibo de abono: con
       // "imprimir sin preguntar" activo en Negocio, la reimpresión se manda
-      // directo a la impresora configurada sin mostrar la vista previa.
+      // directo a la impresora configurada sin mostrar la vista previa. En
+      // escritorio real esto tiene que ser directPrintPdf con la impresora
+      // explícita -layoutPdf en Windows SIEMPRE abre el diálogo nativo de
+      // "Configurar impresión", sin importar el modo configurado-. En web
+      // (kIsWeb ya sin ser móvil, filtrado arriba) no hay otra opción: el
+      // navegador no deja imprimir sin su propio diálogo.
       if (negocio.modoImpresion == ModoImpresion.directo) {
+        if (kIsWeb) {
+          try {
+            await Printing.layoutPdf(
+              onLayout: (formato) => _servicioExport.generarPdfFactura(venta, negocio, forzarCopia: esCopia, formatoImpresora: formato),
+              name: 'venta_${venta.numeroDocumento}.pdf',
+            );
+          } catch (e) {
+            _mostrarMensaje('No se pudo reimprimir el ticket: $e');
+          }
+          return;
+        }
+        if (negocio.impresoraTermicaUrl.isEmpty) {
+          _mostrarMensaje('No hay impresora configurada');
+          return;
+        }
         try {
-          await Printing.layoutPdf(
+          final impresoraDirecta = Printer(url: negocio.impresoraTermicaUrl, name: negocio.impresoraTermicaNombre);
+          await Printing.directPrintPdf(
+            printer: impresoraDirecta,
             onLayout: (formato) => _servicioExport.generarPdfFactura(venta, negocio, forzarCopia: esCopia, formatoImpresora: formato),
-            name: 'venta_${venta.numeroDocumento}.pdf',
           );
         } catch (e) {
           _mostrarMensaje('No se pudo reimprimir el ticket: $e');
