@@ -10,6 +10,7 @@ import '../../../../core/widgets/pdf_preview_dialog.dart';
 import '../../../caja/data/cierre_caja_model.dart';
 import '../../../caja/data/caja_export_service.dart';
 import '../../../negocio/providers/negocio_provider.dart';
+import '../../../ventas/presentation/screens/detalle_venta_screen.dart';
 
 const colorVentasFinanciero = Color(0xFF0F1B3D);
 const colorComprasFinanciero = Color(0xFFF59E0B);
@@ -140,47 +141,54 @@ Widget _tabaGananciaPorVenta(List<GananciaPorVenta> lista, bool esMovil) {
   }
   final formatoFecha = DateFormat('dd/MM/yyyy');
   return _tarjeta(
-    child: Column(
-      children: [
-        Row(
-          children: [
-            SizedBox(width: 90, child: Text('FECHA', style: _estiloHeaderTabla())),
-            Expanded(flex: 2, child: Text('DOCUMENTO / CLIENTE', style: _estiloHeaderTabla())),
-            if (!esMovil) Expanded(child: Text('VENTAS', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
-            if (!esMovil) Expanded(child: Text('COSTO', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
-            Expanded(child: Text('GANANCIA', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
-            SizedBox(width: 55, child: Text('MARGEN', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
-          ],
-        ),
-        Divider(height: 16, color: Colors.grey.shade300),
-        for (final v in lista.take(50)) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              children: [
-                SizedBox(width: 90, child: Text(v.fecha != null ? formatoFecha.format(v.fecha!) : '-', style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.grey.shade600))),
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(v.numeroDocumento, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600)),
-                      Text(v.cliente, style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500), overflow: TextOverflow.ellipsis),
-                    ],
-                  ),
-                ),
-                if (!esMovil) Expanded(child: Text(formatearMoneda(v.ventas), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12))),
-                if (!esMovil) Expanded(child: Text(formatearMoneda(v.costo), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600))),
-                Expanded(child: Text(formatearMoneda(v.ganancia), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: v.ganancia >= 0 ? const Color(0xFF16A34A) : const Color(0xFF0F1B3D)))),
-                SizedBox(width: 55, child: Text('${v.margenPorcentaje.toStringAsFixed(0)}%', textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.grey.shade600))),
-              ],
-            ),
+    child: Builder(
+      builder: (context) => Column(
+        children: [
+          Row(
+            children: [
+              SizedBox(width: 90, child: Text('FECHA', style: _estiloHeaderTabla())),
+              Expanded(flex: 2, child: Text('DOCUMENTO / CLIENTE', style: _estiloHeaderTabla())),
+              if (!esMovil) Expanded(child: Text('VENTAS', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
+              if (!esMovil) Expanded(child: Text('COSTO', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
+              Expanded(child: Text('GANANCIA', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
+              SizedBox(width: 55, child: Text('MARGEN', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
+            ],
           ),
-          if (v != lista.take(50).last) Divider(height: 1, color: Colors.grey.shade200),
+          Divider(height: 16, color: Colors.grey.shade300),
+          for (final v in lista.take(50)) ...[
+            InkWell(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(fullscreenDialog: true, builder: (context) => DetalleVentaScreen(ventaIdInicial: v.idVenta)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    SizedBox(width: 90, child: Text(v.fecha != null ? formatoFecha.format(v.fecha!) : '-', style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.grey.shade600))),
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(v.numeroDocumento, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600)),
+                          Text(v.cliente, style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500), overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                    if (!esMovil) Expanded(child: Text(formatearMoneda(v.ventas), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12))),
+                    if (!esMovil) Expanded(child: Text(formatearMoneda(v.costo), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600))),
+                    Expanded(child: Text(formatearMoneda(v.ganancia), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: v.ganancia >= 0 ? const Color(0xFF16A34A) : const Color(0xFF0F1B3D)))),
+                    SizedBox(width: 55, child: Text('${v.margenPorcentaje.toStringAsFixed(0)}%', textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.grey.shade600))),
+                  ],
+                ),
+              ),
+            ),
+            if (v != lista.take(50).last) Divider(height: 1, color: Colors.grey.shade200),
+          ],
+          if (lista.length > 50) Padding(padding: const EdgeInsets.only(top: 10), child: Text('+ ${lista.length - 50} más...', style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.grey.shade500))),
         ],
-        if (lista.length > 50) Padding(padding: const EdgeInsets.only(top: 10), child: Text('+ ${lista.length - 50} más...', style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.grey.shade500))),
-      ],
+      ),
     ),
   );
 }
@@ -527,66 +535,161 @@ Widget seccionCierresCaja(ReporteFinancieroData data, bool esMovil) {
     return _tarjeta(child: Text('Sin cierres de caja en el rango seleccionado.', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600)));
   }
   final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
+  final estiloHeader = GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w700, color: Colors.grey.shade600);
+  final estiloCelda = GoogleFonts.poppins(fontSize: 12);
+
+  DataColumn columna(String texto, {bool numerica = false}) => DataColumn(label: Text(texto, style: estiloHeader), numeric: numerica);
+  DataCell celdaMoneda(double valor, {bool negrita = false, Color? color}) =>
+      DataCell(Text(formatearMoneda(valor), style: estiloCelda.copyWith(fontWeight: negrita ? FontWeight.w700 : FontWeight.w400, color: color)));
+
   return _tarjeta(
-    child: Column(
-      children: [
-        Row(
-          children: [
-            Expanded(flex: 2, child: Text('FECHA CIERRE', style: _estiloHeaderTabla())),
-            if (!esMovil) Expanded(flex: 2, child: Text('RESPONSABLE', style: _estiloHeaderTabla())),
-            if (!esMovil) Expanded(child: Text('MONTO INICIAL', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
-            Expanded(child: Text('GRAN TOTAL', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
-            Expanded(child: Text('DIFERENCIA', textAlign: TextAlign.right, style: _estiloHeaderTabla())),
-            const SizedBox(width: 40),
+    child: Builder(
+      builder: (context) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          columnSpacing: 22,
+          headingRowHeight: 38,
+          dataRowMinHeight: 40,
+          dataRowMaxHeight: 48,
+          columns: [
+            columna('INICIO'),
+            columna('CIERRE'),
+            columna('USUARIO'),
+            columna('MONTO INICIAL', numerica: true),
+            columna('ING. EFECTIVO', numerica: true),
+            columna('ING. TARJETA', numerica: true),
+            columna('ING. TRANSFER.', numerica: true),
+            columna('EGR. EFECTIVO', numerica: true),
+            columna('EGR. TRANSFER.', numerica: true),
+            columna('TOTAL CALC. EFECTIVO', numerica: true),
+            columna('TOTAL TRANSFER.', numerica: true),
+            columna('GRAN TOTAL', numerica: true),
+            columna('TOTAL REAL', numerica: true),
+            columna('DIFERENCIA', numerica: true),
+            columna('OBSERVACIONES'),
+          ],
+          rows: [
+            for (final c in lista)
+              DataRow(
+                onSelectChanged: (_) => _abrirDetalleCierre(context, c),
+                cells: [
+                  DataCell(Text(formatoFecha.format(c.fechaInicio), style: estiloCelda)),
+                  DataCell(Text(formatoFecha.format(c.fechaFin), style: estiloCelda)),
+                  DataCell(Text(c.usuarioResponsable, style: estiloCelda)),
+                  celdaMoneda(c.montoInicial),
+                  celdaMoneda(c.ingresosEfectivo),
+                  celdaMoneda(c.ingresosTarjeta),
+                  celdaMoneda(c.ingresosTransferencia),
+                  celdaMoneda(c.egresosEfectivo),
+                  celdaMoneda(c.egresosTransferencia),
+                  celdaMoneda(c.totalCalculadoEfectivo),
+                  celdaMoneda(c.totalTransferencia),
+                  celdaMoneda(c.granTotal, negrita: true),
+                  celdaMoneda(c.totalReal),
+                  celdaMoneda(c.diferencia, negrita: true, color: c.diferencia == 0 ? const Color(0xFF16A34A) : const Color(0xFFDC2626)),
+                  DataCell(Text(c.observaciones, style: estiloCelda, overflow: TextOverflow.ellipsis)),
+                ],
+              ),
           ],
         ),
-        Divider(height: 16, color: Colors.grey.shade300),
-        for (final c in lista) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(formatoFecha.format(c.fechaFin), style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600)),
-                      if (esMovil) Text(c.usuarioResponsable, style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500), overflow: TextOverflow.ellipsis),
-                    ],
-                  ),
-                ),
-                if (!esMovil) Expanded(flex: 2, child: Text(c.usuarioResponsable, style: GoogleFonts.poppins(fontSize: 12), overflow: TextOverflow.ellipsis)),
-                if (!esMovil) Expanded(child: Text(formatearMoneda(c.montoInicial), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12))),
-                Expanded(child: Text(formatearMoneda(c.granTotal), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700))),
-                Expanded(
-                  child: Text(
-                    formatearMoneda(c.diferencia),
-                    textAlign: TextAlign.right,
-                    style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: c.diferencia == 0 ? const Color(0xFF16A34A) : const Color(0xFFDC2626)),
-                  ),
-                ),
-                SizedBox(
-                  width: 40,
-                  child: Consumer(
-                    builder: (context, ref, _) => IconButton(
-                      icon: const Icon(Icons.print_outlined, size: 18, color: Color(0xFF0F1B3D)),
-                      tooltip: 'Reimprimir',
-                      onPressed: () => _reimprimirCierre(context, ref, c),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (c != lista.last) Divider(height: 1, color: Colors.grey.shade200),
-        ],
+      ),
+    ),
+  );
+}
+
+Widget _filaDetalleCierre(String etiqueta, String valor, {bool negrita = false, Color? color}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 5),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(etiqueta, style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600)),
+        Text(valor, style: GoogleFonts.poppins(fontSize: 13, fontWeight: negrita ? FontWeight.w700 : FontWeight.w600, color: color ?? const Color(0xFF1A1A1A))),
       ],
     ),
   );
 }
 
+void _abrirDetalleCierre(BuildContext context, CierreCajaModel cierre) {
+  final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
+  showDialog(
+    context: context,
+    builder: (context) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(20),
+      child: Container(
+        width: 420,
+        constraints: const BoxConstraints(maxHeight: 640),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text('Cierre de Caja', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700))),
+                IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () => Navigator.pop(context)),
+              ],
+            ),
+            Text('${formatoFecha.format(cierre.fechaInicio)} — ${formatoFecha.format(cierre.fechaFin)}', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600)),
+            const SizedBox(height: 14),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _filaDetalleCierre('Usuario responsable', cierre.usuarioResponsable),
+                    const Divider(height: 20),
+                    _filaDetalleCierre('Monto inicial', formatearMoneda(cierre.montoInicial)),
+                    _filaDetalleCierre('Ingreso efectivo', formatearMoneda(cierre.ingresosEfectivo)),
+                    _filaDetalleCierre('Ingreso tarjeta', formatearMoneda(cierre.ingresosTarjeta)),
+                    _filaDetalleCierre('Ingreso transferencia', formatearMoneda(cierre.ingresosTransferencia)),
+                    _filaDetalleCierre('Egreso efectivo', formatearMoneda(cierre.egresosEfectivo)),
+                    _filaDetalleCierre('Egreso transferencia', formatearMoneda(cierre.egresosTransferencia)),
+                    const Divider(height: 20),
+                    _filaDetalleCierre('Total calculado efectivo', formatearMoneda(cierre.totalCalculadoEfectivo)),
+                    _filaDetalleCierre('Total transferencia', formatearMoneda(cierre.totalTransferencia)),
+                    _filaDetalleCierre('Gran total', formatearMoneda(cierre.granTotal), negrita: true),
+                    _filaDetalleCierre('Total real', formatearMoneda(cierre.totalReal)),
+                    _filaDetalleCierre(
+                      'Diferencia',
+                      formatearMoneda(cierre.diferencia),
+                      negrita: true,
+                      color: cierre.diferencia == 0 ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                    ),
+                    if (cierre.observaciones.isNotEmpty) ...[
+                      const Divider(height: 20),
+                      Text('Observaciones', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500)),
+                      const SizedBox(height: 4),
+                      Text(cierre.observaciones, style: GoogleFonts.poppins(fontSize: 12.5)),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: Consumer(
+                builder: (context, ref, _) => FilledButton.icon(
+                  onPressed: () => _reimprimirCierre(context, ref, cierre),
+                  icon: const Icon(Icons.print_outlined, size: 18),
+                  label: Text('Reimprimir', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+// Reimpresión en el mismo formato térmico (ticket ESC/POS) que se imprime al
+// cerrar caja de verdad -antes generaba el PDF formal en tamaño carta, que
+// no es lo que sale de la impresora de punto de venta-.
 Future<void> _reimprimirCierre(BuildContext context, WidgetRef ref, CierreCajaModel cierre) async {
   final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
   if (!context.mounted) return;
@@ -595,9 +698,9 @@ Future<void> _reimprimirCierre(BuildContext context, WidgetRef ref, CierreCajaMo
   showDialog(
     context: context,
     builder: (context) => PdfPreviewDialog(
-      titulo: 'Cierre de Caja · ${DateFormat('dd/MM/yyyy').format(cierre.fechaFin)}',
-      nombreArchivo: 'cierre_caja_reimpresion.pdf',
-      generarPdf: () => servicioExport.generarPdfCierre(cierre, negocio),
+      titulo: 'Ticket · Cierre de Caja · ${DateFormat('dd/MM/yyyy').format(cierre.fechaFin)}',
+      nombreArchivo: 'cierre_caja_ticket.pdf',
+      generarPdf: () => servicioExport.generarTicketCierre(cierre, negocio),
       impresora: impresora,
     ),
   );
