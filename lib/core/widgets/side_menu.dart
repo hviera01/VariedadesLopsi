@@ -19,7 +19,18 @@ class SideMenu extends ConsumerWidget {
   Future<void> _buscarActualizaciones(BuildContext context, WidgetRef ref) async {
     final mensajero = ScaffoldMessenger.of(context);
     mensajero.showSnackBar(const SnackBar(content: Text('Buscando actualizaciones...'), duration: Duration(seconds: 2)));
-    final actualizacion = await ActualizacionService.buscarActualizacion();
+    ActualizacionDisponible? actualizacion;
+    try {
+      actualizacion = await ActualizacionService.buscarActualizacion();
+    } catch (e) {
+      if (!context.mounted) return;
+      // Distinto del caso "ya estás al día": acá el chequeo ni siquiera se
+      // pudo completar (sin internet, GitHub no responde, etc.) — antes esto
+      // se confundía con "ya tenés la última versión", lo que hacía parecer
+      // que nunca había actualizaciones nuevas aunque sí las hubiera.
+      mensajero.showSnackBar(SnackBar(content: Text('No se pudo revisar actualizaciones: $e'), duration: const Duration(seconds: 6)));
+      return;
+    }
     if (!context.mounted) return;
     if (actualizacion == null) {
       mensajero.showSnackBar(const SnackBar(content: Text('Ya tenés la última versión instalada')));

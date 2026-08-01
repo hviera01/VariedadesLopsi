@@ -84,7 +84,16 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   Future<void> _chequearActualizacion() async {
     if (_dialogoActualizacionAbierto) return;
-    final actualizacion = await ActualizacionService.buscarActualizacion();
+    ActualizacionDisponible? actualizacion;
+    try {
+      actualizacion = await ActualizacionService.buscarActualizacion();
+    } catch (_) {
+      // Chequeo automático en segundo plano: un fallo de red no debe
+      // interrumpir a nadie con un error cada 10 minutos, a diferencia del
+      // botón "Buscar actualizaciones" (ver side_menu.dart), que sí le
+      // avisa al usuario cuando el chequeo no se pudo completar.
+      return;
+    }
     if (actualizacion == null || !mounted) return;
     ref.read(actualizacionDisponibleProvider.notifier).establecer(actualizacion);
     _dialogoActualizacionAbierto = true;
