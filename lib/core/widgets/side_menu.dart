@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../constants/roles.dart';
 import '../data/modulos_menu.dart';
 import '../models/tab_item.dart';
@@ -10,6 +9,7 @@ import '../providers/tabs_provider.dart';
 import '../services/actualizacion_service.dart';
 import '../utils/pantalla_builder.dart';
 import '../widgets/actualizacion_dialog.dart';
+import '../widgets/actualizacion_respaldo_dialog.dart';
 import '../../features/auth/providers/auth_provider.dart';
 
 class SideMenu extends ConsumerWidget {
@@ -33,20 +33,11 @@ class SideMenu extends ConsumerWidget {
       // respaldo práctico para cuando el chequeo automático nunca logra
       // conectarse en un equipo puntual (visto con un error de certificado
       // que no afectaba al navegador de esa misma PC, algo imposible de
-      // diagnosticar a distancia): un botón que abre la página de releases
-      // en el navegador del sistema, que si funciona ahí, deja descargar la
-      // actualización en un par de clics sin depender del mismo mecanismo
-      // que está fallando.
-      mensajero.showSnackBar(
-        SnackBar(
-          content: Text('No se pudo revisar actualizaciones: $e'),
-          duration: const Duration(seconds: 10),
-          action: SnackBarAction(
-            label: 'Abrir página',
-            onPressed: () => launchUrl(Uri.parse('https://github.com/${ActualizacionService.repoUrl}/releases/latest'), mode: LaunchMode.externalApplication),
-          ),
-        ),
-      );
+      // diagnosticar a distancia): un diálogo con un botón "Actualizar" que
+      // abre DIRECTO la descarga del instalador más nuevo en el navegador
+      // del sistema (empieza a descargar solo, sin página intermedia), sin
+      // depender del mismo mecanismo que está fallando acá.
+      await mostrarDialogoActualizacionRespaldo(context, e.toString());
       return;
     }
     if (!context.mounted) return;

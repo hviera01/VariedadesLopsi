@@ -22,13 +22,25 @@ class ActualizacionDisponible {
 /// para leerlo.
 class ActualizacionService {
   static const _repo = 'hviera01/VariedadesLopsi';
-  // Público para que side_menu.dart pueda armar el link "Abrir página" de
-  // respaldo cuando el chequeo automático falla (ver _buscarActualizaciones).
-  static const repoUrl = _repo;
 
   static bool get aplica => !kIsWeb && (Platform.isWindows || Platform.isAndroid);
 
   static String get _extensionEsperada => Platform.isAndroid ? '.apk' : '.exe';
+
+  /// URL directa (no la página HTML) al asset de la versión más nueva, con
+  /// nombre fijo ("Lopsi.exe"/"Lopsi.apk", sin el número de versión): cada
+  /// release sube ADEMÁS una copia con este nombre fijo -ver el proceso de
+  /// publicación, memoria del proyecto- solo para que este link siempre
+  /// apunte a la última versión sin tener que saber de antemano cuál es.
+  /// GitHub redirige `releases/latest/download/<nombre>` al asset real de la
+  /// release más nueva que tenga ese nombre exacto. Al ser la URL del
+  /// archivo (no una página), el navegador empieza a descargarlo solo. Se
+  /// usa como respaldo cuando el chequeo automático (buscarActualizacion) no
+  /// se pudo completar -ver actualizacion_respaldo_dialog.dart-.
+  static String get urlDescargaDirectaUltima {
+    final nombre = Platform.isAndroid ? 'Lopsi.apk' : 'Lopsi.exe';
+    return 'https://github.com/$_repo/releases/latest/download/$nombre';
+  }
 
   /// Última versión publicada como GitHub Release, sin importar si es más
   /// nueva que la instalada (a diferencia de buscarActualizacion()). Null si
