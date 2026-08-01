@@ -154,6 +154,14 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
   final Map<String, VoidCallback> _confirmarInline = {};
   final Map<int, FocusNode> _focusDescripcion = {};
   final Map<int, Future<void> Function()> _confirmarDescripcion = {};
+  // Campos protegidos por clave especial (precio, descripción): antes de
+  // dejar tocar el campo hay que pedir la clave -no al revés-, así que estos
+  // mapas llevan si cada campo puntual ya quedó "desbloqueado" para esta
+  // edición (se re-bloquea solo al confirmar/cancelar) y quién autorizó,
+  // para no volver a pedir la clave una segunda vez al guardar el valor.
+  final Map<String, bool> _inlineDesbloqueados = {};
+  final Map<int, String> _usuarioAutorizaPrecioPendiente = {};
+  final Map<int, bool> _descripcionDesbloqueada = {};
   int _conteoItemsControladores = -1;
 
   @override
@@ -666,36 +674,38 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
     ref.read(carritoVentaProvider.notifier).actualizarLinea(index, cantidad: nuevaCantidad);
   }
 
-  // Este negocio no cobra ISV: el precio que se escribe acá es el precio
-  // real de la línea, sin ningún ajuste (ver la nota en
+  // Antes de que este campo se pueda tocar, _campoInlineNumero ya pidió la
+  // clave especial (ver antesDeEditar en el llamado de más abajo) y guardó
+  // acá quién autorizó -por eso acá no se vuelve a verificar nada, solo se
+  // aplica el valor-. Este negocio no cobra ISV: el precio que se escribe
+  // acá es el precio real de la línea, sin ningún ajuste (ver la nota en
   // carrito_provider.agregarProductoDirecto).
-  Future<void> _actualizarPrecio(int index, double nuevoPrecio) async {
+  void _actualizarPrecio(int index, double nuevoPrecio) {
     if (nuevoPrecio < 0) {
       _mostrarMensaje('Precio inválido');
       return;
     }
-    // Siempre pasa por acá (sin pre-chequeos de bloqueo): verificarAccesoEspecial
-    // ya decide sola si hace falta pedir la clave (Empleado/Semi Administrador
-    // con el toggle activo, o un Encargado sin este permiso puntual) o dejar
-    // pasar directo (Administrador, o Encargado que sí lo tiene marcado).
-    final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.ventasCambiarPrecio);
-    if (!mounted) return;
-    if (!resultado.autorizado) {
-      // Revierte el campo al precio actual: el usuario ya había escrito el
-      // nuevo valor en el TextField antes de que se pidiera la clave.
-      final carrito = ref.read(carritoVentaProvider);
-      if (index < carrito.items.length) {
-        _ctrlPrecio[index]?.text = carrito.items[index].precioVenta.toStringAsFixed(2);
-      }
-      return;
-    }
-    if (resultado.usuarioAutoriza.isNotEmpty) {
-      ref.read(carritoVentaProvider.notifier).establecerUsuarioAutorizaPrecio(resultado.usuarioAutoriza);
+    final usuarioAutoriza = _usuarioAutorizaPrecioPendiente.remove(index) ?? '';
+    if (usuarioAutoriza.isNotEmpty) {
+      ref.read(carritoVentaProvider.notifier).establecerUsuarioAutorizaPrecio(usuarioAutoriza);
     }
     ref.read(carritoVentaProvider.notifier).actualizarLinea(index, precioNuevo: nuevoPrecio);
   }
 
-  Future<void> _actualizarPrecioSinIsv(int index, double nuevoPrecio) => _actualizarPrecio(index, nuevoPrecio);
+  void _actualizarPrecioSinIsv(int index, double nuevoPrecio) => _actualizarPrecio(index, nuevoPrecio);
+
+  /// Se llama ANTES de que el campo de precio se deje tocar (ver
+  /// antesDeEditar en _campoInlineNumero): pide la clave especial de una,
+  /// para que el orden sea "primero la clave, después ya puede escribir el
+  /// precio" en vez de al revés. Si autoriza, guarda quién autorizó para que
+  /// _actualizarPrecio lo use al confirmar sin volver a preguntar.
+  Future<bool> _autorizarCambioPrecio(int index) async {
+    final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.ventasCambiarPrecio);
+    if (!mounted) return false;
+    if (!resultado.autorizado) return false;
+    _usuarioAutorizaPrecioPendiente[index] = resultado.usuarioAutoriza;
+    return true;
+  }
 
   void _actualizarDescuentoLinea(int index, double descuento) {
     if (descuento < 0 || descuento > 100) {
@@ -804,6 +814,9 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
     }
     _focusDescripcion.clear();
     _confirmarDescripcion.clear();
+    _inlineDesbloqueados.clear();
+    _usuarioAutorizaPrecioPendiente.clear();
+    _descripcionDesbloqueada.clear();
     _conteoItemsControladores = 0;
   }
 
@@ -1708,6 +1721,9 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       }
       _focusDescripcion.clear();
       _confirmarDescripcion.clear();
+      _inlineDesbloqueados.clear();
+      _usuarioAutorizaPrecioPendiente.clear();
+      _descripcionDesbloqueada.clear();
       _conteoItemsControladores = carrito.items.length;
     }
 
@@ -2027,7 +2043,13 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
   // usa el [valorActual]/[alConfirmar] vigentes en vez de quedar atado a los
   // del primer build. La guarda de "no cambió respecto al ya aplicado" evita
   // volver a llamar a alConfirmar y así el problema original no vuelve.
-  Widget _campoInlineNumero(String claveFoco, TextEditingController controlador, double valorActual, void Function(double) alConfirmar, {String? sufijo, String? prefijo, bool dosDecimales = false}) {
+  // [antesDeEditar]: si se pasa, el campo arranca "bloqueado" (se ve pero no
+  // se puede tocar) hasta que esta función async devuelva true -pensado para
+  // que verificarAccesoEspecial pida la clave especial ANTES de dejar
+  // escribir un valor nuevo, no después (ver _autorizarCambioPrecio). Se
+  // re-bloquea solo después de cada confirmación, así que la próxima edición
+  // vuelve a pedir la clave.
+  Widget _campoInlineNumero(String claveFoco, TextEditingController controlador, double valorActual, void Function(double) alConfirmar, {String? sufijo, String? prefijo, bool dosDecimales = false, Future<bool> Function()? antesDeEditar}) {
     // defaultTargetPlatform (a diferencia de Platform.isAndroid, que en web
     // no sirve de nada) sí detecta el sistema operativo real aunque se esté
     // usando desde el navegador.
@@ -2073,6 +2095,10 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
         // foco, así que no queda nada pendiente de "recuperar".
         _focusCodigoBarras.requestFocus();
       }
+      // Re-bloquea el campo: la próxima vez que lo quieran tocar, vuelve a
+      // pedir la clave especial en vez de quedar "desbloqueado" para
+      // siempre a partir de la primera vez.
+      if (antesDeEditar != null) _inlineDesbloqueados[claveFoco] = false;
     }
     _confirmarInline[claveFoco] = confirmar;
 
@@ -2093,7 +2119,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       confirmar();
     }
 
-    return TextField(
+    final campo = TextField(
       controller: controlador,
       focusNode: focusNode,
       textAlign: TextAlign.center,
@@ -2119,48 +2145,61 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       onSubmitted: (_) => confirmar(),
       onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
     );
+
+    if (antesDeEditar == null) return campo;
+    if (_inlineDesbloqueados[claveFoco] ?? false) return campo;
+
+    // Bloqueado: se ve igual (mismo campo, mismo valor) pero no se puede
+    // tocar todavía -el primer toque pide la clave especial en vez de dejar
+    // escribir directo-.
+    return GestureDetector(
+      onTap: () async {
+        final autorizado = await antesDeEditar();
+        if (!mounted || !autorizado) return;
+        setState(() => _inlineDesbloqueados[claveFoco] = true);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (esMovil) {
+            focusNode.requestFocus();
+          } else {
+            abrirTecladoNumerico();
+          }
+        });
+      },
+      child: AbsorbPointer(child: campo),
+    );
   }
 
-  Widget _campoInlineConEtiqueta(String claveFoco, String etiqueta, TextEditingController controlador, double valorActual, void Function(double) alConfirmar, {bool dosDecimales = false, String? prefijo}) {
+  Widget _campoInlineConEtiqueta(String claveFoco, String etiqueta, TextEditingController controlador, double valorActual, void Function(double) alConfirmar, {bool dosDecimales = false, String? prefijo, Future<bool> Function()? antesDeEditar}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(etiqueta, style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade500)),
         const SizedBox(height: 4),
-        _campoInlineNumero(claveFoco, controlador, valorActual, alConfirmar, prefijo: prefijo, dosDecimales: dosDecimales),
+        _campoInlineNumero(claveFoco, controlador, valorActual, alConfirmar, prefijo: prefijo, dosDecimales: dosDecimales, antesDeEditar: antesDeEditar),
       ],
     );
   }
 
   // Campo de descripción editable de una línea del carrito: no cambia el
-  // producto real, solo cómo se muestra/imprime esa línea de esta venta. Si
-  // el negocio activó el permiso ventasEditarDescripcion, pide la clave
-  // especial antes de aplicar el cambio (y revierte el texto si la cancelan
-  // o la clave es incorrecta).
+  // producto real, solo cómo se muestra/imprime esa línea de esta venta.
+  // Arranca bloqueado (ver AbsorbPointer más abajo): el primer toque pide la
+  // clave especial (si hace falta) ANTES de dejar escribir, no al confirmar.
   Widget _campoDescripcion(int index, dynamic item) {
     final ctrl = _ctrlDescripcion.putIfAbsent(index, () => TextEditingController(text: item.nombreProducto as String));
 
-    Future<void> confirmar() async {
+    void confirmar() {
       final nuevoTexto = ctrl.text.trim();
       final nombreActual = item.nombreProducto as String;
-      if (nuevoTexto.isEmpty) {
+      if (nuevoTexto.isNotEmpty && nuevoTexto != nombreActual) {
+        ref.read(carritoVentaProvider.notifier).actualizarDescripcion(index, nuevoTexto);
+      } else {
         ctrl.text = nombreActual;
-        return;
       }
-      if (nuevoTexto == nombreActual) return;
-      // Siempre pasa por acá (sin pre-chequeos de bloqueo): verificarAccesoEspecial
-      // ya decide sola si hace falta pedir la clave (Empleado/Semi Administrador
-      // con el toggle activo, o un Encargado sin este permiso puntual) o dejar
-      // pasar directo (Administrador, o Encargado que sí lo tiene marcado).
-      final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.ventasEditarDescripcion);
-      if (!mounted) return;
-      if (!resultado.autorizado) {
-        ctrl.text = nombreActual;
-        return;
-      }
-      ref.read(carritoVentaProvider.notifier).actualizarDescripcion(index, nuevoTexto);
+      // Re-bloquea: la próxima edición vuelve a pedir la clave.
+      _descripcionDesbloqueada[index] = false;
     }
-    _confirmarDescripcion[index] = confirmar;
+    _confirmarDescripcion[index] = () async => confirmar();
 
     final focusNode = _focusDescripcion.putIfAbsent(index, () {
       final node = FocusNode();
@@ -2170,7 +2209,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       return node;
     });
 
-    return Column(
+    final campo = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -2184,6 +2223,20 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
         ),
         if (item.reembasado as bool) Text('Reembasado', style: GoogleFonts.poppins(fontSize: 10.5, color: Colors.grey.shade400)),
       ],
+    );
+
+    if (_descripcionDesbloqueada[index] ?? false) return campo;
+
+    return GestureDetector(
+      onTap: () async {
+        final resultado = await verificarAccesoEspecial(context, ref, PermisosEspeciales.ventasEditarDescripcion);
+        if (!mounted || !resultado.autorizado) return;
+        setState(() => _descripcionDesbloqueada[index] = true);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) focusNode.requestFocus();
+        });
+      },
+      child: AbsorbPointer(child: campo),
     );
   }
 
@@ -2205,7 +2258,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
           Expanded(flex: 2, child: Text(producto?.codigo ?? '-', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600))),
           Expanded(flex: 4, child: _campoDescripcion(index, item)),
           Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('cantidad_$index', ctrlCantidad, item.cantidad as double, (v) => _actualizarCantidad(index, v)))),
-          Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('precio_$index', ctrlPrecio, precioMostrado, (v) => _precioCarritoConIsv ? _actualizarPrecio(index, v) : _actualizarPrecioSinIsv(index, v), prefijo: 'L.', dosDecimales: true))),
+          Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('precio_$index', ctrlPrecio, precioMostrado, (v) => _precioCarritoConIsv ? _actualizarPrecio(index, v) : _actualizarPrecioSinIsv(index, v), prefijo: 'L.', dosDecimales: true, antesDeEditar: () => _autorizarCambioPrecio(index)))),
           Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('descuento_$index', ctrlDescuento, item.descuentoPorcentaje as double, (v) => _actualizarDescuentoLinea(index, v), sufijo: '%'))),
           Expanded(flex: 2, child: Text(formatearMoneda(importe), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700))),
           SizedBox(
@@ -2253,7 +2306,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
             children: [
               Expanded(child: _campoInlineConEtiqueta('cantidad_$index', 'Cantidad', ctrlCantidad, item.cantidad as double, (v) => _actualizarCantidad(index, v))),
               const SizedBox(width: 8),
-              Expanded(child: _campoInlineConEtiqueta('precio_$index', _precioCarritoConIsv ? 'Precio (c/ISV)' : 'Precio (s/ISV)', ctrlPrecio, precioMostrado, (v) => _precioCarritoConIsv ? _actualizarPrecio(index, v) : _actualizarPrecioSinIsv(index, v), prefijo: 'L.', dosDecimales: true)),
+              Expanded(child: _campoInlineConEtiqueta('precio_$index', _precioCarritoConIsv ? 'Precio (c/ISV)' : 'Precio (s/ISV)', ctrlPrecio, precioMostrado, (v) => _precioCarritoConIsv ? _actualizarPrecio(index, v) : _actualizarPrecioSinIsv(index, v), prefijo: 'L.', dosDecimales: true, antesDeEditar: () => _autorizarCambioPrecio(index))),
               const SizedBox(width: 8),
               Expanded(child: _campoInlineConEtiqueta('descuento_$index', 'Desc. %', ctrlDescuento, item.descuentoPorcentaje as double, (v) => _actualizarDescuentoLinea(index, v))),
             ],
