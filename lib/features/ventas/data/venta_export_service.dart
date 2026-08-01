@@ -1,8 +1,6 @@
-import 'dart:io' show Platform;
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:excel/excel.dart' as xls;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -377,13 +375,13 @@ class VentaExportService {
     final puntosTotales = await _obtenerPuntosTotales(venta);
 
     if (forzarCopia != null) {
-      doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: forzarCopia, anchoMm: anchoMm, puntosTotales: puntosTotales));
+      doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: forzarCopia, anchoMm: anchoMm, formatoImpresora: formatoImpresora, puntosTotales: puntosTotales));
       return doc.save();
     }
 
-    doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: false, anchoMm: anchoMm, puntosTotales: puntosTotales));
+    doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: false, anchoMm: anchoMm, formatoImpresora: formatoImpresora, puntosTotales: puntosTotales));
     if (negocio.facturaImprimirCopia) {
-      doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: true, anchoMm: anchoMm, puntosTotales: puntosTotales));
+      doc.addPage(_construirPaginaTicket(venta, negocio, logo, iconos, esCopia: true, anchoMm: anchoMm, formatoImpresora: formatoImpresora, puntosTotales: puntosTotales));
     }
     return doc.save();
   }
@@ -418,13 +416,18 @@ class VentaExportService {
   // que realmente va a imprimirse (ver _estimarAlturaTicketMm) en vez de un
   // valor fijo enorme: con una altura fija muy por encima de lo real, la
   // vista previa quedaba con un espacio en blanco gigante al final.
-  pw.Page _construirPaginaTicket(VentaModel venta, NegocioModel negocio, pw.MemoryImage? logo, Map<String, pw.MemoryImage> iconos, {required bool esCopia, double? anchoMm, double? puntosTotales}) {
+  pw.Page _construirPaginaTicket(VentaModel venta, NegocioModel negocio, pw.MemoryImage? logo, Map<String, pw.MemoryImage> iconos, {required bool esCopia, double? anchoMm, PdfPageFormat? formatoImpresora, double? puntosTotales}) {
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
     final formatoDia = DateFormat('dd/MM/yyyy');
-    // Un poco más grande que antes (7.5/8.0): en la impresora térmica letra
-    // muy chica se ve "manchada" al imprimir, sobre todo en peso normal.
-    const fSmall = 8.5;
-    const fNormal = 9.5;
+    // Mismos tamaños que el ticket del sistema viejo (PrintPagVSF en
+    // frmVentas.cs): fontNormal=8pt para el grueso del ticket, y las líneas
+    // de producto (nombre + cant x precio + importe) un poco más chicas,
+    // 7pt (fontBoldProductos/fontBoldTotales) -antes esto salía todo más
+    // grande que el viejo (8.5/9.5), lo que hacía que el ticket abarcara
+    // mucho más espacio del que debía-.
+    const fSmall = 8.0;
+    const fNormal = 8.0;
+    const fProducto = 7.0;
     final alturaMm = _estimarAlturaTicketMm(venta, negocio, tieneLogo: logo != null);
     // Todo lo fiscal (CAI, rango autorizado, desglose de ISV, leyenda legal)
     // solo tiene sentido en una Factura/Boleta formal. Una Venta normal (la
@@ -453,23 +456,20 @@ class VentaExportService {
     final totalSinDescuento = venta.detalle.fold<double>(0, (s, item) => s + item.precioVenta * item.cantidad);
     final descuentosYRebajas = redondearMoneda(totalSinDescuento - venta.subtotal);
 
-    // En la web (imprime a través del diálogo del navegador) y en Android
-    // (ESC/POS por red, ni siquiera pasa por acá) 5mm de margen imprime
-    // perfecto. Pero en el .exe de Windows, imprimiendo nativo (con o sin
-    // vista previa), sigue saliendo recortado a lo ancho aun con esos 5mm:
-    // el controlador de la impresora en Windows debe estar interpretando un
-    // área imprimible más angosta que los 80mm declarados, y a diferencia
-    // del navegador, no reescala el contenido para que quepa — lo recorta
-    // tal cual. La solución robusta sin poder probar en la impresora real es
-    // darle más margen de sobra SOLO en Windows nativo, dejando la web y el
-    // APK exactamente como están (que ya imprimen bien).
-    final margenMm = (!kIsWeb && Platform.isWindows) ? 9.0 : 5.0;
+    // 8mm fijo: con margen chico, la columna de importe/total (pegada al
+    // borde derecho vía spaceBetween en cada fila) queda recortada contra el
+    // borde de la página -confirmado con una vista previa real: no era un
+    // problema de centrado sino de margen insuficiente-. Se probó confiar en
+    // los márgenes que reporta el driver de la impresora, pero a veces vienen
+    // en 0 y empeoraba el recorte, así que se volvió a un margen fijo propio.
+    const margenMm = 8.0;
     // Ancho real de la impresora (ver _anchoValidoDesdeFormato) si vino uno
     // que parece de rollo térmico; si no, el fijo de siempre.
     final anchoPaginaMm = anchoMm ?? 80.0;
+    final pageFormat = PdfPageFormat(anchoPaginaMm * PdfPageFormat.mm, alturaMm * PdfPageFormat.mm, marginAll: margenMm * PdfPageFormat.mm);
 
     return pw.MultiPage(
-      pageFormat: PdfPageFormat(anchoPaginaMm * PdfPageFormat.mm, alturaMm * PdfPageFormat.mm, marginAll: margenMm * PdfPageFormat.mm),
+      pageFormat: pageFormat,
       build: (context) {
         return [
             // Ancho fijo (en vez de alto) para que se vea grande y nítido sin
@@ -489,7 +489,7 @@ class VentaExportService {
                   mainAxisSize: pw.MainAxisSize.min,
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
-                    pw.Text(negocio.nombre.toUpperCase(), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                    pw.Text(negocio.nombre.toUpperCase(), style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
                     pw.SizedBox(width: 4),
                     pw.Image(iconos['pulgar']!, height: 12),
                   ],
@@ -620,16 +620,16 @@ class VentaExportService {
                       // importe de la línea de abajo.
                       pw.Padding(
                         padding: const pw.EdgeInsets.only(right: 14),
-                        child: pw.Text(item.nombreProducto, style: const pw.TextStyle(fontSize: fSmall)),
+                        child: pw.Text(item.nombreProducto, style: const pw.TextStyle(fontSize: fProducto)),
                       ),
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
                           pw.Text(
                             '${_formatoCantidad(item.cantidad)} x ${formatearMoneda(precioMostrado(item))}${item.descuentoPorcentaje > 0 ? ' (-${_formatoCantidad(item.descuentoPorcentaje)}%)' : ''}',
-                            style: const pw.TextStyle(fontSize: fSmall),
+                            style: const pw.TextStyle(fontSize: fProducto),
                           ),
-                          pw.Text(formatearMoneda(importeMostrado(item)), style: const pw.TextStyle(fontSize: fSmall)),
+                          pw.Text(formatearMoneda(importeMostrado(item)), style: const pw.TextStyle(fontSize: fProducto)),
                         ],
                       ),
                     ],

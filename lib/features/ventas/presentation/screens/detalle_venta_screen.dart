@@ -387,7 +387,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
       if (!esMovilNativo && negocio.impresoraTermicaUrl.isNotEmpty) {
         if (kIsWeb) {
           try {
-            await Printing.layoutPdf(onLayout: (formato) => servicioRecibo.generarPdfRecibo(credito, abono, negocio), name: 'recibo_${credito.numeroDocumento}.pdf');
+            await Printing.layoutPdf(onLayout: (formato) => servicioRecibo.generarPdfRecibo(credito, abono, negocio, formatoImpresora: formato), name: 'recibo_${credito.numeroDocumento}.pdf');
           } catch (_) {
             _mostrarMensaje('No se pudo imprimir el recibo de abono');
           }
@@ -395,7 +395,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
         }
         try {
           final impresoraDirecta = Printer(url: negocio.impresoraTermicaUrl, name: negocio.impresoraTermicaNombre);
-          await Printing.directPrintPdf(printer: impresoraDirecta, onLayout: (formato) => servicioRecibo.generarPdfRecibo(credito, abono, negocio));
+          await Printing.directPrintPdf(printer: impresoraDirecta, onLayout: (formato) => servicioRecibo.generarPdfRecibo(credito, abono, negocio, formatoImpresora: formato));
         } catch (_) {
           _mostrarMensaje('No se pudo imprimir en la impresora configurada');
         }
@@ -412,6 +412,7 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
         titulo: 'Vista previa · Recibo de abono',
         nombreArchivo: 'recibo_${credito.numeroDocumento}.pdf',
         generarPdf: () => VentaCreditoExportService().generarPdfRecibo(credito, abono, negocio),
+        generarPdfConFormato: (formato) => VentaCreditoExportService().generarPdfRecibo(credito, abono, negocio, formatoImpresora: formato),
         impresora: impresora,
       ),
     );

@@ -1,7 +1,5 @@
-import 'dart:io' show Platform;
 import 'dart:typed_data';
 import 'package:excel/excel.dart' as xls;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -92,17 +90,28 @@ class VentaCreditoExportService {
     return doc.save();
   }
 
-  Future<Uint8List> generarPdfRecibo(VentaCreditoModel credito, AbonoModel abono, NegocioModel negocio) async {
+  double? _anchoValidoDesdeFormato(PdfPageFormat? formato) {
+    if (formato == null) return null;
+    final anchoMm = formato.width / PdfPageFormat.mm;
+    if (anchoMm < 40 || anchoMm > 120) return null;
+    return anchoMm;
+  }
+
+  Future<Uint8List> generarPdfRecibo(VentaCreditoModel credito, AbonoModel abono, NegocioModel negocio, {PdfPageFormat? formatoImpresora}) async {
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
     final doc = pw.Document(theme: await obtenerTemaPdfConFuenteEmbebida());
 
     final logo = decodificarLogoPdf(negocio.logoBnBase64);
     final alturaMm = _estimarAlturaReciboMm(credito, abono, negocio, tieneLogo: logo != null);
-    // Mismo criterio de margen que el ticket de venta (ver
-    // venta_export_service._construirPaginaTicket): en el .exe de Windows,
-    // imprimiendo nativo, el driver de la impresora recorta el ticket si el
-    // margen declarado es muy chico.
-    final margenMm = (!kIsWeb && Platform.isWindows) ? 9.0 : 5.0;
+    // 8mm fijo, mismo criterio que el ticket de venta y el de cierre de
+    // caja: con margen chico, la columna de monto (pegada al borde derecho)
+    // queda recortada contra el borde de la página.
+    const margenMm = 8.0;
+    // Ancho real de la impresora si el driver reportó uno que parece de
+    // rollo térmico, en vez de asumir siempre 80mm.
+    final anchoMm = _anchoValidoDesdeFormato(formatoImpresora);
+    final anchoPaginaMm = anchoMm ?? 80.0;
+    final pageFormat = PdfPageFormat(anchoPaginaMm * PdfPageFormat.mm, alturaMm * PdfPageFormat.mm, marginAll: margenMm * PdfPageFormat.mm);
 
     doc.addPage(
       // pw.MultiPage (no pw.Page con altura infinita fija): con altura
@@ -111,7 +120,7 @@ class VentaCreditoExportService {
       // una altura estimada (ver _estimarAlturaReciboMm) el recibo sale
       // ajustado, igual que ya se corrigió en el ticket de venta.
       pw.MultiPage(
-        pageFormat: PdfPageFormat(80 * PdfPageFormat.mm, alturaMm * PdfPageFormat.mm, marginAll: margenMm * PdfPageFormat.mm),
+        pageFormat: pageFormat,
         build: (context) {
           return [
               if (logo != null) pw.Center(child: pw.Image(logo, height: 50)),

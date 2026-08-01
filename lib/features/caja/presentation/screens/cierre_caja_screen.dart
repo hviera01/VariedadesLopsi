@@ -196,6 +196,7 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
           titulo: 'Ticket · Cierre de Caja',
           nombreArchivo: 'cierre_caja_ticket.pdf',
           generarPdf: () => _servicioExport.generarTicketCierre(cierre, negocio),
+          generarPdfConFormato: (formato) => _servicioExport.generarTicketCierre(cierre, negocio, formatoImpresora: formato),
           impresora: impresora,
         ),
       );
@@ -227,7 +228,7 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
     if (!esMovilNativo && negocio.impresoraTermicaUrl.isNotEmpty) {
       if (kIsWeb) {
         try {
-          await Printing.layoutPdf(onLayout: (formato) => _servicioExport.generarTicketCierre(cierre, negocio), name: 'cierre_caja_ticket.pdf');
+          await Printing.layoutPdf(onLayout: (formato) => _servicioExport.generarTicketCierre(cierre, negocio, formatoImpresora: formato), name: 'cierre_caja_ticket.pdf');
         } catch (_) {
           _mostrarMensaje('No se pudo imprimir el ticket de cierre', esError: true);
         }
@@ -235,7 +236,7 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
       }
       try {
         final impresora = Printer(url: negocio.impresoraTermicaUrl, name: negocio.impresoraTermicaNombre);
-        await Printing.directPrintPdf(printer: impresora, onLayout: (formato) => _servicioExport.generarTicketCierre(cierre, negocio));
+        await Printing.directPrintPdf(printer: impresora, onLayout: (formato) => _servicioExport.generarTicketCierre(cierre, negocio, formatoImpresora: formato));
       } catch (_) {
         _mostrarMensaje('No se pudo imprimir en la impresora configurada', esError: true);
       }
@@ -252,6 +253,7 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
         titulo: 'Ticket · Cierre de Caja',
         nombreArchivo: 'cierre_caja_ticket.pdf',
         generarPdf: () => _servicioExport.generarTicketCierre(cierre, negocio),
+        generarPdfConFormato: (formato) => _servicioExport.generarTicketCierre(cierre, negocio, formatoImpresora: formato),
         impresora: impresora,
       ),
     );

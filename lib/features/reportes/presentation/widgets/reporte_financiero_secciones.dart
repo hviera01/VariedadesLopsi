@@ -701,6 +701,7 @@ Future<void> _reimprimirCierre(BuildContext context, WidgetRef ref, CierreCajaMo
       titulo: 'Ticket · Cierre de Caja · ${DateFormat('dd/MM/yyyy').format(cierre.fechaFin)}',
       nombreArchivo: 'cierre_caja_ticket.pdf',
       generarPdf: () => servicioExport.generarTicketCierre(cierre, negocio),
+      generarPdfConFormato: (formato) => servicioExport.generarTicketCierre(cierre, negocio, formatoImpresora: formato),
       impresora: impresora,
     ),
   );

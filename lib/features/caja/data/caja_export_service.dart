@@ -1,6 +1,4 @@
-import 'dart:io' show Platform;
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -15,18 +13,34 @@ class CajaExportService {
   static const _colorGrisTexto = PdfColor.fromInt(0xFF4B4F58);
   static const _colorGrisClaro = PdfColor.fromInt(0xFFF2F3F7);
 
-  Future<Uint8List> generarTicketCierre(CierreCajaModel cierre, NegocioModel negocio) async {
+  double? _anchoValidoDesdeFormato(PdfPageFormat? formato) {
+    if (formato == null) return null;
+    final anchoMm = formato.width / PdfPageFormat.mm;
+    if (anchoMm < 40 || anchoMm > 120) return null;
+    return anchoMm;
+  }
+
+  Future<Uint8List> generarTicketCierre(CierreCajaModel cierre, NegocioModel negocio, {PdfPageFormat? formatoImpresora}) async {
     final doc = pw.Document(theme: await obtenerTemaPdfConFuenteEmbebida());
     final logo = decodificarLogoPdf(negocio.logoBnBase64);
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
-    const fSmall = 8.5;
-    const fNormal = 9.5;
+    // Mismo tamaño que el ticket de venta (ver
+    // venta_export_service._construirPaginaTicket): antes salía más grande
+    // que el sistema viejo.
+    const fSmall = 8.0;
+    const fNormal = 8.0;
     final alturaMm = _estimarAlturaTicketCierreMm(cierre, negocio, tieneLogo: logo != null);
-    // Mismo criterio de margen que el ticket de venta (ver
-    // venta_export_service._construirPaginaTicket): en el .exe de Windows,
-    // imprimiendo nativo, el driver de la impresora recorta el ticket si el
-    // margen declarado es muy chico.
-    final margenMm = (!kIsWeb && Platform.isWindows) ? 9.0 : 5.0;
+    // 8mm fijo, en vez de confiar en los márgenes que reporta el driver (que
+    // a veces vienen en 0): con margen chico, la columna de monto de
+    // _filaTicket (pegada al borde derecho vía spaceBetween) queda recortada
+    // contra el borde de la página -confirmado con una vista previa real, no
+    // es un problema de centrado sino de que el margen era insuficiente-.
+    const margenMm = 8.0;
+    // Ancho real de la impresora (si el driver reportó uno que parece de
+    // rollo térmico) en vez de asumir siempre 80mm a ciegas.
+    final anchoMm = _anchoValidoDesdeFormato(formatoImpresora);
+    final anchoPaginaMm = anchoMm ?? 80.0;
+    final pageFormat = PdfPageFormat(anchoPaginaMm * PdfPageFormat.mm, alturaMm * PdfPageFormat.mm, marginAll: margenMm * PdfPageFormat.mm);
 
     doc.addPage(
       // pw.MultiPage (no pw.Page con altura infinita fija): con una altura
@@ -37,12 +51,12 @@ class CajaExportService {
       // el ticket de venta, ver _estimarAlturaTicketCierreMm) el ticket sale
       // ajustado, sin ese hueco.
       pw.MultiPage(
-        pageFormat: PdfPageFormat(80 * PdfPageFormat.mm, alturaMm * PdfPageFormat.mm, marginAll: margenMm * PdfPageFormat.mm),
+        pageFormat: pageFormat,
         build: (context) {
           return [
               if (logo != null) pw.Center(child: pw.Image(logo, height: 50)),
               if (negocio.nombre.isNotEmpty)
-                pw.Center(child: pw.Text(negocio.nombre.toUpperCase(), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold))),
+                pw.Center(child: pw.Text(negocio.nombre.toUpperCase(), style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold))),
               pw.SizedBox(height: 6),
               _separador(),
               pw.Center(child: pw.Text('CIERRE DE CAJA', style: pw.TextStyle(fontSize: fNormal + 1, fontWeight: pw.FontWeight.bold))),

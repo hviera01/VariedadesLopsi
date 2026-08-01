@@ -100,6 +100,7 @@ class _VentasCreditoScreenState extends ConsumerState<VentasCreditoScreen> {
         titulo: 'Vista previa · Recibo de abono',
         nombreArchivo: 'recibo_${credito.numeroDocumento}.pdf',
         generarPdf: () => _servicioExport.generarPdfRecibo(credito, abono, negocio),
+        generarPdfConFormato: (formato) => _servicioExport.generarPdfRecibo(credito, abono, negocio, formatoImpresora: formato),
         impresora: impresora,
       ),
     );
@@ -115,7 +116,7 @@ class _VentasCreditoScreenState extends ConsumerState<VentasCreditoScreen> {
     if (!esMovilNativo && negocio.impresoraTermicaUrl.isNotEmpty) {
       if (kIsWeb) {
         try {
-          await Printing.layoutPdf(onLayout: (formato) => _servicioExport.generarPdfRecibo(credito, abono, negocio), name: 'recibo_${credito.numeroDocumento}.pdf');
+          await Printing.layoutPdf(onLayout: (formato) => _servicioExport.generarPdfRecibo(credito, abono, negocio, formatoImpresora: formato), name: 'recibo_${credito.numeroDocumento}.pdf');
         } catch (_) {
           if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo imprimir el recibo de abono')));
         }
@@ -123,7 +124,7 @@ class _VentasCreditoScreenState extends ConsumerState<VentasCreditoScreen> {
       }
       try {
         final impresora = Printer(url: negocio.impresoraTermicaUrl, name: negocio.impresoraTermicaNombre);
-        await Printing.directPrintPdf(printer: impresora, onLayout: (formato) => _servicioExport.generarPdfRecibo(credito, abono, negocio));
+        await Printing.directPrintPdf(printer: impresora, onLayout: (formato) => _servicioExport.generarPdfRecibo(credito, abono, negocio, formatoImpresora: formato));
       } catch (_) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo imprimir en la impresora configurada')));
       }
@@ -137,6 +138,7 @@ class _VentasCreditoScreenState extends ConsumerState<VentasCreditoScreen> {
         titulo: 'Vista previa · Recibo de abono',
         nombreArchivo: 'recibo_${credito.numeroDocumento}.pdf',
         generarPdf: () => _servicioExport.generarPdfRecibo(credito, abono, negocio),
+        generarPdfConFormato: (formato) => _servicioExport.generarPdfRecibo(credito, abono, negocio, formatoImpresora: formato),
         impresora: impresora,
       ),
     );
