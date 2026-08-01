@@ -54,6 +54,17 @@ class ReporteFinancieroRepository {
   // la serie mensual/efectivo estimado de arriba.
   List<ProductoModel>? _productosCache;
   DateTime? _productosCacheEn;
+  // Cuentas por cobrar/pagar (Balance General): son un saldo actual, no
+  // dependen del rango de fechas elegido -antes se releían por completo en
+  // cada "Generar", aunque el usuario solo hubiera cambiado el rango
+  // principal-. Mismo criterio de cache corto que arriba.
+  QuerySnapshot<Map<String, dynamic>>? _ventasCreditoCache;
+  DateTime? _ventasCreditoCacheEn;
+  QuerySnapshot<Map<String, dynamic>>? _comprasCreditoCache;
+  DateTime? _comprasCreditoCacheEn;
+  // "Últimos 3 meses desde hoy": tampoco depende del rango elegido.
+  List<EgresoModel>? _egresosUltimos3MesesCache;
+  DateTime? _egresosUltimos3MesesCacheEn;
 
   Future<List<ProductoModel>> _obtenerProductosCacheados() async {
     final ahora = DateTime.now();
@@ -67,6 +78,46 @@ class ReporteFinancieroRepository {
     _productosCache = productos;
     _productosCacheEn = ahora;
     return productos;
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> _ventasCreditoAbiertasCacheadas() async {
+    final ahora = DateTime.now();
+    final cache = _ventasCreditoCache;
+    final cacheEn = _ventasCreditoCacheEn;
+    if (cache != null && cacheEn != null && ahora.difference(cacheEn) < _vigenciaCache) {
+      return cache;
+    }
+    final snap = await _db.collection('ventasCredito').where('saldoPendiente', isGreaterThan: 0).get();
+    _ventasCreditoCache = snap;
+    _ventasCreditoCacheEn = ahora;
+    return snap;
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> _comprasCreditoAbiertasCacheadas() async {
+    final ahora = DateTime.now();
+    final cache = _comprasCreditoCache;
+    final cacheEn = _comprasCreditoCacheEn;
+    if (cache != null && cacheEn != null && ahora.difference(cacheEn) < _vigenciaCache) {
+      return cache;
+    }
+    final snap = await _db.collection('comprasCredito').where('saldoPendiente', isGreaterThan: 0).get();
+    _comprasCreditoCache = snap;
+    _comprasCreditoCacheEn = ahora;
+    return snap;
+  }
+
+  Future<List<EgresoModel>> _egresosUltimos3MesesCacheados() async {
+    final ahora = DateTime.now();
+    final cache = _egresosUltimos3MesesCache;
+    final cacheEn = _egresosUltimos3MesesCacheEn;
+    if (cache != null && cacheEn != null && ahora.difference(cacheEn) < _vigenciaCache) {
+      return cache;
+    }
+    final hace3Meses = DateTime(ahora.year, ahora.month - 2, 1);
+    final egresos = await _egresoRepository.obtenerEgresosPorRango(hace3Meses, ahora);
+    _egresosUltimos3MesesCache = egresos;
+    _egresosUltimos3MesesCacheEn = ahora;
+    return egresos;
   }
 
   Future<List<ItemVentaModel>> _detalleVenta(String idVenta) async {
@@ -158,18 +209,6 @@ class ReporteFinancieroRepository {
       }
     }
     return (ventas: ventas, costo: costo);
-  }
-
-  Future<List<ProductoModel>> _obtenerProductos() async {
-    final cacheEn = _productosCacheEn;
-    if (_productosCache != null && cacheEn != null && DateTime.now().difference(cacheEn) < _vigenciaCache) {
-      return _productosCache!;
-    }
-    final snap = await _db.collection('productos').get();
-    final productos = snap.docs.map((d) => ProductoModel.fromMap(d.id, d.data())).toList();
-    _productosCache = productos;
-    _productosCacheEn = DateTime.now();
-    return productos;
   }
 
   Future<double> _efectivoEstimado() async {
@@ -270,12 +309,11 @@ class ReporteFinancieroRepository {
     // que se filtran del lado del servidor los créditos ya saldados en vez de
     // traer la colección completa (con historial largo, la mayoría termina
     // pagada) y descartarlos recién en el cliente.
-    final ventasCreditoFuture = _db.collection('ventasCredito').where('saldoPendiente', isGreaterThan: 0).get();
-    final comprasCreditoFuture = _db.collection('comprasCredito').where('saldoPendiente', isGreaterThan: 0).get();
+    final ventasCreditoFuture = _ventasCreditoAbiertasCacheadas();
+    final comprasCreditoFuture = _comprasCreditoAbiertasCacheadas();
     final serieMensualFuture = _obtenerSerieMensual();
     final efectivoEstimadoFuture = _efectivoEstimado();
-    final hace3Meses = DateTime(DateTime.now().year, DateTime.now().month - 2, 1);
-    final egresosUltimos3MesesFuture = _egresoRepository.obtenerEgresosPorRango(hace3Meses, DateTime.now());
+    final egresosUltimos3MesesFuture = _egresosUltimos3MesesCacheados();
     final creditoCanceladoFuture = _creditoCanceladoEnRango(inicio, finInclusive);
 
     final ventasHeaders = await ventasHeadersFuture;

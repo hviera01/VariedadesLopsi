@@ -240,6 +240,21 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
         return;
       }
 
+      // Igual que Registrar Venta, Cierre de Caja y el recibo de abono: con
+      // "imprimir sin preguntar" activo en Negocio, la reimpresión se manda
+      // directo a la impresora configurada sin mostrar la vista previa.
+      if (negocio.modoImpresion == ModoImpresion.directo) {
+        try {
+          await Printing.layoutPdf(
+            onLayout: (formato) => _servicioExport.generarPdfFactura(venta, negocio, forzarCopia: esCopia, formatoImpresora: formato),
+            name: 'venta_${venta.numeroDocumento}.pdf',
+          );
+        } catch (e) {
+          _mostrarMensaje('No se pudo reimprimir el ticket: $e');
+        }
+        return;
+      }
+
       final impresora = negocio.impresoraTermicaUrl.isEmpty ? null : Printer(url: negocio.impresoraTermicaUrl, name: negocio.impresoraTermicaNombre);
       await showDialog(
         context: context,
@@ -340,6 +355,33 @@ class _DetalleVentaScreenState extends ConsumerState<DetalleVentaScreen> {
     if (abono == null || !mounted) return;
     final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
     if (!mounted) return;
+
+    // Igual que Ventas a Crédito (ver
+    // ventas_credito_screen._imprimirReciboAbonoDirecto): con "imprimir sin
+    // preguntar" activo en Negocio, el recibo se manda directo a la
+    // impresora configurada sin mostrar la vista previa.
+    if (negocio.modoImpresion == ModoImpresion.directo) {
+      final servicioRecibo = VentaCreditoExportService();
+      final esMovilNativo = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+      if (!esMovilNativo && negocio.impresoraTermicaUrl.isNotEmpty) {
+        if (kIsWeb) {
+          try {
+            await Printing.layoutPdf(onLayout: (formato) => servicioRecibo.generarPdfRecibo(credito, abono, negocio), name: 'recibo_${credito.numeroDocumento}.pdf');
+          } catch (_) {
+            _mostrarMensaje('No se pudo imprimir el recibo de abono');
+          }
+          return;
+        }
+        try {
+          final impresoraDirecta = Printer(url: negocio.impresoraTermicaUrl, name: negocio.impresoraTermicaNombre);
+          await Printing.directPrintPdf(printer: impresoraDirecta, onLayout: (formato) => servicioRecibo.generarPdfRecibo(credito, abono, negocio));
+        } catch (_) {
+          _mostrarMensaje('No se pudo imprimir en la impresora configurada');
+        }
+        return;
+      }
+    }
+
     final impresora = negocio.impresoraTermicaUrl.isEmpty ? null : Printer(url: negocio.impresoraTermicaUrl, name: negocio.impresoraTermicaNombre);
     await Future<void>.delayed(const Duration(milliseconds: 150));
     if (!mounted) return;
