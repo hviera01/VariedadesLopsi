@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../constants/roles.dart';
 import '../data/modulos_menu.dart';
 import '../models/tab_item.dart';
@@ -25,10 +26,27 @@ class SideMenu extends ConsumerWidget {
     } catch (e) {
       if (!context.mounted) return;
       // Distinto del caso "ya estás al día": acá el chequeo ni siquiera se
-      // pudo completar (sin internet, GitHub no responde, etc.) — antes esto
-      // se confundía con "ya tenés la última versión", lo que hacía parecer
-      // que nunca había actualizaciones nuevas aunque sí las hubiera.
-      mensajero.showSnackBar(SnackBar(content: Text('No se pudo revisar actualizaciones: $e'), duration: const Duration(seconds: 6)));
+      // pudo completar (sin internet, GitHub no responde, un problema de
+      // certificado SSL específico de ese equipo, etc.) — antes esto se
+      // confundía con "ya tenés la última versión", lo que hacía parecer que
+      // nunca había actualizaciones nuevas aunque sí las hubiera. Como
+      // respaldo práctico para cuando el chequeo automático nunca logra
+      // conectarse en un equipo puntual (visto con un error de certificado
+      // que no afectaba al navegador de esa misma PC, algo imposible de
+      // diagnosticar a distancia): un botón que abre la página de releases
+      // en el navegador del sistema, que si funciona ahí, deja descargar la
+      // actualización en un par de clics sin depender del mismo mecanismo
+      // que está fallando.
+      mensajero.showSnackBar(
+        SnackBar(
+          content: Text('No se pudo revisar actualizaciones: $e'),
+          duration: const Duration(seconds: 10),
+          action: SnackBarAction(
+            label: 'Abrir página',
+            onPressed: () => launchUrl(Uri.parse('https://github.com/${ActualizacionService.repoUrl}/releases/latest'), mode: LaunchMode.externalApplication),
+          ),
+        ),
+      );
       return;
     }
     if (!context.mounted) return;

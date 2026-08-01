@@ -22,6 +22,9 @@ class ActualizacionDisponible {
 /// para leerlo.
 class ActualizacionService {
   static const _repo = 'hviera01/VariedadesLopsi';
+  // Público para que side_menu.dart pueda armar el link "Abrir página" de
+  // respaldo cuando el chequeo automático falla (ver _buscarActualizaciones).
+  static const repoUrl = _repo;
 
   static bool get aplica => !kIsWeb && (Platform.isWindows || Platform.isAndroid);
 

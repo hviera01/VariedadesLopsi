@@ -680,10 +680,14 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
   // aplica el valor-. Este negocio no cobra ISV: el precio que se escribe
   // acá es el precio real de la línea, sin ningún ajuste (ver la nota en
   // carrito_provider.agregarProductoDirecto).
-  void _actualizarPrecio(int index, double nuevoPrecio) {
+  // Devuelve true si el precio se aceptó y se aplicó, false si se rechazó
+  // (precio inválido o por debajo del costo) -el llamador usa esto para
+  // devolver el campo de texto al precio real en vez de dejarlo mostrando
+  // el valor rechazado, ver _actualizarPrecioConRevertir-.
+  bool _actualizarPrecio(int index, double nuevoPrecio) {
     if (nuevoPrecio < 0) {
       _mostrarMensaje('Precio inválido');
-      return;
+      return false;
     }
     final carrito = ref.read(carritoVentaProvider);
     if (index < carrito.items.length) {
@@ -692,7 +696,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       // vender por debajo de lo que costó el producto.
       if (costo > 0 && nuevoPrecio < costo) {
         _mostrarMensaje('El precio no puede quedar por debajo del costo (${formatearMoneda(costo)})');
-        return;
+        return false;
       }
     }
     final usuarioAutoriza = _usuarioAutorizaPrecioPendiente.remove(index) ?? '';
@@ -700,9 +704,30 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       ref.read(carritoVentaProvider.notifier).establecerUsuarioAutorizaPrecio(usuarioAutoriza);
     }
     ref.read(carritoVentaProvider.notifier).actualizarLinea(index, precioNuevo: nuevoPrecio);
+    return true;
   }
 
-  void _actualizarPrecioSinIsv(int index, double nuevoPrecio) => _actualizarPrecio(index, nuevoPrecio);
+  bool _actualizarPrecioSinIsv(int index, double nuevoPrecio) => _actualizarPrecio(index, nuevoPrecio);
+
+  // El campo de precio (_campoInlineNumero) siempre formatea lo que el
+  // usuario tecleó al confirmar, sin importar si _actualizarPrecio lo
+  // terminó aceptando o no -por eso, si se rechazó (precio inválido o por
+  // debajo del costo), el campo se quedaba mostrando ese valor rechazado en
+  // vez de volver al precio real-. Con el postFrameCallback se corrige el
+  // texto DESPUÉS de que termine ese formateo automático, en vez de antes
+  // (donde quedaría pisado igual).
+  void _actualizarPrecioConRevertir(int index, double nuevoPrecio) {
+    final aceptado = _precioCarritoConIsv ? _actualizarPrecio(index, nuevoPrecio) : _actualizarPrecioSinIsv(index, nuevoPrecio);
+    if (aceptado) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final carrito = ref.read(carritoVentaProvider);
+      if (index >= carrito.items.length) return;
+      final precioReal = carrito.items[index].precioVenta;
+      final precioMostrado = _precioCarritoConIsv ? redondearMoneda(precioReal * 1.15) : precioReal;
+      _ctrlPrecio[index]?.text = precioMostrado.toStringAsFixed(2);
+    });
+  }
 
   /// Se llama ANTES de que el campo de precio se deje tocar (ver
   /// antesDeEditar en _campoInlineNumero): pide la clave especial de una,
@@ -2268,7 +2293,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
           Expanded(flex: 2, child: Text(producto?.codigo ?? '-', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600))),
           Expanded(flex: 4, child: _campoDescripcion(index, item)),
           Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('cantidad_$index', ctrlCantidad, item.cantidad as double, (v) => _actualizarCantidad(index, v)))),
-          Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('precio_$index', ctrlPrecio, precioMostrado, (v) => _precioCarritoConIsv ? _actualizarPrecio(index, v) : _actualizarPrecioSinIsv(index, v), prefijo: 'L.', dosDecimales: true, antesDeEditar: () => _autorizarCambioPrecio(index)))),
+          Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('precio_$index', ctrlPrecio, precioMostrado, (v) => _actualizarPrecioConRevertir(index, v), prefijo: 'L.', dosDecimales: true, antesDeEditar: () => _autorizarCambioPrecio(index)))),
           Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('descuento_$index', ctrlDescuento, item.descuentoPorcentaje as double, (v) => _actualizarDescuentoLinea(index, v), sufijo: '%', antesDeEditar: () => _autorizarCambioPrecio(index)))),
           Expanded(flex: 2, child: Text(formatearMoneda(importe), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700))),
           SizedBox(
@@ -2316,7 +2341,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
             children: [
               Expanded(child: _campoInlineConEtiqueta('cantidad_$index', 'Cantidad', ctrlCantidad, item.cantidad as double, (v) => _actualizarCantidad(index, v))),
               const SizedBox(width: 8),
-              Expanded(child: _campoInlineConEtiqueta('precio_$index', _precioCarritoConIsv ? 'Precio (c/ISV)' : 'Precio (s/ISV)', ctrlPrecio, precioMostrado, (v) => _precioCarritoConIsv ? _actualizarPrecio(index, v) : _actualizarPrecioSinIsv(index, v), prefijo: 'L.', dosDecimales: true, antesDeEditar: () => _autorizarCambioPrecio(index))),
+              Expanded(child: _campoInlineConEtiqueta('precio_$index', _precioCarritoConIsv ? 'Precio (c/ISV)' : 'Precio (s/ISV)', ctrlPrecio, precioMostrado, (v) => _actualizarPrecioConRevertir(index, v), prefijo: 'L.', dosDecimales: true, antesDeEditar: () => _autorizarCambioPrecio(index))),
               const SizedBox(width: 8),
               Expanded(child: _campoInlineConEtiqueta('descuento_$index', 'Desc. %', ctrlDescuento, item.descuentoPorcentaje as double, (v) => _actualizarDescuentoLinea(index, v), antesDeEditar: () => _autorizarCambioPrecio(index))),
             ],
