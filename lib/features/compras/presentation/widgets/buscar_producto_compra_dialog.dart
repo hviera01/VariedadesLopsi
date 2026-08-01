@@ -311,60 +311,56 @@ class _BuscarProductoCompraDialogState extends ConsumerState<BuscarProductoCompr
 
   Widget _filaTabla(int indice, ProductoModel p, Map<String, String> mapaCategorias) {
     final seleccionada = _filaSeleccionada == p.id;
-    return Material(
+    // Container simple con solo un cambio de color de fondo (sin Material
+    // envolvente, sin borde, sin bordes redondeados por fila): mismo patrón
+    // liviano que ya usa la fila de Ventas a Crédito, para que resaltar una
+    // fila se sienta instantáneo incluso con listas largas.
+    return InkWell(
       key: _clavesFila.putIfAbsent(indice, () => GlobalKey()),
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          _tomarFocoLista();
-          setState(() => _filaSeleccionada = p.id);
-        },
-        onDoubleTap: () => _confirmarSeleccion(p),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-          decoration: BoxDecoration(
-            color: seleccionada ? const Color(0xFFFBEAEA) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: seleccionada ? Border.all(color: const Color(0xFF0F1B3D), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(flex: 2, child: Text(p.codigo, style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey.shade600))),
-              Expanded(
-                flex: 6,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: Text(p.nombre, softWrap: true, style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),
-                ),
+      onTap: () {
+        _tomarFocoLista();
+        setState(() => _filaSeleccionada = p.id);
+      },
+      onDoubleTap: () => _confirmarSeleccion(p),
+      child: Container(
+        color: seleccionada ? const Color(0xFFFBEAEA) : Colors.transparent,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(flex: 2, child: Text(p.codigo, style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey.shade600))),
+            Expanded(
+              flex: 6,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Text(p.nombre, softWrap: true, style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),
               ),
-              Expanded(
-                flex: 3,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: Text(mapaCategorias[p.idCategoria] ?? '-', softWrap: true, style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600)),
-                ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Text(mapaCategorias[p.idCategoria] ?? '-', softWrap: true, style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600)),
               ),
-              Expanded(
-                flex: 3,
-                child: Text(formatearMoneda(p.precioCompra), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF2B6CB0))),
-              ),
-              Expanded(
-                flex: 2,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    decoration: BoxDecoration(color: const Color(0xFFF0FBF4), borderRadius: BorderRadius.circular(8)),
-                    child: Text(
-                      p.stock.toStringAsFixed(p.stock == p.stock.roundToDouble() ? 0 : 2),
-                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF1E9E5A)),
-                    ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Text(formatearMoneda(p.precioCompra), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF2B6CB0))),
+            ),
+            Expanded(
+              flex: 2,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(color: const Color(0xFFF0FBF4), borderRadius: BorderRadius.circular(8)),
+                  child: Text(
+                    p.stock.toStringAsFixed(p.stock == p.stock.roundToDouble() ? 0 : 2),
+                    style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF1E9E5A)),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

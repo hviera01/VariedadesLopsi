@@ -46,6 +46,13 @@ class ReporteFinancieroRepository {
   DateTime? _serieMensualCacheEn;
   double? _efectivoEstimadoCache;
   DateTime? _efectivoEstimadoCacheEn;
+  // El catálogo completo de productos (para "Productos sin venta" e
+  // "Inventario a costo" del Balance General) no depende del rango de
+  // fechas elegido, pero antes se volvía a traer completo en cada búsqueda
+  // del reporte — con un catálogo grande, esa era la parte más pesada y se
+  // repetía sin importar si solo se había cambiado la fecha.
+  List<ProductoModel>? _productosCache;
+  DateTime? _productosCacheEn;
 
   Future<List<ItemVentaModel>> _detalleVenta(String idVenta) async {
     final snap = await _db.collection('ventas').doc(idVenta).collection('detalle').get();
@@ -136,6 +143,18 @@ class ReporteFinancieroRepository {
       }
     }
     return (ventas: ventas, costo: costo);
+  }
+
+  Future<List<ProductoModel>> _obtenerProductos() async {
+    final cacheEn = _productosCacheEn;
+    if (_productosCache != null && cacheEn != null && DateTime.now().difference(cacheEn) < _vigenciaCache) {
+      return _productosCache!;
+    }
+    final snap = await _db.collection('productos').get();
+    final productos = snap.docs.map((d) => ProductoModel.fromMap(d.id, d.data())).toList();
+    _productosCache = productos;
+    _productosCacheEn = DateTime.now();
+    return productos;
   }
 
   Future<double> _efectivoEstimado() async {
@@ -231,7 +250,7 @@ class ReporteFinancieroRepository {
     final egresosPeriodoFuture = _egresoRepository.obtenerEgresosPorRango(inicio, finInclusive);
     final abonosVentaFuture = _ventaCreditoRepository.obtenerAbonosPorRango(inicio, finInclusive);
     final abonosCompraFuture = _compraCreditoRepository.obtenerAbonosPorRango(inicio, finInclusive);
-    final productosFuture = _db.collection('productos').get();
+    final productosFuture = _obtenerProductos();
     // Solo interesan para sumar saldoPendiente (cuentas por cobrar/pagar), así
     // que se filtran del lado del servidor los créditos ya saldados en vez de
     // traer la colección completa (con historial largo, la mayoría termina
@@ -250,7 +269,7 @@ class ReporteFinancieroRepository {
     final egresosPeriodo = await egresosPeriodoFuture;
     final abonosVenta = await abonosVentaFuture;
     final abonosCompra = await abonosCompraFuture;
-    final productosSnap = await productosFuture;
+    final productos = await productosFuture;
     final ventasCreditoSnap = await ventasCreditoFuture;
     final comprasCreditoSnap = await comprasCreditoFuture;
     final serieMensual = await serieMensualFuture;
@@ -260,6 +279,10 @@ class ReporteFinancieroRepository {
 
     final ventasValidas = ventasHeaders.where((v) => v.esActiva && !v.esCotizacion).toList();
     final comprasValidas = comprasHeaders.where((c) => c.esActiva).toList();
+    // Ventas anuladas del período: en Lopsi la Utilidad Neta la mueve mucho
+    // más lo que se anula que un desglose contable formal, así que se
+    // muestra como referencia directa en vez de repetir la Utilidad Bruta.
+    final ventasCanceladas = ventasHeaders.where((v) => !v.esActiva && !v.esCotizacion).fold<double>(0, (s, v) => s + v.totalAPagar);
 
     final detalleVentasPorVenta = await _resolverDetalleVentas(ventasValidas, detalleRapido.ventas);
     final detalleComprasPorCompra = await _resolverDetalleCompras(comprasValidas, detalleRapido.compras);
@@ -315,7 +338,6 @@ class ReporteFinancieroRepository {
     final topCompradosPorCantidad = _rankearPorCantidad(itemsCompra.map((i) => (i.idProducto, i.nombreProducto, i.cantidad)));
     final topGananciaPorProducto = _rankearGanancia(itemsVenta);
 
-    final productos = productosSnap.docs.map((d) => ProductoModel.fromMap(d.id, d.data())).toList();
     final idsConVenta = itemsVenta.map((i) => i.idProducto).toSet();
     final productosSinVenta = productos
         .where((p) => p.estado && !idsConVenta.contains(p.id))
@@ -359,6 +381,7 @@ class ReporteFinancieroRepository {
       comprasPeriodo: comprasPeriodo,
       costoVentas: costoVentas,
       utilidadBruta: utilidadBruta,
+      ventasCanceladas: ventasCanceladas,
       gastosPeriodo: gastosPeriodo,
       utilidadNeta: utilidadNeta,
       flujoEfectivo: flujoEfectivo,

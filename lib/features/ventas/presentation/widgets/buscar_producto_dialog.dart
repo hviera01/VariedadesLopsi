@@ -80,6 +80,10 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
     final lista = productos.where((p) => p.estado && (_busquedaAplicada.isEmpty || _coincide(p, _busquedaAplicada)) && _coincideCategoria(p)).toList();
     if (_columnaOrden == 'existencia') {
       lista.sort((a, b) => _ordenAscendente ? a.stock.compareTo(b.stock) : b.stock.compareTo(a.stock));
+    } else {
+      // Orden por defecto (sin tocar el encabezado): mayor existencia
+      // primero, para que lo que sí hay para vender aparezca arriba.
+      lista.sort((a, b) => b.stock.compareTo(a.stock));
     }
 
     _clavesListaCacheada = claves;
@@ -218,7 +222,13 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
       _seBusco = true;
     });
     if (texto.isEmpty) return;
-    final coincidencias = productos.where((p) => p.estado && _coincide(p, texto) && _coincideCategoria(p)).toList();
+    // Una sola pasada de la búsqueda difusa: esto ya cachea el resultado
+    // (ver _listaFiltradaYOrdenada) para que el primer build() después de
+    // buscar no tenga que recalcularla de nuevo contra todo el catálogo —
+    // antes se hacía el mismo filtro completo dos veces seguidas (acá y en
+    // ese build), que era buena parte de por qué se sentía pesado justo
+    // después de tocar Enter.
+    final coincidencias = _listaFiltradaYOrdenada(productos);
     // Un código escaneado (exacta) con un solo resultado se agrega directo
     // en cualquier plataforma, para que escanear siga siendo instantáneo.
     // Una búsqueda por escrito con un solo resultado también se agregaba
@@ -269,7 +279,16 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
     final tamano = MediaQuery.of(context).size;
     final esMovil = tamano.width < 720;
 
-    return Scaffold(
+    return Focus(
+      autofocus: false,
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
+          Navigator.pop(context);
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Scaffold(
       backgroundColor: const Color(0xFFF2F3F7),
       body: SafeArea(
         child: Padding(
@@ -321,7 +340,20 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                                 border: InputBorder.none,
                                 isDense: true,
                               ),
-                              onSubmitted: (_) => _buscar(),
+                              onSubmitted: (texto) {
+                                // Si ya se buscó exactamente este mismo texto
+                                // y hay resultados en pantalla, un segundo
+                                // Enter selecciona directo el primer producto
+                                // (o el resaltado, si ya se navegó con
+                                // flechas) sin tener que mover el foco a la
+                                // lista — Enter busca la primera vez, elige
+                                // la segunda.
+                                if (_seBusco && texto.trim() == _busquedaAplicada && _listaActual.isNotEmpty) {
+                                  _seleccionarAlPresionarEnter();
+                                } else {
+                                  _buscar();
+                                }
+                              },
                             ),
                           ),
                           IconButton(tooltip: 'Buscar', icon: const Icon(Icons.arrow_forward, size: 18), onPressed: _buscar),
@@ -428,6 +460,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -472,8 +505,8 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(flex: 2, child: Text('Código', style: estilo)),
-        Expanded(flex: 6, child: Text('Descripción', style: estilo)),
-        Expanded(flex: 3, child: Text('Categoría', style: estilo)),
+        Expanded(flex: 5, child: Text('Producto', style: estilo)),
+        Expanded(flex: 4, child: Text('Descripción', style: estilo)),
         Expanded(flex: 3, child: Text('Precio', textAlign: TextAlign.right, style: estilo)),
         Expanded(flex: 2, child: _encabezadoOrdenable('Existencia', 'existencia', estilo)),
       ],
@@ -527,60 +560,57 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
   Widget _filaTabla(ProductoModel p, Map<String, String> mapaCategorias) {
     final bajoStock = p.stock <= 0;
     final seleccionada = _filaSeleccionada == p.id;
-    return Material(
+    // Container simple con solo un cambio de color de fondo (sin Material
+    // envolvente, sin borde, sin bordes redondeados por fila): mismo patrón
+    // liviano que ya usa la fila de Ventas a Crédito. Con Material+InkWell+
+    // BoxDecoration+border en cada fila, listas largas se sentían pesadas
+    // para pintar/scrollear.
+    return InkWell(
       key: _filaKeys.putIfAbsent(p.id, () => GlobalKey()),
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          _tomarFocoLista();
-          setState(() => _filaSeleccionada = p.id);
-        },
-        onDoubleTap: () => _confirmarSeleccion(p),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-          decoration: BoxDecoration(
-            color: seleccionada ? const Color(0xFFFBEAEA) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: seleccionada ? Border.all(color: const Color(0xFF0F1B3D), width: 1.4) : Border.all(color: Colors.transparent, width: 1.4),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(flex: 2, child: Text(p.codigo, style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey.shade600))),
-              Expanded(
-                flex: 6,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: Text(p.nombre, softWrap: true, style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),
-                ),
+      onTap: () {
+        _tomarFocoLista();
+        setState(() => _filaSeleccionada = p.id);
+      },
+      onDoubleTap: () => _confirmarSeleccion(p),
+      child: Container(
+        color: seleccionada ? const Color(0xFFFBEAEA) : Colors.transparent,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(flex: 2, child: Text(p.codigo, style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey.shade600))),
+            Expanded(
+              flex: 5,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Text(p.nombre, softWrap: true, style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),
               ),
-              Expanded(
-                flex: 3,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: Text(mapaCategorias[p.idCategoria] ?? '-', softWrap: true, style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600)),
-                ),
+            ),
+            Expanded(
+              flex: 4,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Text(p.descripcion.isEmpty ? '-' : p.descripcion, softWrap: true, style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600)),
               ),
-              Expanded(
-                flex: 3,
-                child: Align(alignment: Alignment.centerRight, child: _celdaPrecio(p)),
-              ),
-              Expanded(
-                flex: 2,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    decoration: BoxDecoration(color: bajoStock ? const Color(0xFFFCE4E4) : const Color(0xFFF0FBF4), borderRadius: BorderRadius.circular(8)),
-                    child: Text(
-                      p.stock.toStringAsFixed(p.stock == p.stock.roundToDouble() ? 0 : 2),
-                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: bajoStock ? const Color(0xFF0F1B3D) : const Color(0xFF1E9E5A)),
-                    ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Align(alignment: Alignment.centerRight, child: _celdaPrecio(p)),
+            ),
+            Expanded(
+              flex: 2,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(color: bajoStock ? const Color(0xFFFCE4E4) : const Color(0xFFF0FBF4), borderRadius: BorderRadius.circular(8)),
+                  child: Text(
+                    p.stock.toStringAsFixed(p.stock == p.stock.roundToDouble() ? 0 : 2),
+                    style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: bajoStock ? const Color(0xFF0F1B3D) : const Color(0xFF1E9E5A)),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

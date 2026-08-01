@@ -98,7 +98,7 @@ Widget seccionUtilidad(ReporteFinancieroData data, bool esMovil) {
     spacing: 4,
     runSpacing: 10,
     children: [
-      _stat('Utilidad Bruta', data.utilidadBruta, const Color(0xFF16A34A)),
+      _stat('Ventas Canceladas', data.ventasCanceladas, const Color(0xFFDC2626)),
       _flechaOperacion(Icons.remove),
       _stat('Gastos (Egresos)', data.gastosPeriodo, const Color(0xFF64748B)),
       _flechaOperacion(Icons.drag_handle),
@@ -112,13 +112,14 @@ Widget seccionUtilidad(ReporteFinancieroData data, bool esMovil) {
       _explicacion(
         'Utilidad bruta: lo que dejan las ventas activas del período (al contado y a crédito) después de su costo, sin importar si el crédito ya se cobró. '
         'Utilidad neta: al contado se reconoce igual que la bruta, pero un crédito recién entra cuando se termina de pagar (en la fecha del abono que lo cancela), '
-        'y los gastos operativos no incluyen las devoluciones por facturas anuladas (esas ventas ya no suman como ingreso, así que no deben restar de nuevo como gasto).',
+        'y los gastos operativos no incluyen las devoluciones por facturas anuladas (esas ventas ya no suman como ingreso, así que no deben restar de nuevo como gasto). '
+        'Ventas Canceladas es el total de lo anulado en el período, como referencia de cuánto se está perdiendo por anulaciones.',
       ),
       Text('VENTAS − COSTOS = UTILIDAD BRUTA', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade500, letterSpacing: 0.3)),
       const SizedBox(height: 10),
       filaBruta,
       const SizedBox(height: 20),
-      Text('UTILIDAD BRUTA − GASTOS = UTILIDAD NETA', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade500, letterSpacing: 0.3)),
+      Text('QUÉ MUEVE LA UTILIDAD NETA', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade500, letterSpacing: 0.3)),
       const SizedBox(height: 10),
       filaNeta,
       const SizedBox(height: 24),
