@@ -685,6 +685,16 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       _mostrarMensaje('Precio inválido');
       return;
     }
+    final carrito = ref.read(carritoVentaProvider);
+    if (index < carrito.items.length) {
+      final costo = carrito.items[index].precioCompraUsado;
+      // Regla dura, sin excepción por rol (ni Administrador): nunca se deja
+      // vender por debajo de lo que costó el producto.
+      if (costo > 0 && nuevoPrecio < costo) {
+        _mostrarMensaje('El precio no puede quedar por debajo del costo (${formatearMoneda(costo)})');
+        return;
+      }
+    }
     final usuarioAutoriza = _usuarioAutorizaPrecioPendiente.remove(index) ?? '';
     if (usuarioAutoriza.isNotEmpty) {
       ref.read(carritoVentaProvider.notifier).establecerUsuarioAutorizaPrecio(usuarioAutoriza);
@@ -2259,7 +2269,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
           Expanded(flex: 4, child: _campoDescripcion(index, item)),
           Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('cantidad_$index', ctrlCantidad, item.cantidad as double, (v) => _actualizarCantidad(index, v)))),
           Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('precio_$index', ctrlPrecio, precioMostrado, (v) => _precioCarritoConIsv ? _actualizarPrecio(index, v) : _actualizarPrecioSinIsv(index, v), prefijo: 'L.', dosDecimales: true, antesDeEditar: () => _autorizarCambioPrecio(index)))),
-          Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('descuento_$index', ctrlDescuento, item.descuentoPorcentaje as double, (v) => _actualizarDescuentoLinea(index, v), sufijo: '%'))),
+          Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineNumero('descuento_$index', ctrlDescuento, item.descuentoPorcentaje as double, (v) => _actualizarDescuentoLinea(index, v), sufijo: '%', antesDeEditar: () => _autorizarCambioPrecio(index)))),
           Expanded(flex: 2, child: Text(formatearMoneda(importe), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700))),
           SizedBox(
             width: 40,
@@ -2308,7 +2318,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
               const SizedBox(width: 8),
               Expanded(child: _campoInlineConEtiqueta('precio_$index', _precioCarritoConIsv ? 'Precio (c/ISV)' : 'Precio (s/ISV)', ctrlPrecio, precioMostrado, (v) => _precioCarritoConIsv ? _actualizarPrecio(index, v) : _actualizarPrecioSinIsv(index, v), prefijo: 'L.', dosDecimales: true, antesDeEditar: () => _autorizarCambioPrecio(index))),
               const SizedBox(width: 8),
-              Expanded(child: _campoInlineConEtiqueta('descuento_$index', 'Desc. %', ctrlDescuento, item.descuentoPorcentaje as double, (v) => _actualizarDescuentoLinea(index, v))),
+              Expanded(child: _campoInlineConEtiqueta('descuento_$index', 'Desc. %', ctrlDescuento, item.descuentoPorcentaje as double, (v) => _actualizarDescuentoLinea(index, v), antesDeEditar: () => _autorizarCambioPrecio(index))),
             ],
           ),
           const SizedBox(height: 10),

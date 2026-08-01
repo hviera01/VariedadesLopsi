@@ -39,15 +39,24 @@ Future<ResultadoAccesoEspecial> verificarAccesoEspecial(BuildContext context, Wi
   if (usuarioLogueado?.rol == Roles.administrador) {
     return ResultadoAccesoEspecial(autorizado: true, usuarioAutoriza: usuarioLogueado?.nombreCompleto ?? '');
   }
-  final esEncargadoSinPermiso = usuarioLogueado?.rol == Roles.encargado && usuarioLogueado?.accionesPermitidas[permisoKey] != true;
 
   final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
   if (!context.mounted) return const ResultadoAccesoEspecial(autorizado: false);
 
-  // Pasa directo sin pedir nada solo si esto NO es un Encargado sin su
-  // permiso individual, y además el toggle compartido de Negocio para este
-  // permiso está apagado (o nunca se configuró una clave especial).
-  if (!esEncargadoSinPermiso && (!negocio.tieneClaveEspecial || !negocio.tienePermiso(permisoKey))) {
+  if (usuarioLogueado?.rol == Roles.encargado) {
+    // Para Encargado el permiso individual manda por completo, sin importar
+    // el toggle compartido de Negocio (ese es para Empleado/Semi
+    // Administrador, ver más abajo): si el Administrador SÍ le marcó este
+    // permiso puntual al crearlo, pasa libre sin pedir nada. Si NO se lo
+    // marcó, siempre se le pide la clave especial (si hay una configurada)
+    // -nunca pasa libre, aunque el toggle compartido esté apagado, y nunca
+    // queda bloqueado en seco: alguien autorizado puede destrabarlo ahí
+    // mismo con la clave-.
+    if (usuarioLogueado?.accionesPermitidas[permisoKey] == true) {
+      return ResultadoAccesoEspecial(autorizado: true, usuarioAutoriza: usuarioLogueado?.nombreCompleto ?? '');
+    }
+  } else if (!negocio.tieneClaveEspecial || !negocio.tienePermiso(permisoKey)) {
+    // Empleado / Semi Administrador: rige el toggle compartido de Negocio.
     return ResultadoAccesoEspecial(autorizado: true, usuarioAutoriza: usuarioLogueado?.nombreCompleto ?? '');
   }
 
