@@ -2274,9 +2274,15 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
         TextField(
           controller: ctrl,
           focusNode: focusNode,
+          // Sin límite de líneas: un nombre largo pasa a una segunda línea
+          // en vez de desplazarse fuera de vista dentro de un campo de una
+          // sola línea. Como contrapartida, Enter ya no confirma el cambio
+          // (inserta un salto de línea, como en cualquier campo multilínea);
+          // tocar fuera del campo lo sigue confirmando igual.
+          maxLines: null,
+          minLines: 1,
           style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
           decoration: const InputDecoration(isDense: true, border: InputBorder.none, contentPadding: EdgeInsets.zero),
-          onSubmitted: (_) => confirmar(),
           onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
         ),
         if (item.reembasado as bool) Text('Reembasado', style: GoogleFonts.poppins(fontSize: 10.5, color: Colors.grey.shade400)),
@@ -2311,7 +2317,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(flex: 2, child: Text(producto?.codigo ?? '-', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600))),
           Expanded(flex: 4, child: _campoDescripcion(index, item)),
