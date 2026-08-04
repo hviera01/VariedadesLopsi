@@ -9,6 +9,8 @@ class ReporteVentaModel {
   final double totalAPagar;
   final int cantidadProductos;
   final String metodoPago;
+  // Solo aplica cuando metodoPago == 'Tarjeta', ver VentaModel.porcentajeTarjeta.
+  final double porcentajeTarjeta;
   final String usuarioRegistro;
   final String documentoCliente;
   final String nombreCliente;
@@ -35,6 +37,7 @@ class ReporteVentaModel {
     required this.totalAPagar,
     required this.cantidadProductos,
     required this.metodoPago,
+    this.porcentajeTarjeta = 0,
     required this.usuarioRegistro,
     required this.documentoCliente,
     required this.nombreCliente,
@@ -60,6 +63,7 @@ class ReporteVentaModel {
       totalAPagar: (data['totalAPagar'] ?? 0).toDouble(),
       cantidadProductos: (data['cantidadProductos'] ?? 0).toInt(),
       metodoPago: data['metodoPago'] ?? '',
+      porcentajeTarjeta: (data['porcentajeTarjeta'] ?? 0).toDouble(),
       usuarioRegistro: data['usuarioRegistro'] ?? '',
       documentoCliente: data['documentoCliente'] ?? '',
       nombreCliente: data['nombreCliente'] ?? '',

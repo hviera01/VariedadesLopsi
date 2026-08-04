@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/roles.dart';
 import '../../../core/utils/clave_hash.dart';
+import '../../../core/utils/reintentos.dart';
 import 'usuario_model.dart';
 
 class UsuarioRepository {
@@ -8,6 +9,23 @@ class UsuarioRepository {
 
   Stream<List<UsuarioModel>> obtenerUsuarios() {
     return _col.orderBy('nombreCompleto').snapshots().map((snap) {
+      return snap.docs.map((d) => UsuarioModel.fromMap(d.id, d.data())).toList();
+    });
+  }
+
+  /// Lectura única (no depende de que un listener en vivo llegue a emitir
+  /// su primer valor) para gates de seguridad como `verificarAccesoEspecial`
+  /// que necesitan la lista de usuarios YA, con un timeout corto y algunos
+  /// reintentos (ver [conReintentos]). A diferencia de esperar el primer
+  /// valor de [obtenerUsuarios] -que en un arranque de app en frío, con
+  /// Firestore todavía conectando, puede tardar mucho o no resolver nunca
+  /// sin avisar nada-, esto reintenta ante una demora pasajera y solo si de
+  /// verdad se agotan los reintentos lanza la excepción, para que el
+  /// llamador pueda mostrar un error real en vez de quedarse esperando en
+  /// silencio o bloquear por una demora que se hubiera resuelto sola.
+  Future<List<UsuarioModel>> obtenerUsuariosParaSeguridad() async {
+    return conReintentos(() async {
+      final snap = await _col.orderBy('nombreCompleto').get().timeout(const Duration(seconds: 8));
       return snap.docs.map((d) => UsuarioModel.fromMap(d.id, d.data())).toList();
     });
   }

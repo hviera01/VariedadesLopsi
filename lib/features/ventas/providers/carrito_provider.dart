@@ -42,6 +42,10 @@ class CarritoVentaState {
   final String tipoDocumento;
   final String condicion;
   final String metodoPago;
+  // Solo se usa cuando metodoPago == 'Tarjeta': porcentaje de comisión de la
+  // terminal POS que se le descuenta al negocio (ver VentaModel.porcentajeTarjeta).
+  // Mismas opciones que el sistema viejo (2.9% / 3.5%), 2.9% por default.
+  final double porcentajeTarjeta;
   final String idCliente;
   final String documentoCliente;
   final String nombreCliente;
@@ -73,6 +77,7 @@ class CarritoVentaState {
     this.tipoDocumento = 'VentaSinFacturar',
     this.condicion = 'Contado',
     this.metodoPago = 'Efectivo',
+    this.porcentajeTarjeta = 2.9,
     this.idCliente = '',
     this.documentoCliente = '',
     this.nombreCliente = '',
@@ -126,6 +131,13 @@ class CarritoVentaState {
     return resto >= 0.90 ? base + 1 : base;
   }
 
+  // Lo que de verdad va a recibir el negocio si se cobra con Tarjeta,
+  // después de descontar la comisión de la terminal POS elegida. Solo tiene
+  // sentido mostrarlo cuando metodoPago == 'Tarjeta' (ver esPagoConTarjeta).
+  double get montoNetoTarjeta => redondearMoneda(totalAPagar * (1 - porcentajeTarjeta / 100));
+
+  bool get esPagoConTarjeta => metodoPago == 'Tarjeta';
+
   double get cantidadTotalProductos => items.fold<double>(0, (s, i) => s + i.cantidad);
 
   CarritoVentaState copyWith({
@@ -134,6 +146,7 @@ class CarritoVentaState {
     String? tipoDocumento,
     String? condicion,
     String? metodoPago,
+    double? porcentajeTarjeta,
     String? idCliente,
     String? documentoCliente,
     String? nombreCliente,
@@ -155,6 +168,7 @@ class CarritoVentaState {
       tipoDocumento: tipoDocumento ?? this.tipoDocumento,
       condicion: condicion ?? this.condicion,
       metodoPago: metodoPago ?? this.metodoPago,
+      porcentajeTarjeta: porcentajeTarjeta ?? this.porcentajeTarjeta,
       idCliente: idCliente ?? this.idCliente,
       documentoCliente: documentoCliente ?? this.documentoCliente,
       nombreCliente: nombreCliente ?? this.nombreCliente,
@@ -323,6 +337,10 @@ class CarritoVentaNotifier extends Notifier<CarritoVentaState> {
 
   void establecerMetodoPago(String v) => state = state.copyWith(metodoPago: v, pagosMixtos: v == 'Mixto' ? state.pagosMixtos : const []);
 
+  /// Porcentaje de comisión de la terminal POS cuando metodoPago == 'Tarjeta'
+  /// (ver PermisosTarjeta / cmbPorcentajeTarjeta del sistema viejo).
+  void establecerPorcentajeTarjeta(double v) => state = state.copyWith(porcentajeTarjeta: v);
+
   /// Guarda el desglose confirmado en PagoMixtoDialog. No cambia metodoPago:
   /// eso ya se hizo al elegir "Mixto" en el dropdown.
   void establecerPagosMixtos(List<PagoDetalle> pagos) => state = state.copyWith(pagosMixtos: pagos);
@@ -387,6 +405,7 @@ class CarritoVentaNotifier extends Notifier<CarritoVentaState> {
       tipoDocumento: (forzarFactura && venta.tipoDocumento == 'Cotizacion') ? 'Factura' : venta.tipoDocumento,
       condicion: venta.condicion,
       metodoPago: venta.tipoDocumento == 'Canje' ? 'Puntos' : (venta.condicion == 'Credito' ? '' : (venta.metodoPago.isEmpty ? 'Efectivo' : venta.metodoPago)),
+      porcentajeTarjeta: venta.porcentajeTarjeta > 0 ? venta.porcentajeTarjeta : 2.9,
       idCliente: venta.idCliente,
       documentoCliente: venta.documentoCliente,
       nombreCliente: venta.nombreCliente,

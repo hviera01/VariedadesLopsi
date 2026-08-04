@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 import 'negocio_model.dart';
+import '../../../core/utils/reintentos.dart';
 
 class NegocioRepository {
   final _doc = FirebaseFirestore.instance.collection('configuracion').doc('negocio');
@@ -56,6 +57,30 @@ class NegocioRepository {
     } catch (_) {
       return cache ?? const NegocioModel();
     }
+  }
+
+  /// Como [obtenerNegocioActual], pero pensada para gates de seguridad
+  /// (`verificarAccesoEspecial`): ahí una falla de red NUNCA debe
+  /// interpretarse como "no hay clave especial configurada", porque eso
+  /// deja pasar la acción protegida sin pedir nada. A diferencia de
+  /// [obtenerNegocioActual], si no hay cache vigente y la lectura falla o
+  /// tarda más de la cuenta (típico justo al abrir la app, con Firestore
+  /// todavía conectando), esto reintenta unas veces (ver [conReintentos])
+  /// antes de relanzar la excepción, para que una demora pasajera de
+  /// conexión se resuelva sola en vez de bloquear al cajero a la primera.
+  Future<NegocioModel> obtenerNegocioParaSeguridad() async {
+    final cache = _cache;
+    final cacheFecha = _cacheFecha;
+    if (cache != null && cacheFecha != null && DateTime.now().difference(cacheFecha) < _vigenciaCache) {
+      return cache;
+    }
+    return conReintentos(() async {
+      final snap = await _doc.get().timeout(const Duration(seconds: 8));
+      final negocio = NegocioModel.fromMap(snap.data());
+      _cache = negocio;
+      _cacheFecha = DateTime.now();
+      return negocio;
+    });
   }
 
   /// Invalida el cache de [obtenerNegocioActual]: se llama luego de guardar

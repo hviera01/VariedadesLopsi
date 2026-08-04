@@ -64,9 +64,13 @@ List<ModuloMenu> obtenerModulos() {
       titulo: 'Compras',
       icono: Icons.shopping_cart_outlined,
       color: const Color(0xFFF59E0B),
+      // Todo el módulo de Compras queda oculto para Empleado (nivelMinimo
+      // semiAdministrador en las tres): un Empleado no debería poder
+      // registrar, ver ni pedir compras, solo Semi Administrador para
+      // arriba.
       subModulos: [
-        SubModulo(titulo: 'Registrar Compra', icono: Icons.add_box_outlined, moduleKey: 'compras_registrar'),
-        SubModulo(titulo: 'Ver Detalle', icono: Icons.receipt_long_outlined, moduleKey: 'compras_detalle'),
+        SubModulo(titulo: 'Registrar Compra', icono: Icons.add_box_outlined, moduleKey: 'compras_registrar', nivelMinimo: Roles.semiAdministrador),
+        SubModulo(titulo: 'Ver Detalle', icono: Icons.receipt_long_outlined, moduleKey: 'compras_detalle', nivelMinimo: Roles.semiAdministrador),
         SubModulo(titulo: 'Hacer Pedido', icono: Icons.local_shipping_outlined, moduleKey: 'compras_pedido', nivelMinimo: Roles.semiAdministrador),
       ],
     ),
@@ -99,12 +103,16 @@ List<ModuloMenu> obtenerModulos() {
       titulo: 'Reportes',
       icono: Icons.bar_chart_outlined,
       color: const Color(0xFF64748B),
+      // Todo el módulo de Reportes queda oculto para Empleado (nivelMinimo
+      // semiAdministrador en todas): antes solo Reporte Financiero y Cierre
+      // de Caja lo pedían, así que un Empleado igual veía Reporte de
+      // Ventas/Compras e Ingresos-Egresos.
       subModulos: [
-        SubModulo(titulo: 'Reporte de Ventas', icono: Icons.trending_up_outlined, moduleKey: 'reporte_ventas'),
-        SubModulo(titulo: 'Reporte de Compras', icono: Icons.trending_down_outlined, moduleKey: 'reporte_compras'),
+        SubModulo(titulo: 'Reporte de Ventas', icono: Icons.trending_up_outlined, moduleKey: 'reporte_ventas', nivelMinimo: Roles.semiAdministrador),
+        SubModulo(titulo: 'Reporte de Compras', icono: Icons.trending_down_outlined, moduleKey: 'reporte_compras', nivelMinimo: Roles.semiAdministrador),
         SubModulo(titulo: 'Reporte Financiero', icono: Icons.account_balance_outlined, moduleKey: 'reporte_financiero', nivelMinimo: Roles.semiAdministrador),
         SubModulo(titulo: 'Cierre de Caja', icono: Icons.point_of_sale_outlined, moduleKey: 'cierre_caja', nivelMinimo: Roles.semiAdministrador),
-        SubModulo(titulo: 'Ingresos-Egresos', icono: Icons.swap_vert_outlined, moduleKey: 'ingresos_egresos'),
+        SubModulo(titulo: 'Ingresos-Egresos', icono: Icons.swap_vert_outlined, moduleKey: 'ingresos_egresos', nivelMinimo: Roles.semiAdministrador),
       ],
     ),
   ];

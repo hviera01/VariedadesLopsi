@@ -34,8 +34,13 @@ class AuthNotifier extends Notifier<AuthState> {
       // Precarga (sin esperar) la configuración del negocio para que, una
       // vez adentro, acciones como pedir la clave especial o abrir el
       // código de barras no tengan que esperar la primera ida y vuelta a
-      // Firestore: ya quedó resuelta durante el login.
-      unawaited(ref.read(negocioRepositoryProvider).obtenerNegocioActual());
+      // Firestore: ya quedó resuelta durante el login. Se usa la variante
+      // "para seguridad" (con reintentos) a propósito, aunque acá no haga
+      // falta el fail-closed: reintentar le da más chances de dejar el cache
+      // realmente caliente antes de que el cajero llegue a Registrar Venta,
+      // en vez de rendirse al primer timeout de una red lenta recién
+      // arrancando.
+      unawaited(ref.read(negocioRepositoryProvider).obtenerNegocioParaSeguridad());
     } catch (e) {
       state = AuthState(error: e.toString().replaceAll('Exception: ', ''));
     }

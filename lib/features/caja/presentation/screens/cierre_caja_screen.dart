@@ -136,8 +136,8 @@ class _CierreCajaScreenState extends ConsumerState<CierreCajaScreen> {
       _observacionesController.clear();
       // Recarga fresco desde Firestore (en vez de reconstruir el estado a
       // mano) para que _fechaInicio quede exactamente en lo que
-      // registrarCierre acaba de guardar como próximo periodo (día
-      // siguiente del cierre a las 00:00, ver cierre_caja_repository).
+      // registrarCierre acaba de guardar como próximo periodo (00:00 del
+      // mismo día calendario del cierre, ver cierre_caja_repository).
       await _cargarTodo();
     } catch (e) {
       _mostrarMensaje('Error al registrar el cierre: $e', esError: true);

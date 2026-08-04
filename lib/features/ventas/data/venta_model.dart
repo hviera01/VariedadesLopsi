@@ -18,6 +18,14 @@ class VentaModel {
   // que recalcularlo cada vez que se reimprime el ticket.
   final double puntosGanados;
   final String metodoPago;
+  // Solo aplica cuando metodoPago == 'Tarjeta': porcentaje de comisión de la
+  // terminal POS que el cajero eligió al cobrar (igual que el sistema
+  // viejo, ver PermisosTarjeta/cmbPorcentajeTarjeta). 0 en cualquier otro
+  // método. totalAPagar sigue siendo el monto bruto (lo que se le cobró al
+  // cliente, lo mismo que se imprime en el ticket); este porcentaje se
+  // descuenta aparte al calcular ingresos reales de Tarjeta en el libro
+  // financiero / Cierre de Caja, no acá.
+  final double porcentajeTarjeta;
   final double montoPago;
   final double montoCambio;
   final double subtotal;
@@ -82,6 +90,7 @@ class VentaModel {
       nivelPrecioUsado: nivelPrecioUsado,
       puntosGanados: puntosGanados,
       metodoPago: metodoPago,
+      porcentajeTarjeta: porcentajeTarjeta,
       montoPago: montoPago,
       montoCambio: montoCambio,
       subtotal: subtotal,
@@ -119,6 +128,7 @@ class VentaModel {
     this.nivelPrecioUsado = 1,
     this.puntosGanados = 0,
     required this.metodoPago,
+    this.porcentajeTarjeta = 0,
     required this.montoPago,
     required this.montoCambio,
     required this.subtotal,
@@ -156,6 +166,7 @@ class VentaModel {
       nivelPrecioUsado: ((data['nivelPrecioUsado'] ?? 1) as num).toInt(),
       puntosGanados: (data['puntosGanados'] ?? 0).toDouble(),
       metodoPago: data['metodoPago'] ?? '',
+      porcentajeTarjeta: (data['porcentajeTarjeta'] ?? 0).toDouble(),
       montoPago: (data['montoPago'] ?? 0).toDouble(),
       montoCambio: (data['montoCambio'] ?? 0).toDouble(),
       subtotal: (data['subtotal'] ?? 0).toDouble(),

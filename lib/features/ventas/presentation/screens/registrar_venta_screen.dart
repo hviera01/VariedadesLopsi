@@ -1014,6 +1014,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
             subtotal: carrito.subtotal,
             impuesto: carrito.impuesto,
             totalAPagar: carrito.totalAPagar,
+            porcentajeTarjeta: carrito.esPagoConTarjeta ? carrito.porcentajeTarjeta : 0,
             usuario: usuario,
             usuarioAutorizaPrecio: carrito.usuarioAutorizaPrecio,
             categoriasSinControlStock: categoriasSinControlStock,
@@ -1575,6 +1576,28 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
                     onChanged: (v) {
                       if (v == null) return;
                       ref.read(carritoVentaProvider.notifier).establecerMetodoPago(v);
+                    },
+                  ),
+                ),
+              // Solo cuando el método es Tarjeta: igual que el sistema
+              // viejo (cmbPorcentajeTarjeta), el cajero elige qué comisión
+              // de la terminal POS le va a cobrar el banco, para que quede
+              // registrada y se descuente del ingreso real en Cierre de Caja.
+              if (!carrito.esCotizacion && carrito.condicion != 'Credito' && carrito.tipoDocumento != 'Canje' && carrito.esPagoConTarjeta)
+                SizedBox(
+                  width: esMovil ? double.infinity : 140,
+                  child: DropdownButtonFormField<double>(
+                    initialValue: carrito.porcentajeTarjeta,
+                    isExpanded: true,
+                    decoration: _decoracion('% Comisión'),
+                    style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFF1A1A1A)),
+                    items: const [
+                      DropdownMenuItem(value: 2.9, child: Text('2.9%')),
+                      DropdownMenuItem(value: 3.5, child: Text('3.5%')),
+                    ],
+                    onChanged: (v) {
+                      if (v == null) return;
+                      ref.read(carritoVentaProvider.notifier).establecerPorcentajeTarjeta(v);
                     },
                   ),
                 ),
@@ -2376,6 +2399,10 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
               if (!carrito.esCotizacion && carrito.condicion != 'Credito' && carrito.metodoPago == 'Efectivo' && carrito.pagoCon > 0) ...[
                 _filaTotalTexto('Paga con', carrito.pagoCon),
                 _filaTotalTexto('Cambio', carrito.cambio),
+              ],
+              if (!carrito.esCotizacion && carrito.condicion != 'Credito' && carrito.esPagoConTarjeta) ...[
+                _filaTotalTextoPorcentaje('Comisión terminal POS', carrito.porcentajeTarjeta),
+                _filaTotalTexto('Neto a recibir', carrito.montoNetoTarjeta),
               ],
             ],
           ),

@@ -79,12 +79,16 @@ class CierreCajaRepository {
 
   Future<void> registrarCierre(CierreCajaModel cierre) async {
     await _col.add(cierre.toMap());
-    // El siguiente periodo arranca al día siguiente del cierre a las 00:00,
-    // no en el minuto exacto en que se cerró: así el próximo cierre parte de
-    // un día calendario completo en vez de un instante arbitrario de la
-    // tarde/noche en que se cerró caja.
+    // El siguiente periodo arranca a las 00:00 del mismo día calendario en
+    // que se registra el cierre (no en el minuto exacto), para que parta de
+    // un día completo en vez de un instante arbitrario del día. Antes se le
+    // sumaba un día más, asumiendo que el cierre siempre se hacía la misma
+    // noche del día que se estaba cerrando -pero si se cierra en la mañana
+    // SIGUIENTE (algo común: se cierra la caja de ayer recién hoy en la
+    // mañana), `fechaFin` ya es "hoy", y sumarle un día de más saltaba un
+    // día calendario entero que nunca quedaba cubierto por ningún cierre.
     final finCierre = cierre.fechaFin;
-    final siguientePeriodo = DateTime(finCierre.year, finCierre.month, finCierre.day).add(const Duration(days: 1));
+    final siguientePeriodo = DateTime(finCierre.year, finCierre.month, finCierre.day);
     await guardarMontoInicial(siguientePeriodo, cierre.totalReal, cierre.usuarioResponsable);
   }
 

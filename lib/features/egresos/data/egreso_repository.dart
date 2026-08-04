@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'egreso_model.dart';
+import '../../../core/utils/formato_moneda.dart';
 import '../../reportes/data/reporte_repository.dart';
 import '../../ventas_credito/data/venta_credito_repository.dart';
 import '../../compras_credito/data/compra_credito_repository.dart';
@@ -78,11 +79,18 @@ class EgresoRepository {
           ));
         }
       } else {
+        // Tarjeta: lo que de verdad entra a la cuenta del negocio es el
+        // total menos la comisión de la terminal POS (igual que el sistema
+        // viejo, donde MontoTotal ya se guardaba neto) — v.totalAPagar sigue
+        // siendo el bruto que se le cobró al cliente (ticket, puntos), pero
+        // acá, para que Cierre de Caja cuadre con el depósito real, se
+        // descuenta el porcentaje elegido al cobrar.
+        final ingresoReal = v.metodoPago == 'Tarjeta' ? redondearMoneda(v.totalAPagar * (1 - v.porcentajeTarjeta / 100)) : v.totalAPagar;
         movimientos.add(MovimientoFinanciero(
           fecha: v.fechaRegistro ?? DateTime.now(),
           tipoMovimiento: 'Venta (Contado)',
           descripcion: descripcion,
-          ingreso: v.totalAPagar,
+          ingreso: ingresoReal,
           metodoPago: v.metodoPago,
           usuario: v.usuarioRegistro,
         ));

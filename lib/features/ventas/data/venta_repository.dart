@@ -66,6 +66,8 @@ class VentaRepository {
     required String tipoDocumento,
     required String condicion,
     required String metodoPago,
+    // Solo aplica cuando metodoPago == 'Tarjeta' (ver VentaModel.porcentajeTarjeta).
+    double porcentajeTarjeta = 0,
     // Cliente identificado de la lista (no solo texto libre): habilita la
     // acumulación/canje de puntos. Vacío = venta sin cliente identificado.
     String idCliente = '',
@@ -187,6 +189,7 @@ class VentaRepository {
         'nivelPrecioUsado': nivelPrecioActivo,
         'puntosGanados': puntosGanados,
         'metodoPago': metodoPago,
+        'porcentajeTarjeta': porcentajeTarjeta,
         'montoPago': montoPago,
         'montoCambio': montoCambio,
         'pagosMixtos': PagoDetalle.listaToMaps(pagosMixtos),
@@ -323,6 +326,7 @@ class VentaRepository {
       puntosGanados: puntosGanadosFinal,
       usuarioAutorizaPrecio: usuarioAutorizaPrecio,
       metodoPago: metodoPago,
+      porcentajeTarjeta: porcentajeTarjeta,
       montoPago: montoPago,
       montoCambio: montoCambio,
       pagosMixtos: pagosMixtos,

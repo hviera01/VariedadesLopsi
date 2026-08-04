@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../data/negocio_model.dart';
 import '../../data/negocio_repository.dart';
 import '../../providers/negocio_provider.dart';
 import '../../../../core/constants/roles.dart';
@@ -40,52 +41,112 @@ Future<ResultadoAccesoEspecial> verificarAccesoEspecial(BuildContext context, Wi
     return ResultadoAccesoEspecial(autorizado: true, usuarioAutoriza: usuarioLogueado?.nombreCompleto ?? '');
   }
 
-  final negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioActual();
-  if (!context.mounted) return const ResultadoAccesoEspecial(autorizado: false);
+  // Las lecturas de abajo reintentan solas ante una demora de red (ver
+  // obtenerNegocioParaSeguridad/obtenerUsuariosParaSeguridad), lo que en el
+  // peor caso (arranque en frío con conexión lenta) puede tardar bastante
+  // más que "al toque". Sin este aviso, el campo de precio se quedaba viendo
+  // "congelado" sin ninguna señal de que en realidad está verificando algo
+  // -exactamente lo que se reportó como "toco el precio y no pasa nada"-.
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? verificando;
+  if (context.mounted) {
+    verificando = ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+            SizedBox(width: 14),
+            Text('Verificando acceso especial…'),
+          ],
+        ),
+        duration: Duration(seconds: 30),
+      ),
+    );
+  }
 
-  if (usuarioLogueado?.rol == Roles.encargado) {
-    // Para Encargado el permiso individual manda por completo, sin importar
-    // el toggle compartido de Negocio (ese es para Empleado/Semi
-    // Administrador, ver más abajo): si el Administrador SÍ le marcó este
-    // permiso puntual al crearlo, pasa libre sin pedir nada. Si NO se lo
-    // marcó, siempre se le pide la clave especial (si hay una configurada)
-    // -nunca pasa libre, aunque el toggle compartido esté apagado, y nunca
-    // queda bloqueado en seco: alguien autorizado puede destrabarlo ahí
-    // mismo con la clave-.
-    if (usuarioLogueado?.accionesPermitidas[permisoKey] == true) {
+  try {
+    final NegocioModel negocio;
+    try {
+      negocio = await ref.read(negocioRepositoryProvider).obtenerNegocioParaSeguridad();
+    } catch (_) {
+      // Sin esto, una falla de red (agotados ya los reintentos) hacía que
+      // esta función asumiera "no hay clave especial configurada" y, según
+      // el rol, dejara pasar la acción sin pedir nada o la bloqueara sin
+      // ningún aviso -en ambos casos en silencio-. Acá se bloquea siempre
+      // (fail-closed) con un mensaje claro para que quede evidente que fue
+      // un problema de conexión y no de permisos.
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo verificar el acceso especial: sin conexión con el servidor. Probá de nuevo.')),
+        );
+      }
+      return const ResultadoAccesoEspecial(autorizado: false);
+    }
+    if (!context.mounted) return const ResultadoAccesoEspecial(autorizado: false);
+
+    if (usuarioLogueado?.rol == Roles.encargado) {
+      // Para Encargado el permiso individual manda por completo, sin
+      // importar el toggle compartido de Negocio (ese es para Empleado/Semi
+      // Administrador, ver más abajo): si el Administrador SÍ le marcó este
+      // permiso puntual al crearlo, pasa libre sin pedir nada. Si NO se lo
+      // marcó, siempre se le pide la clave especial (si hay una
+      // configurada) -nunca pasa libre, aunque el toggle compartido esté
+      // apagado, y nunca queda bloqueado en seco: alguien autorizado puede
+      // destrabarlo ahí mismo con la clave-.
+      if (usuarioLogueado?.accionesPermitidas[permisoKey] == true) {
+        return ResultadoAccesoEspecial(autorizado: true, usuarioAutoriza: usuarioLogueado?.nombreCompleto ?? '');
+      }
+    } else if (!negocio.tieneClaveEspecial || !negocio.tienePermiso(permisoKey)) {
+      // Empleado / Semi Administrador: rige el toggle compartido de Negocio.
       return ResultadoAccesoEspecial(autorizado: true, usuarioAutoriza: usuarioLogueado?.nombreCompleto ?? '');
     }
-  } else if (!negocio.tieneClaveEspecial || !negocio.tienePermiso(permisoKey)) {
-    // Empleado / Semi Administrador: rige el toggle compartido de Negocio.
-    return ResultadoAccesoEspecial(autorizado: true, usuarioAutoriza: usuarioLogueado?.nombreCompleto ?? '');
-  }
 
-  // A partir de acá hace falta la clave especial. Si nunca se configuró una
-  // (Negocio > Seguridad), no hay forma de que nadie la destrabe: se avisa
-  // en vez de abrir un diálogo que jamás podría tener éxito.
-  if (!negocio.tieneClaveEspecial) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No tenés permiso para esto y todavía no hay una clave especial configurada en Negocio para que alguien lo autorice.')),
-      );
+    // A partir de acá hace falta la clave especial. Si nunca se configuró
+    // una (Negocio > Seguridad), no hay forma de que nadie la destrabe: se
+    // avisa en vez de abrir un diálogo que jamás podría tener éxito.
+    if (!negocio.tieneClaveEspecial) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No tenés permiso para esto y todavía no hay una clave especial configurada en Negocio para que alguien lo autorice.')),
+        );
+      }
+      return const ResultadoAccesoEspecial(autorizado: false);
     }
-    return const ResultadoAccesoEspecial(autorizado: false);
-  }
 
-  final repo = ref.read(negocioRepositoryProvider);
-  final usuarios = await ref.read(usuariosStreamProvider.future);
-  if (!context.mounted) return const ResultadoAccesoEspecial(autorizado: false);
-  final resultado = await showDialog<ResultadoAccesoEspecial>(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => _ClaveEspecialDialog(
-      hashEsperado: negocio.claveEspecialHash,
-      repo: repo,
-      usuarios: usuarios.where((u) => u.estado).toList(),
-      usuarioLogueadoId: usuarioLogueado?.id,
-    ),
-  );
-  return resultado ?? const ResultadoAccesoEspecial(autorizado: false);
+    final repo = ref.read(negocioRepositoryProvider);
+    final List<UsuarioModel> usuarios;
+    try {
+      // Lectura única con timeout y reintentos en vez de esperar el primer
+      // valor del stream `usuariosStreamProvider` (ver
+      // `obtenerUsuariosParaSeguridad`): ese `.future` no tenía timeout y,
+      // si el listener en vivo todavía no había conectado (arranque en
+      // frío), se quedaba esperando sin mostrar el diálogo ni ningún error
+      // -exactamente el mismo síntoma de "toco el precio y no pasa nada"-.
+      usuarios = await ref.read(usuarioRepositoryProvider).obtenerUsuariosParaSeguridad();
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo verificar el acceso especial: sin conexión con el servidor. Probá de nuevo.')),
+        );
+      }
+      return const ResultadoAccesoEspecial(autorizado: false);
+    }
+    if (!context.mounted) return const ResultadoAccesoEspecial(autorizado: false);
+    verificando?.close();
+    verificando = null;
+    final resultado = await showDialog<ResultadoAccesoEspecial>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _ClaveEspecialDialog(
+        hashEsperado: negocio.claveEspecialHash,
+        repo: repo,
+        usuarios: usuarios.where((u) => u.estado).toList(),
+        usuarioLogueadoId: usuarioLogueado?.id,
+      ),
+    );
+    return resultado ?? const ResultadoAccesoEspecial(autorizado: false);
+  } finally {
+    verificando?.close();
+  }
 }
 
 class _ClaveEspecialDialog extends StatefulWidget {
