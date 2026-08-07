@@ -43,9 +43,9 @@ class _ReporteVentasScreenState extends ConsumerState<ReporteVentasScreen> {
   @override
   void initState() {
     super.initState();
-    final ahora = DateTime.now();
-    _fechaInicio = DateTime(ahora.year, ahora.month, 1);
-    _fechaFin = DateTime(ahora.year, ahora.month, ahora.day);
+    final hoy = DateTime.now();
+    _fechaInicio = DateTime(hoy.year, hoy.month, hoy.day);
+    _fechaFin = DateTime(hoy.year, hoy.month, hoy.day);
     _buscar();
   }
 
@@ -82,11 +82,11 @@ class _ReporteVentasScreenState extends ConsumerState<ReporteVentasScreen> {
   }
 
   void _limpiar() {
-    final ahora = DateTime.now();
+    final hoy = DateTime.now();
     _busquedaController.clear();
     setState(() {
-      _fechaInicio = DateTime(ahora.year, ahora.month, 1);
-      _fechaFin = DateTime(ahora.year, ahora.month, ahora.day);
+      _fechaInicio = DateTime(hoy.year, hoy.month, hoy.day);
+      _fechaFin = DateTime(hoy.year, hoy.month, hoy.day);
       _busqueda = '';
       _metodoPagoFiltro = null;
       _condicionFiltro = null;
@@ -95,6 +95,62 @@ class _ReporteVentasScreenState extends ConsumerState<ReporteVentasScreen> {
       _usuarioFiltro = null;
     });
     _buscar();
+  }
+
+  // Atajos de rango rápido: tocar uno aplica el rango y dispara la búsqueda
+  // de una vez, sin tener que abrir el selector de fecha dos veces.
+  void _aplicarRango(DateTime inicio, DateTime fin) {
+    setState(() {
+      _fechaInicio = inicio;
+      _fechaFin = fin;
+    });
+    _buscar();
+  }
+
+  List<(String, DateTime, DateTime)> get _rangosRapidos {
+    final hoy = DateTime.now();
+    final hoyDia = DateTime(hoy.year, hoy.month, hoy.day);
+    final ayer = hoyDia.subtract(const Duration(days: 1));
+    final inicioSemana = hoyDia.subtract(const Duration(days: 6));
+    final inicioMes = DateTime(hoy.year, hoy.month, 1);
+    final mesTrimestre = ((hoy.month - 1) ~/ 3) * 3 + 1;
+    final inicioTrimestre = DateTime(hoy.year, mesTrimestre, 1);
+    return [
+      ('Hoy', hoyDia, hoyDia),
+      ('Ayer', ayer, ayer),
+      ('Semana', inicioSemana, hoyDia),
+      ('Mes', inicioMes, hoyDia),
+      ('Trimestre', inicioTrimestre, hoyDia),
+    ];
+  }
+
+  bool _esRangoActivo(DateTime inicio, DateTime fin) {
+    return _fechaInicio.year == inicio.year &&
+        _fechaInicio.month == inicio.month &&
+        _fechaInicio.day == inicio.day &&
+        _fechaFin.year == fin.year &&
+        _fechaFin.month == fin.month &&
+        _fechaFin.day == fin.day;
+  }
+
+  Widget _chipsRangoRapido() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final r in _rangosRapidos)
+          ChoiceChip(
+            label: Text(r.$1, style: GoogleFonts.poppins(fontSize: 12.5)),
+            selected: _esRangoActivo(r.$2, r.$3),
+            onSelected: (_) => _aplicarRango(r.$2, r.$3),
+            selectedColor: const Color(0xFF0F1B3D),
+            labelStyle: GoogleFonts.poppins(fontSize: 12.5, color: _esRangoActivo(r.$2, r.$3) ? Colors.white : const Color(0xFF1A1A1A)),
+            backgroundColor: Colors.white,
+            side: const BorderSide(color: Color(0xFFB6BCC7)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+      ],
+    );
   }
 
   Future<void> _seleccionarFecha(bool esInicio) async {
@@ -204,6 +260,8 @@ class _ReporteVentasScreenState extends ConsumerState<ReporteVentasScreen> {
                   ),
                 ),
                 SliverToBoxAdapter(child: const SizedBox(height: 16)),
+                SliverToBoxAdapter(child: _chipsRangoRapido()),
+                SliverToBoxAdapter(child: const SizedBox(height: 10)),
                 SliverToBoxAdapter(
                   child: Wrap(
                     spacing: 10,

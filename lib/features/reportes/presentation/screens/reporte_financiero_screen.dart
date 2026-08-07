@@ -44,10 +44,67 @@ class _ReporteFinancieroScreenState extends ConsumerState<ReporteFinancieroScree
   @override
   void initState() {
     super.initState();
-    final ahora = DateTime.now();
-    _fechaInicio = DateTime(ahora.year, ahora.month, 1);
-    _fechaFin = DateTime(ahora.year, ahora.month, ahora.day);
+    final hoy = DateTime.now();
+    _fechaInicio = DateTime(hoy.year, hoy.month, hoy.day);
+    _fechaFin = DateTime(hoy.year, hoy.month, hoy.day);
     _generar();
+  }
+
+  // Atajos de rango rápido: tocar uno aplica el rango y dispara la
+  // generación de una vez, sin tener que abrir el selector de fecha dos
+  // veces.
+  void _aplicarRango(DateTime inicio, DateTime fin) {
+    setState(() {
+      _fechaInicio = inicio;
+      _fechaFin = fin;
+    });
+    _generar();
+  }
+
+  List<(String, DateTime, DateTime)> get _rangosRapidos {
+    final hoy = DateTime.now();
+    final hoyDia = DateTime(hoy.year, hoy.month, hoy.day);
+    final ayer = hoyDia.subtract(const Duration(days: 1));
+    final inicioSemana = hoyDia.subtract(const Duration(days: 6));
+    final inicioMes = DateTime(hoy.year, hoy.month, 1);
+    final mesTrimestre = ((hoy.month - 1) ~/ 3) * 3 + 1;
+    final inicioTrimestre = DateTime(hoy.year, mesTrimestre, 1);
+    return [
+      ('Hoy', hoyDia, hoyDia),
+      ('Ayer', ayer, ayer),
+      ('Semana', inicioSemana, hoyDia),
+      ('Mes', inicioMes, hoyDia),
+      ('Trimestre', inicioTrimestre, hoyDia),
+    ];
+  }
+
+  bool _esRangoActivo(DateTime inicio, DateTime fin) {
+    return _fechaInicio.year == inicio.year &&
+        _fechaInicio.month == inicio.month &&
+        _fechaInicio.day == inicio.day &&
+        _fechaFin.year == fin.year &&
+        _fechaFin.month == fin.month &&
+        _fechaFin.day == fin.day;
+  }
+
+  Widget _chipsRangoRapido() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final r in _rangosRapidos)
+          ChoiceChip(
+            label: Text(r.$1, style: GoogleFonts.poppins(fontSize: 12.5)),
+            selected: _esRangoActivo(r.$2, r.$3),
+            onSelected: (_) => _aplicarRango(r.$2, r.$3),
+            selectedColor: const Color(0xFF0F1B3D),
+            labelStyle: GoogleFonts.poppins(fontSize: 12.5, color: _esRangoActivo(r.$2, r.$3) ? Colors.white : const Color(0xFF1A1A1A)),
+            backgroundColor: Colors.white,
+            side: const BorderSide(color: Color(0xFFB6BCC7)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+      ],
+    );
   }
 
   Future<void> _generar() async {
@@ -152,25 +209,33 @@ class _ReporteFinancieroScreenState extends ConsumerState<ReporteFinancieroScree
 
   Widget _encabezado(bool esMovil) {
     final formato = DateFormat('dd/MM/yyyy');
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 12,
-      runSpacing: 10,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Reporte Financiero', style: GoogleFonts.poppins(fontSize: esMovil ? 19 : 22, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A))),
-        _campoFecha('Desde', _fechaInicio, () => _seleccionarFecha(true), formato),
-        _campoFecha('Hasta', _fechaFin, () => _seleccionarFecha(false), formato),
-        OutlinedButton.icon(
-          onPressed: _cargando ? null : _generar,
-          icon: const Icon(Icons.refresh, size: 18),
-          label: Text('Generar', style: GoogleFonts.poppins(fontSize: 13)),
-          style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF1A1A1A), side: const BorderSide(color: Color(0xFFB6BCC7)), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-        ),
-        FilledButton.icon(
-          onPressed: _data == null ? null : _descargarPdf,
-          icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-          label: Text('Descargar PDF completo', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
-          style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        const SizedBox(height: 12),
+        _chipsRangoRapido(),
+        const SizedBox(height: 10),
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 10,
+          children: [
+            _campoFecha('Desde', _fechaInicio, () => _seleccionarFecha(true), formato),
+            _campoFecha('Hasta', _fechaFin, () => _seleccionarFecha(false), formato),
+            OutlinedButton.icon(
+              onPressed: _cargando ? null : _generar,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: Text('Generar', style: GoogleFonts.poppins(fontSize: 13)),
+              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF1A1A1A), side: const BorderSide(color: Color(0xFFB6BCC7)), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            ),
+            FilledButton.icon(
+              onPressed: _data == null ? null : _descargarPdf,
+              icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+              label: Text('Descargar PDF completo', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0F1B3D), padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            ),
+          ],
         ),
       ],
     );
