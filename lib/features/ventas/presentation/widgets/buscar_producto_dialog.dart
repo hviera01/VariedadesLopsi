@@ -11,6 +11,7 @@ import '../../../../core/utils/texto_utils.dart';
 import '../../../../core/utils/formato_moneda.dart';
 import '../../../../core/utils/codigo_barras_utils.dart';
 import '../../../../core/widgets/barcode_scanner_screen.dart';
+import '../../../../core/widgets/imagen_zoom_dialog.dart';
 import 'selector_nivel_precio.dart';
 
 /// Resultado de elegir un producto (y el nivel de precio con el que se va a
@@ -509,8 +510,13 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
         Expanded(flex: 4, child: Text('Descripción', style: estilo)),
         Expanded(flex: 3, child: Text('Precio', textAlign: TextAlign.right, style: estilo)),
         Expanded(flex: 2, child: _encabezadoOrdenable('Existencia', 'existencia', estilo)),
+        const SizedBox(width: 32),
       ],
     );
+  }
+
+  void _verFoto(ProductoModel p) {
+    showDialog(context: context, builder: (context) => ImagenZoomDialog(url: p.imagenUrl));
   }
 
   // Tocar el nombre de la columna ordena por esa columna (ascendente); si
@@ -610,6 +616,16 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                 ),
               ),
             ),
+            SizedBox(
+              width: 32,
+              child: p.imagenUrl.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Ver foto',
+                      icon: const Icon(Icons.photo_outlined, size: 18, color: Color(0xFF0F1B3D)),
+                      onPressed: () => _verFoto(p),
+                    ),
+            ),
           ],
         ),
       ),
@@ -662,7 +678,17 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                 ],
               ),
               const SizedBox(height: 10),
-              _celdaPrecio(p),
+              Row(
+                children: [
+                  Expanded(child: _celdaPrecio(p)),
+                  if (p.imagenUrl.isNotEmpty)
+                    IconButton(
+                      tooltip: 'Ver foto',
+                      icon: const Icon(Icons.photo_outlined, size: 18, color: Color(0xFF0F1B3D)),
+                      onPressed: () => _verFoto(p),
+                    ),
+                ],
+              ),
             ],
           ),
         ),

@@ -15,6 +15,7 @@ class ProductoModel {
   // para canje.
   final double precioPuntos;
   final bool estado;
+  final String imagenUrl;
 
   ProductoModel({
     required this.id,
@@ -30,6 +31,7 @@ class ProductoModel {
     required this.precioVenta3,
     this.precioPuntos = 0,
     required this.estado,
+    this.imagenUrl = '',
   });
 
   factory ProductoModel.fromMap(String id, Map<String, dynamic> data) {
@@ -47,6 +49,7 @@ class ProductoModel {
       precioVenta3: (data['precioVenta3'] ?? 0).toDouble(),
       precioPuntos: (data['precioPuntos'] ?? 0).toDouble(),
       estado: data['estado'] ?? true,
+      imagenUrl: data['imagenUrl'] ?? '',
     );
   }
 

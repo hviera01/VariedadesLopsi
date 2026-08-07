@@ -11,6 +11,8 @@ import '../../../../core/utils/texto_utils.dart';
 import '../../../../core/utils/formato_moneda.dart';
 import '../../../../core/utils/exportador.dart';
 import '../widgets/producto_form_dialog.dart';
+import '../widgets/detalle_producto_dialog.dart';
+import '../../../../core/widgets/imagen_zoom_dialog.dart';
 import '../widgets/importar_inventario_dialog.dart';
 import '../widgets/ajuste_stock_dialog.dart';
 import '../widgets/historial_stock_dialog.dart';
@@ -543,6 +545,20 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
     );
   }
 
+  void _verFoto(ProductoModel producto) {
+    showDialog(context: context, builder: (context) => ImagenZoomDialog(url: producto.imagenUrl));
+  }
+
+  // Doble tap/doble clic en un producto (tabla o tarjeta): una card de solo
+  // lectura con toda su info, para consultar rápido sin tener que abrir el
+  // formulario de edición.
+  void _verDetalle(ProductoModel producto, Map<String, String> mapaCategorias) {
+    showDialog(
+      context: context,
+      builder: (context) => DetalleProductoDialog(producto: producto, categoria: mapaCategorias[producto.idCategoria] ?? '-'),
+    );
+  }
+
   Widget _tabla(List<ProductoModel> lista, Map<String, String> mapaCategorias) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -585,6 +601,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                       _tomarFoco();
                       setState(() => _filaSeleccionada = seleccionada ? null : producto.id);
                     },
+                    onDoubleTap: () => _verDetalle(producto, mapaCategorias),
                     child: Container(
                       color: seleccionada ? const Color(0xFFFBEAEA) : Colors.white,
                       // Alto mínimo en vez de fijo: el nombre de producto ya no se
@@ -597,7 +614,23 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            _celdaTabla(flex: 12, child: Text(producto.codigo, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF3F434A)))),
+                            _celdaTabla(
+                              flex: 12,
+                              child: Row(
+                                children: [
+                                  if (producto.imagenUrl.isNotEmpty)
+                                    InkWell(
+                                      onTap: () => _verFoto(producto),
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: const Padding(
+                                        padding: EdgeInsets.only(right: 6),
+                                        child: Icon(Icons.photo_outlined, size: 15, color: Color(0xFF0F1B3D)),
+                                      ),
+                                    ),
+                                  Flexible(child: Text(producto.codigo, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF3F434A)))),
+                                ],
+                              ),
+                            ),
                             _celdaTabla(flex: 24, child: Text(producto.nombre, style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A)))),
                             if (mostrarDescripcion)
                               _celdaTabla(flex: 20, child: Text(producto.descripcion.isEmpty ? '-' : producto.descripcion, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600))),
@@ -658,6 +691,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
             _tomarFoco();
             setState(() => _filaSeleccionada = seleccionada ? null : p.id);
           },
+          onDoubleTap: () => _verDetalle(p, mapaCategorias),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(color: seleccionada ? const Color(0xFFFBEAEA) : Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: seleccionada ? const Color(0xFF0F1B3D) : const Color(0xFFC7CBD3))),
@@ -667,6 +701,15 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (p.imagenUrl.isNotEmpty)
+                      InkWell(
+                        onTap: () => _verFoto(p),
+                        borderRadius: BorderRadius.circular(6),
+                        child: const Padding(
+                          padding: EdgeInsets.only(right: 6, top: 2),
+                          child: Icon(Icons.photo_outlined, size: 18, color: Color(0xFF0F1B3D)),
+                        ),
+                      ),
                     Expanded(child: Text(p.nombre, style: GoogleFonts.poppins(fontSize: 14.5, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A)))),
                     _celdaAccionesMovil(p),
                   ],

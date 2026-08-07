@@ -20,6 +20,7 @@ import '../../../../core/utils/permisos_usuario.dart';
 import '../../../negocio/data/negocio_model.dart';
 import '../../../ventas/presentation/widgets/teclado_numerico_dialog.dart';
 import '../widgets/buscar_producto_compra_dialog.dart';
+import '../../../productos/presentation/widgets/producto_form_dialog.dart';
 import 'detalle_compra_screen.dart';
 
 const _metodosPago = ['Efectivo', 'Transferencia', 'Tarjeta', 'Cheque'];
@@ -311,6 +312,14 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
 
   void _quitarItem(int index) {
     ref.read(carritoCompraProvider.notifier).quitarItem(index);
+  }
+
+  // Producto ya existente en inventario que se agrega al carrito de una
+  // compra en curso: se le puede poner o cambiar la foto sin salir de la
+  // compra, abriendo el mismo formulario de edición de producto.
+  Future<void> _agregarOCambiarFoto(ProductoModel? producto) async {
+    if (producto == null) return;
+    await showDialog(context: context, builder: (context) => ProductoFormDialog(producto: producto));
   }
 
   void _actualizarCantidad(int index, double nuevaCantidad) {
@@ -1094,7 +1103,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
         Expanded(flex: 2, child: Text('Descuento %', textAlign: TextAlign.center, style: estilo)),
         Expanded(flex: 2, child: Text('Descuento (L)', textAlign: TextAlign.right, style: estilo)),
         Expanded(flex: 2, child: Text('Importe', textAlign: TextAlign.right, style: estilo)),
-        const SizedBox(width: 40),
+        const SizedBox(width: 80),
       ],
     );
   }
@@ -1225,6 +1234,14 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
               Expanded(flex: 2, child: Text(formatearMoneda(item.subtotal as double), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700))),
               SizedBox(
                 width: 40,
+                child: IconButton(
+                  tooltip: 'Agregar/cambiar foto',
+                  icon: const Icon(Icons.photo_camera_outlined, size: 18, color: Color(0xFF0F1B3D)),
+                  onPressed: () => _agregarOCambiarFoto(producto),
+                ),
+              ),
+              SizedBox(
+                width: 40,
                 child: IconButton(icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF0F1B3D)), onPressed: () => _quitarItem(index)),
               ),
             ],
@@ -1237,7 +1254,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
                 Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineConEtiqueta('margen_$index', 'Margen %', ctrlMargen, _margenActual(item), (v) => _actualizarMargenCompra(index, v)))),
                 Expanded(flex: 2, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _campoInlineConEtiqueta('precioVenta_$index', 'Precio de venta', ctrlPrecioVenta, (item.precioVentaNuevo as double?) ?? 0, (v) => _actualizarPrecioVentaCompra(index, v), prefijo: 'L.', dosDecimales: true))),
                 const Spacer(flex: 4),
-                const SizedBox(width: 40),
+                const SizedBox(width: 80),
               ],
             ),
           ),
@@ -1271,6 +1288,11 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
                     Text(producto?.codigo ?? '-', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500)),
                   ],
                 ),
+              ),
+              IconButton(
+                tooltip: 'Agregar/cambiar foto',
+                icon: const Icon(Icons.photo_camera_outlined, size: 18, color: Color(0xFF0F1B3D)),
+                onPressed: () => _agregarOCambiarFoto(producto),
               ),
               IconButton(icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF0F1B3D)), onPressed: () => _quitarItem(index)),
             ],

@@ -42,6 +42,7 @@ class ProductoRepository {
     required double precioVenta3,
     double precioPuntos = 0,
     required bool estado,
+    String imagenUrl = '',
   }) async {
     var codigoFinal = codigo.trim();
     if (codigoFinal.isEmpty) {
@@ -65,6 +66,7 @@ class ProductoRepository {
       'precioVenta3': precioVenta3,
       'precioPuntos': precioPuntos,
       'estado': estado,
+      'imagenUrl': imagenUrl,
       'fechaRegistro': FieldValue.serverTimestamp(),
     });
     // Si el producto se crea con existencia inicial, esa cantidad también
@@ -96,6 +98,7 @@ class ProductoRepository {
       precioVenta3: precioVenta3,
       precioPuntos: precioPuntos,
       estado: estado,
+      imagenUrl: imagenUrl,
     );
   }
 
@@ -112,6 +115,7 @@ class ProductoRepository {
     required double precioVenta3,
     double precioPuntos = 0,
     required bool estado,
+    String? imagenUrl,
   }) async {
     final codigoFinal = codigo.trim().isEmpty ? _generarCodigo() : codigo.trim();
     final existe = await _col.where('codigo', isEqualTo: codigoFinal).limit(2).get();
@@ -131,7 +135,12 @@ class ProductoRepository {
       'precioVenta3': precioVenta3,
       'precioPuntos': precioPuntos,
       'estado': estado,
+      if (imagenUrl != null) 'imagenUrl': imagenUrl,
     });
+  }
+
+  Future<void> actualizarImagen(String id, String imagenUrl) async {
+    await _col.doc(id).update({'imagenUrl': imagenUrl});
   }
 
   Future<void> eliminar(String id) async {

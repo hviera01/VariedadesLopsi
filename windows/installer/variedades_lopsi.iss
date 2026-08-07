@@ -12,7 +12,7 @@
 ; ActualizacionService y version_app.dart-.
 
 #define MyAppName "Variedades Lopsi"
-#define MyAppVersion "15"
+#define MyAppVersion "16"
 #define MyAppExeName "sistema_ventas.exe"
 #define MyReleaseDir "..\..\build\windows\x64\runner\Release"
 
