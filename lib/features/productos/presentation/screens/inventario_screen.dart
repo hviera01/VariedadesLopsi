@@ -854,6 +854,9 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
       case 'historial_compras':
         _abrirHistorialMovimientos(producto, 'compras');
         break;
+      case 'lotes_costo':
+        _abrirHistorialMovimientos(producto, 'lotes');
+        break;
       case 'codigo_barras':
         _abrirCodigoBarras(producto);
         break;
@@ -868,6 +871,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
       _opcionMenu(valor: 'historial_stock', icono: Icons.history, texto: 'Historial de existencia'),
       _opcionMenu(valor: 'historial_ventas', icono: Icons.point_of_sale_outlined, texto: 'Historial de ventas'),
       _opcionMenu(valor: 'historial_compras', icono: Icons.shopping_cart_outlined, texto: 'Historial de compras'),
+      _opcionMenu(valor: 'lotes_costo', icono: Icons.layers_outlined, texto: 'Costos por lote (FIFO)'),
       const PopupMenuDivider(),
       _opcionMenu(valor: 'codigo_barras', icono: Icons.qr_code_2_outlined, texto: 'Código de barras'),
     ];
