@@ -453,7 +453,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       final resultado = await Navigator.of(context).push<ProductoConPrecio>(
         MaterialPageRoute(
           fullscreenDialog: true,
-          builder: (context) => BuscarProductoDialog(nivelInicial: carritoActual.nivelPrecioActivo, condicionVenta: carritoActual.condicion),
+          builder: (context) => BuscarProductoDialog(nivelInicial: carritoActual.nivelPrecioActivo, condicionVenta: carritoActual.condicion, metodoPagoVenta: carritoActual.metodoPago),
         ),
       );
       if (resultado == null || !mounted) return;
@@ -528,27 +528,90 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       _mostrarMensaje('Promoción "${promo.nombre}" aplicada: se agregaron ${promo.cantidadBeneficio} unidad(es) de "${productoCondicion.nombre}" de regalo.');
       return;
     }
-    final productoRegalo = _buscarProductoPorId(promo.idProductoRegalo);
-    if (productoRegalo == null) {
-      _mostrarMensaje('No se pudo aplicar el regalo de "${promo.nombre}": el producto configurado ya no existe.');
-      return;
+    // Regalo con uno o más productos distintos: una línea de regalo (100%
+    // de descuento) por CADA producto de idsProductosRegalo. Si a alguno le
+    // falta existencia, se avisa y se sigue con los demás en vez de
+    // cancelar todo el beneficio.
+    var algunoAplicado = false;
+    for (final idProductoRegalo in promo.idsProductosRegalo) {
+      final productoRegalo = _buscarProductoPorId(idProductoRegalo);
+      if (productoRegalo == null) {
+        _mostrarMensaje('No se pudo aplicar un regalo de "${promo.nombre}": el producto configurado ya no existe.');
+        continue;
+      }
+      if (!_hayStockParaRegalo(productoRegalo, promo.cantidadRegalo.toDouble())) {
+        _mostrarMensaje('Promoción "${promo.nombre}": no hay existencia suficiente de "${productoRegalo.nombre}" para entregar el regalo.');
+        continue;
+      }
+      final item = ItemVentaModel(
+        idProducto: productoRegalo.id,
+        idCategoria: productoRegalo.idCategoria,
+        nombreProducto: '🎁 ${productoRegalo.nombre} (Regalo: ${promo.nombre})',
+        precioVenta: productoRegalo.precioSegunNivel(carrito.nivelPrecioActivo),
+        cantidad: promo.cantidadRegalo.toDouble(),
+        subtotal: 0,
+        precioCompraUsado: productoRegalo.precioCompra,
+        descuentoPorcentaje: 100,
+      );
+      ref.read(carritoVentaProvider.notifier).agregarItem(item);
+      algunoAplicado = true;
+      _mostrarMensaje('Promoción "${promo.nombre}" aplicada: se agregó ${promo.cantidadRegalo} unidad(es) de "${productoRegalo.nombre}" de regalo.');
     }
-    if (!_hayStockParaRegalo(productoRegalo, promo.cantidadRegalo.toDouble())) {
-      _mostrarMensaje('Promoción "${promo.nombre}": no hay existencia suficiente de "${productoRegalo.nombre}" para entregar el regalo.');
-      return;
+    if (!algunoAplicado) {
+      _mostrarMensaje('No se pudo aplicar ningún regalo de "${promo.nombre}".');
     }
-    final item = ItemVentaModel(
-      idProducto: productoRegalo.id,
-      idCategoria: productoRegalo.idCategoria,
-      nombreProducto: '🎁 ${productoRegalo.nombre} (Regalo: ${promo.nombre})',
-      precioVenta: productoRegalo.precioSegunNivel(carrito.nivelPrecioActivo),
-      cantidad: promo.cantidadRegalo.toDouble(),
-      subtotal: 0,
-      precioCompraUsado: productoRegalo.precioCompra,
-      descuentoPorcentaje: 100,
-    );
-    ref.read(carritoVentaProvider.notifier).agregarItem(item);
-    _mostrarMensaje('Promoción "${promo.nombre}" aplicada: se agregó ${promo.cantidadRegalo} unidad(es) de "${productoRegalo.nombre}" de regalo.');
+  }
+
+  /// Aplica un combo de productos distintos (comboMultiproducto): reparte un
+  /// descuento proporcional (mismo % para todas las líneas del combo) entre
+  /// las líneas de cada producto de [promo.idsProductosCombo] para que el
+  /// total de esas líneas quede en [promo.precioCombo]. Cada combo usa
+  /// exactamente 1 unidad de cada producto: si la línea ya en el carrito
+  /// tiene más de 1 unidad, se separa 1 unidad en una línea nueva (a la que
+  /// se le aplica el descuento) y el resto queda a precio normal.
+  Future<void> _aplicarComboMultiproducto(PromocionModel promo) async {
+    final notifier = ref.read(carritoVentaProvider.notifier);
+    var totalNormal = 0.0;
+    final indicesAAplicar = <int>[];
+    for (final idProd in promo.idsProductosCombo) {
+      final carritoActual = ref.read(carritoVentaProvider);
+      var index = -1;
+      for (var i = carritoActual.items.length - 1; i >= 0; i--) {
+        final it = carritoActual.items[i];
+        if (it.idProducto == idProd && !_esLineaDeRegaloPromocion(it) && it.descuentoPorcentaje == 0) {
+          index = i;
+          break;
+        }
+      }
+      if (index == -1) {
+        _mostrarMensaje('No se pudo aplicar el combo "${promo.nombre}": falta algún producto del combo en el carrito.');
+        return;
+      }
+      final linea = carritoActual.items[index];
+      if (linea.cantidad > 1) {
+        notifier.actualizarLinea(index, cantidad: linea.cantidad - 1);
+        final nuevoItem = ItemVentaModel(
+          idProducto: linea.idProducto,
+          idCategoria: linea.idCategoria,
+          nombreProducto: linea.nombreProducto,
+          precioVenta: linea.precioVenta,
+          cantidad: 1,
+          subtotal: linea.precioVenta,
+          precioCompraUsado: linea.precioCompraUsado,
+        );
+        notifier.agregarItem(nuevoItem);
+        indicesAAplicar.add(ref.read(carritoVentaProvider).items.length - 1);
+      } else {
+        indicesAAplicar.add(index);
+      }
+      totalNormal += linea.precioVenta;
+    }
+    if (totalNormal <= 0) return;
+    final descuentoPct = (((totalNormal - promo.precioCombo) / totalNormal) * 100).clamp(0, 100).toDouble();
+    for (final idx in indicesAAplicar) {
+      notifier.actualizarLinea(idx, descuentoPorcentaje: descuentoPct);
+    }
+    _mostrarMensaje('Combo "${promo.nombre}" aplicado: ${promo.idsProductosCombo.length} productos por ${formatearMoneda(promo.precioCombo)}.');
   }
 
   /// Evalúa si [producto] tiene una promoción vigente/aplicable y, si la
@@ -562,7 +625,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
   Future<void> _ofrecerPromocionSiAplica(ProductoModel producto, int indiceLineaNueva) async {
     final carrito = ref.read(carritoVentaProvider);
     final promociones = ref.read(promocionesStreamProvider).value ?? const <PromocionModel>[];
-    final aplicables = promocionesAplicables(promociones, producto.id, carrito.condicion);
+    final aplicables = promocionesAplicables(promociones, producto.id, carrito.condicion, carrito.metodoPago);
     if (aplicables.isEmpty || !mounted) return;
     final productosPorId = {for (final p in ref.read(productosStreamProvider).value ?? const <ProductoModel>[]) p.id: p};
     final promo = elegirMejorPromocion(aplicables, producto, productosPorId);
@@ -580,11 +643,37 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
       return;
     }
 
-    // Combo/regalo: solo se ofrece cuando esta unidad completa un tramo
-    // nuevo de cantidadRequerida (ej. con "llevando 3" se pregunta al
-    // llegar a 3, 6, 9... no en cada unidad intermedia). Se lee el carrito
-    // de nuevo (no el [carrito] de arriba) porque la línea recién agregada
-    // ya tiene que estar contada.
+    if (promo.tipo == TipoPromocion.comboMultiproducto) {
+      // Solo se ofrece justo cuando esta unidad completa el combo: si este
+      // producto ya tenía unidades en el carrito ANTES de esta línea nueva,
+      // no se acaba de completar nada (era una unidad de más de un producto
+      // que ya estaba). Si faltaba, y con esta unidad ya quedaron todos los
+      // demás productos del combo presentes (>=1 unidad real cada uno), se
+      // ofrece. Nota: esto ofrece el combo una sola vez por juego de
+      // productos; si el cliente quiere 2 combos completos (2 de cada
+      // producto), el segundo no se vuelve a ofrecer solo — no era parte
+      // del pedido original.
+      final cantidadPreviaDeEste = carrito.items
+          .asMap()
+          .entries
+          .where((e) => e.key != indiceLineaNueva && e.value.idProducto == producto.id && !_esLineaDeRegaloPromocion(e.value))
+          .fold<int>(0, (s, e) => s + e.value.cantidad.round());
+      if (cantidadPreviaDeEste > 0) return;
+      final otros = promo.idsProductosCombo.where((id) => id != producto.id);
+      final cartActual = ref.read(carritoVentaProvider);
+      final faltaAlguno = otros.any((id) => _cantidadRealEnCarrito(cartActual, id) == 0);
+      if (faltaAlguno) return;
+      final aceptar = await ConfirmarPromocionDialog.mostrar(context, promocion: promo, nombreProducto: producto.nombre);
+      if (!mounted || !aceptar) return;
+      await _aplicarComboMultiproducto(promo);
+      return;
+    }
+
+    // Combo por cantidad/regalo: solo se ofrece cuando esta unidad completa
+    // un tramo nuevo de cantidadRequerida (ej. con "llevando 3" se pregunta
+    // al llegar a 3, 6, 9... no en cada unidad intermedia). Se lee el
+    // carrito de nuevo (no el [carrito] de arriba) porque la línea recién
+    // agregada ya tiene que estar contada.
     final cantidadDespues = _cantidadRealEnCarrito(ref.read(carritoVentaProvider), producto.id);
     if (promo.cantidadRequerida <= 0 || cantidadDespues % promo.cantidadRequerida != 0) return;
     final aceptar = await ConfirmarPromocionDialog.mostrar(context, promocion: promo, nombreProducto: producto.nombre);

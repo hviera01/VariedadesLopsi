@@ -1,14 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Los cuatro tipos de promoción que puede armar el Mantenedor:
+/// Los tipos de promoción que puede armar el Mantenedor:
 /// - [porcentaje]: % de descuento sobre uno o varios productos.
 /// - [precioFijo]: precio especial (no porcentaje) sobre uno o varios
 ///   productos.
 /// - [comboCantidad]: "llevando N unidades de X, se lleva Y" — Y son
 ///   unidades adicionales del MISMO producto X, gratis (ej. 3x2).
-/// - [regalo]: "si lleva X, se regala Y" — Y es OTRO producto distinto,
-///   regalado al comprar X.
-enum TipoPromocion { porcentaje, precioFijo, comboCantidad, regalo }
+/// - [comboMultiproducto]: "llevando 1 de CADA UNO de 2+ productos
+///   DISTINTOS, el paquete completo cuesta [precioCombo]" — a diferencia de
+///   [comboCantidad] (mismo producto repetido), acá cada producto del combo
+///   es distinto y se necesita 1 unidad de cada uno.
+/// - [regalo]: "si lleva X, se regalan Y (uno o varios productos distintos)"
+///   — [idsProductosRegalo] se regalan al comprar X.
+enum TipoPromocion { porcentaje, precioFijo, comboCantidad, comboMultiproducto, regalo }
 
 extension TipoPromocionStorage on TipoPromocion {
   String get valor => name;
@@ -23,13 +27,17 @@ extension TipoPromocionStorage on TipoPromocion {
 /// [idsProductos] tiene un solo significado por tipo: en [TipoPromocion.porcentaje]
 /// y [TipoPromocion.precioFijo] son TODOS los productos alcanzados por el
 /// descuento; en [TipoPromocion.comboCantidad] y [TipoPromocion.regalo] es
-/// un solo producto (el "X" de la condición — "llevando N de X").
+/// un solo producto (el "X" de la condición — "llevando N de X"). En
+/// [TipoPromocion.comboMultiproducto] no se usa: los productos del combo
+/// viven en [idsProductosCombo].
 ///
-/// [condicionRestringida] vacío significa "todos los métodos de pago"; si
-/// no, vale 'Contado' o 'Credito' (mismos valores que
-/// CarritoVentaState.condicion / ReporteVentaModel.condicion — no confundir
-/// con metodoPago, que distingue Efectivo/Tarjeta/Transferencia dentro de
-/// Contado).
+/// [condicionRestringida] vacío significa "todos" (Contado/Crédito); si no,
+/// vale 'Contado' o 'Credito' (mismos valores que
+/// CarritoVentaState.condicion / ReporteVentaModel.condicion). Es un filtro
+/// independiente de [metodoPagoRestringido] (vacío = todos, o si no
+/// 'Efectivo'/'Tarjeta'/'Transferencia', mismos valores que
+/// CarritoVentaState.metodoPago salvo 'Mixto', que nunca matchea un alcance
+/// específico) — para que una promoción aplique, tienen que cumplirse AMBOS.
 class PromocionModel {
   final String id;
   final String nombre;
@@ -40,12 +48,19 @@ class PromocionModel {
   final double precioFijo;
   final int cantidadRequerida;
   final int cantidadBeneficio;
-  final String idProductoRegalo;
-  final String nombreProductoRegalo;
+  // Combo de productos distintos (comboMultiproducto): 2+ productos, 1
+  // unidad de cada uno por combo, a [precioCombo] (precio total del
+  // paquete).
+  final List<String> idsProductosCombo;
+  final List<String> nombresProductosCombo;
+  final double precioCombo;
+  final List<String> idsProductosRegalo;
+  final List<String> nombresProductosRegalo;
   final int cantidadRegalo;
   final DateTime fechaInicio;
   final DateTime? fechaFin;
   final String condicionRestringida;
+  final String metodoPagoRestringido;
   final bool activa;
   final DateTime? fechaRegistro;
   final String usuarioRegistro;
@@ -60,12 +75,16 @@ class PromocionModel {
     this.precioFijo = 0,
     this.cantidadRequerida = 1,
     this.cantidadBeneficio = 1,
-    this.idProductoRegalo = '',
-    this.nombreProductoRegalo = '',
+    this.idsProductosCombo = const [],
+    this.nombresProductosCombo = const [],
+    this.precioCombo = 0,
+    this.idsProductosRegalo = const [],
+    this.nombresProductosRegalo = const [],
     this.cantidadRegalo = 1,
     required this.fechaInicio,
     this.fechaFin,
     this.condicionRestringida = '',
+    this.metodoPagoRestringido = '',
     this.activa = true,
     this.fechaRegistro,
     this.usuarioRegistro = '',
@@ -91,9 +110,29 @@ class PromocionModel {
 
   bool aplicaACondicion(String condicion) => condicionRestringida.isEmpty || condicionRestringida == condicion;
 
-  bool aplicaAProducto(String idProducto) => idsProductos.contains(idProducto);
+  // 'Mixto' nunca matchea un alcance específico (Efectivo/Tarjeta/
+  // Transferencia): solo vacío/Todos.
+  bool aplicaMetodoPago(String metodoPago) {
+    if (metodoPagoRestringido.isEmpty) return true;
+    return metodoPagoRestringido == metodoPago;
+  }
+
+  bool aplicaAProducto(String idProducto) => idsProductos.contains(idProducto) || idsProductosCombo.contains(idProducto);
 
   factory PromocionModel.fromMap(String id, Map<String, dynamic> data) {
+    // Compatibilidad con promociones de regalo creadas antes de que
+    // idsProductosRegalo existiera (era idProductoRegalo, un solo string):
+    // si el documento viejo no tiene la lista nueva pero sí el campo
+    // antiguo con algo adentro, se migra a una lista de un elemento al
+    // leerlo, sin tocar Firestore.
+    final idProductoRegaloViejo = data['idProductoRegalo'] as String? ?? '';
+    final idsProductosRegalo = data['idsProductosRegalo'] != null
+        ? List<String>.from(data['idsProductosRegalo'])
+        : (idProductoRegaloViejo.isEmpty ? const <String>[] : [idProductoRegaloViejo]);
+    final nombreProductoRegaloViejo = data['nombreProductoRegalo'] as String? ?? '';
+    final nombresProductosRegalo = data['nombresProductosRegalo'] != null
+        ? List<String>.from(data['nombresProductosRegalo'])
+        : (nombreProductoRegaloViejo.isEmpty ? const <String>[] : [nombreProductoRegaloViejo]);
     return PromocionModel(
       id: id,
       nombre: data['nombre'] ?? '',
@@ -104,12 +143,16 @@ class PromocionModel {
       precioFijo: (data['precioFijo'] ?? 0).toDouble(),
       cantidadRequerida: (data['cantidadRequerida'] ?? 1).toInt(),
       cantidadBeneficio: (data['cantidadBeneficio'] ?? 1).toInt(),
-      idProductoRegalo: data['idProductoRegalo'] ?? '',
-      nombreProductoRegalo: data['nombreProductoRegalo'] ?? '',
+      idsProductosCombo: List<String>.from(data['idsProductosCombo'] ?? const []),
+      nombresProductosCombo: List<String>.from(data['nombresProductosCombo'] ?? const []),
+      precioCombo: (data['precioCombo'] ?? 0).toDouble(),
+      idsProductosRegalo: idsProductosRegalo,
+      nombresProductosRegalo: nombresProductosRegalo,
       cantidadRegalo: (data['cantidadRegalo'] ?? 1).toInt(),
       fechaInicio: (data['fechaInicio'] as Timestamp?)?.toDate() ?? DateTime.now(),
       fechaFin: (data['fechaFin'] as Timestamp?)?.toDate(),
       condicionRestringida: data['condicionRestringida'] ?? '',
+      metodoPagoRestringido: data['metodoPagoRestringido'] ?? '',
       activa: data['activa'] ?? true,
       fechaRegistro: (data['fechaRegistro'] as Timestamp?)?.toDate(),
       usuarioRegistro: data['usuarioRegistro'] ?? '',
@@ -126,12 +169,16 @@ class PromocionModel {
       'precioFijo': precioFijo,
       'cantidadRequerida': cantidadRequerida,
       'cantidadBeneficio': cantidadBeneficio,
-      'idProductoRegalo': idProductoRegalo,
-      'nombreProductoRegalo': nombreProductoRegalo,
+      'idsProductosCombo': idsProductosCombo,
+      'nombresProductosCombo': nombresProductosCombo,
+      'precioCombo': precioCombo,
+      'idsProductosRegalo': idsProductosRegalo,
+      'nombresProductosRegalo': nombresProductosRegalo,
       'cantidadRegalo': cantidadRegalo,
       'fechaInicio': Timestamp.fromDate(fechaInicio),
       'fechaFin': fechaFin == null ? null : Timestamp.fromDate(fechaFin!),
       'condicionRestringida': condicionRestringida,
+      'metodoPagoRestringido': metodoPagoRestringido,
       'activa': activa,
       'usuarioRegistro': usuarioRegistro,
     };
@@ -146,12 +193,16 @@ class PromocionModel {
     double? precioFijo,
     int? cantidadRequerida,
     int? cantidadBeneficio,
-    String? idProductoRegalo,
-    String? nombreProductoRegalo,
+    List<String>? idsProductosCombo,
+    List<String>? nombresProductosCombo,
+    double? precioCombo,
+    List<String>? idsProductosRegalo,
+    List<String>? nombresProductosRegalo,
     int? cantidadRegalo,
     DateTime? fechaInicio,
     Object? fechaFin = _sinCambio,
     String? condicionRestringida,
+    String? metodoPagoRestringido,
     bool? activa,
   }) {
     return PromocionModel(
@@ -164,12 +215,16 @@ class PromocionModel {
       precioFijo: precioFijo ?? this.precioFijo,
       cantidadRequerida: cantidadRequerida ?? this.cantidadRequerida,
       cantidadBeneficio: cantidadBeneficio ?? this.cantidadBeneficio,
-      idProductoRegalo: idProductoRegalo ?? this.idProductoRegalo,
-      nombreProductoRegalo: nombreProductoRegalo ?? this.nombreProductoRegalo,
+      idsProductosCombo: idsProductosCombo ?? this.idsProductosCombo,
+      nombresProductosCombo: nombresProductosCombo ?? this.nombresProductosCombo,
+      precioCombo: precioCombo ?? this.precioCombo,
+      idsProductosRegalo: idsProductosRegalo ?? this.idsProductosRegalo,
+      nombresProductosRegalo: nombresProductosRegalo ?? this.nombresProductosRegalo,
       cantidadRegalo: cantidadRegalo ?? this.cantidadRegalo,
       fechaInicio: fechaInicio ?? this.fechaInicio,
       fechaFin: fechaFin == _sinCambio ? this.fechaFin : fechaFin as DateTime?,
       condicionRestringida: condicionRestringida ?? this.condicionRestringida,
+      metodoPagoRestringido: metodoPagoRestringido ?? this.metodoPagoRestringido,
       activa: activa ?? this.activa,
       fechaRegistro: fechaRegistro,
       usuarioRegistro: usuarioRegistro,

@@ -40,7 +40,12 @@ class BuscarProductoDialog extends ConsumerStatefulWidget {
   // fila (ver PromocionModel.aplicaACondicion).
   final String condicionVenta;
 
-  const BuscarProductoDialog({super.key, this.nivelInicial = 1, this.condicionVenta = 'Contado'});
+  // Método de pago (Efectivo/Tarjeta/Transferencia/Mixto) ya elegido en la
+  // venta en curso: filtro independiente de condicionVenta (ver
+  // PromocionModel.aplicaMetodoPago) para el mismo badge de "Promo".
+  final String metodoPagoVenta;
+
+  const BuscarProductoDialog({super.key, this.nivelInicial = 1, this.condicionVenta = 'Contado', this.metodoPagoVenta = 'Efectivo'});
 
   @override
   ConsumerState<BuscarProductoDialog> createState() => _BuscarProductoDialogState();
@@ -261,7 +266,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
   /// (aceptar/rechazar) se pregunta recién al agregar el producto al
   /// carrito, ver RegistrarVentaScreen._procesarProductoSeleccionado.
   PromocionModel? _promoParaProducto(ProductoModel p, List<PromocionModel> promociones, Map<String, ProductoModel> productosPorId) {
-    final aplicables = promocionesAplicables(promociones, p.id, widget.condicionVenta);
+    final aplicables = promocionesAplicables(promociones, p.id, widget.condicionVenta, widget.metodoPagoVenta);
     if (aplicables.isEmpty) return null;
     return elegirMejorPromocion(aplicables, p, productosPorId);
   }

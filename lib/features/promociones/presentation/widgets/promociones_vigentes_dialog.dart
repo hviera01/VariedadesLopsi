@@ -78,8 +78,10 @@ class PromocionesVigentesDialog extends ConsumerWidget {
   }
 
   Widget _tarjetaPromocion(PromocionModel promo, DateFormat formatoFecha) {
-    final alcance = promo.condicionRestringida.isEmpty ? 'Todos los métodos de pago' : 'Solo ${promo.condicionRestringida == 'Contado' ? 'Contado' : 'Crédito'}';
+    final alcanceCondicion = promo.condicionRestringida.isEmpty ? 'Todos' : (promo.condicionRestringida == 'Contado' ? 'Solo Contado' : 'Solo Crédito');
+    final alcanceMetodoPago = promo.metodoPagoRestringido.isEmpty ? 'Todos los métodos de pago' : 'Solo ${promo.metodoPagoRestringido}';
     final vigenciaTexto = promo.esIndefinida ? 'Desde el ${formatoFecha.format(promo.fechaInicio)} (indefinido)' : 'Del ${formatoFecha.format(promo.fechaInicio)} al ${formatoFecha.format(promo.fechaFin!)}';
+    final nombresChips = promo.tipo == TipoPromocion.comboMultiproducto ? promo.nombresProductosCombo : promo.nombresProductos;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -91,7 +93,7 @@ class PromocionesVigentesDialog extends ConsumerWidget {
           spacing: 4,
           runSpacing: 4,
           children: [
-            for (final n in promo.nombresProductos.where((n) => n.isNotEmpty))
+            for (final n in nombresChips.where((n) => n.isNotEmpty))
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(color: const Color(0xFFF2F3F7), borderRadius: BorderRadius.circular(8)),
@@ -100,7 +102,7 @@ class PromocionesVigentesDialog extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 6),
-        Text('$vigenciaTexto · $alcance', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500)),
+        Text('$vigenciaTexto · $alcanceCondicion · $alcanceMetodoPago', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500)),
       ],
     );
   }
