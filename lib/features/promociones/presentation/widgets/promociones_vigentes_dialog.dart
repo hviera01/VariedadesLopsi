@@ -79,7 +79,7 @@ class PromocionesVigentesDialog extends ConsumerWidget {
 
   Widget _tarjetaPromocion(PromocionModel promo, DateFormat formatoFecha) {
     final alcanceCondicion = promo.condicionRestringida.isEmpty ? 'Todos' : (promo.condicionRestringida == 'Contado' ? 'Solo Contado' : 'Solo Crédito');
-    final alcanceMetodoPago = promo.metodoPagoRestringido.isEmpty ? 'Todos los métodos de pago' : 'Solo ${promo.metodoPagoRestringido}';
+    final alcanceMetodoPago = promo.metodosPagoRestringidos.isEmpty ? 'Todos los métodos de pago' : 'Solo ${promo.metodosPagoRestringidos.join(' o ')}';
     final vigenciaTexto = promo.esIndefinida ? 'Desde el ${formatoFecha.format(promo.fechaInicio)} (indefinido)' : 'Del ${formatoFecha.format(promo.fechaInicio)} al ${formatoFecha.format(promo.fechaFin!)}';
     final nombresChips = promo.tipo == TipoPromocion.comboMultiproducto ? promo.nombresProductosCombo : promo.nombresProductos;
     return Column(

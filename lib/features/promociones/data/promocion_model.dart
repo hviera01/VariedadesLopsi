@@ -34,10 +34,12 @@ extension TipoPromocionStorage on TipoPromocion {
 /// [condicionRestringida] vacío significa "todos" (Contado/Crédito); si no,
 /// vale 'Contado' o 'Credito' (mismos valores que
 /// CarritoVentaState.condicion / ReporteVentaModel.condicion). Es un filtro
-/// independiente de [metodoPagoRestringido] (vacío = todos, o si no
-/// 'Efectivo'/'Tarjeta'/'Transferencia', mismos valores que
-/// CarritoVentaState.metodoPago salvo 'Mixto', que nunca matchea un alcance
-/// específico) — para que una promoción aplique, tienen que cumplirse AMBOS.
+/// independiente de [metodosPagoRestringidos] (lista vacía = todos, si no
+/// uno o más de 'Efectivo'/'Tarjeta'/'Transferencia' — se puede restringir a
+/// varios a la vez, ej. Efectivo y Transferencia pero no Tarjeta; mismos
+/// valores que CarritoVentaState.metodoPago salvo 'Mixto', que nunca
+/// matchea una lista restringida) — para que una promoción aplique, tienen
+/// que cumplirse AMBOS filtros.
 class PromocionModel {
   final String id;
   final String nombre;
@@ -60,7 +62,7 @@ class PromocionModel {
   final DateTime fechaInicio;
   final DateTime? fechaFin;
   final String condicionRestringida;
-  final String metodoPagoRestringido;
+  final List<String> metodosPagoRestringidos;
   final bool activa;
   final DateTime? fechaRegistro;
   final String usuarioRegistro;
@@ -84,7 +86,7 @@ class PromocionModel {
     required this.fechaInicio,
     this.fechaFin,
     this.condicionRestringida = '',
-    this.metodoPagoRestringido = '',
+    this.metodosPagoRestringidos = const [],
     this.activa = true,
     this.fechaRegistro,
     this.usuarioRegistro = '',
@@ -110,11 +112,11 @@ class PromocionModel {
 
   bool aplicaACondicion(String condicion) => condicionRestringida.isEmpty || condicionRestringida == condicion;
 
-  // 'Mixto' nunca matchea un alcance específico (Efectivo/Tarjeta/
-  // Transferencia): solo vacío/Todos.
+  // 'Mixto' nunca matchea una lista restringida (Efectivo/Tarjeta/
+  // Transferencia): solo vacía/Todos.
   bool aplicaMetodoPago(String metodoPago) {
-    if (metodoPagoRestringido.isEmpty) return true;
-    return metodoPagoRestringido == metodoPago;
+    if (metodosPagoRestringidos.isEmpty) return true;
+    return metodosPagoRestringidos.contains(metodoPago);
   }
 
   bool aplicaAProducto(String idProducto) => idsProductos.contains(idProducto) || idsProductosCombo.contains(idProducto);
@@ -133,6 +135,17 @@ class PromocionModel {
     final nombresProductosRegalo = data['nombresProductosRegalo'] != null
         ? List<String>.from(data['nombresProductosRegalo'])
         : (nombreProductoRegaloViejo.isEmpty ? const <String>[] : [nombreProductoRegaloViejo]);
+
+    // Compatibilidad con promociones creadas antes de permitir varios
+    // métodos de pago a la vez (era metodoPagoRestringido, un solo string
+    // vacío/Todos o un método): si el documento viejo no tiene la lista
+    // nueva pero sí el campo antiguo con algo adentro, se migra a una lista
+    // de un elemento al leerlo, sin tocar Firestore.
+    final metodoPagoRestringidoViejo = data['metodoPagoRestringido'] as String? ?? '';
+    final metodosPagoRestringidos = data['metodosPagoRestringidos'] != null
+        ? List<String>.from(data['metodosPagoRestringidos'])
+        : (metodoPagoRestringidoViejo.isEmpty ? const <String>[] : [metodoPagoRestringidoViejo]);
+
     return PromocionModel(
       id: id,
       nombre: data['nombre'] ?? '',
@@ -152,7 +165,7 @@ class PromocionModel {
       fechaInicio: (data['fechaInicio'] as Timestamp?)?.toDate() ?? DateTime.now(),
       fechaFin: (data['fechaFin'] as Timestamp?)?.toDate(),
       condicionRestringida: data['condicionRestringida'] ?? '',
-      metodoPagoRestringido: data['metodoPagoRestringido'] ?? '',
+      metodosPagoRestringidos: metodosPagoRestringidos,
       activa: data['activa'] ?? true,
       fechaRegistro: (data['fechaRegistro'] as Timestamp?)?.toDate(),
       usuarioRegistro: data['usuarioRegistro'] ?? '',
@@ -178,7 +191,7 @@ class PromocionModel {
       'fechaInicio': Timestamp.fromDate(fechaInicio),
       'fechaFin': fechaFin == null ? null : Timestamp.fromDate(fechaFin!),
       'condicionRestringida': condicionRestringida,
-      'metodoPagoRestringido': metodoPagoRestringido,
+      'metodosPagoRestringidos': metodosPagoRestringidos,
       'activa': activa,
       'usuarioRegistro': usuarioRegistro,
     };
@@ -202,7 +215,7 @@ class PromocionModel {
     DateTime? fechaInicio,
     Object? fechaFin = _sinCambio,
     String? condicionRestringida,
-    String? metodoPagoRestringido,
+    List<String>? metodosPagoRestringidos,
     bool? activa,
   }) {
     return PromocionModel(
@@ -224,7 +237,7 @@ class PromocionModel {
       fechaInicio: fechaInicio ?? this.fechaInicio,
       fechaFin: fechaFin == _sinCambio ? this.fechaFin : fechaFin as DateTime?,
       condicionRestringida: condicionRestringida ?? this.condicionRestringida,
-      metodoPagoRestringido: metodoPagoRestringido ?? this.metodoPagoRestringido,
+      metodosPagoRestringidos: metodosPagoRestringidos ?? this.metodosPagoRestringidos,
       activa: activa ?? this.activa,
       fechaRegistro: fechaRegistro,
       usuarioRegistro: usuarioRegistro,

@@ -34,7 +34,7 @@ class _PromocionFormDialogState extends ConsumerState<PromocionFormDialog> {
   DateTime? _fechaFin;
   bool _sinFechaFin = true;
   String _condicionRestringida = '';
-  String _metodoPagoRestringido = '';
+  List<String> _metodosPagoRestringidos = [];
   bool _guardando = false;
   String? _error;
 
@@ -58,7 +58,7 @@ class _PromocionFormDialogState extends ConsumerState<PromocionFormDialog> {
       _fechaFin = p.fechaFin;
       _sinFechaFin = p.esIndefinida;
       _condicionRestringida = p.condicionRestringida;
-      _metodoPagoRestringido = p.metodoPagoRestringido;
+      _metodosPagoRestringidos = [...p.metodosPagoRestringidos];
     }
   }
 
@@ -212,7 +212,7 @@ class _PromocionFormDialogState extends ConsumerState<PromocionFormDialog> {
         fechaInicio: _fechaInicio,
         fechaFin: _sinFechaFin ? null : _fechaFin,
         condicionRestringida: _condicionRestringida,
-        metodoPagoRestringido: _metodoPagoRestringido,
+        metodosPagoRestringidos: _metodosPagoRestringidos,
         activa: widget.promocion?.activa ?? true,
       );
       final repo = ref.read(promocionRepositoryProvider);
@@ -515,6 +515,8 @@ class _PromocionFormDialogState extends ConsumerState<PromocionFormDialog> {
                         _chipMetodoPago('Transferencia', 'Transferencia'),
                       ],
                     ),
+                    const SizedBox(height: 4),
+                    Text('Podés elegir varios métodos a la vez (ej. Efectivo y Transferencia).', style: GoogleFonts.poppins(fontSize: 10.5, color: Colors.grey.shade500)),
                     if (_error != null) ...[
                       const SizedBox(height: 16),
                       Container(
@@ -591,11 +593,20 @@ class _PromocionFormDialogState extends ConsumerState<PromocionFormDialog> {
   }
 
   Widget _chipMetodoPago(String valor, String texto) {
-    final activo = _metodoPagoRestringido == valor;
+    final esTodos = valor.isEmpty;
+    final activo = esTodos ? _metodosPagoRestringidos.isEmpty : _metodosPagoRestringidos.contains(valor);
     return ChoiceChip(
       label: Text(texto, style: GoogleFonts.poppins(fontSize: 12.5)),
       selected: activo,
-      onSelected: (_) => setState(() => _metodoPagoRestringido = valor),
+      onSelected: (_) => setState(() {
+        if (esTodos) {
+          _metodosPagoRestringidos = [];
+        } else if (_metodosPagoRestringidos.contains(valor)) {
+          _metodosPagoRestringidos = [..._metodosPagoRestringidos]..remove(valor);
+        } else {
+          _metodosPagoRestringidos = [..._metodosPagoRestringidos, valor];
+        }
+      }),
       selectedColor: const Color(0xFF0F1B3D),
       labelStyle: GoogleFonts.poppins(fontSize: 12.5, color: activo ? Colors.white : const Color(0xFF1A1A1A)),
       backgroundColor: const Color(0xFFE8EAF0),
