@@ -12,6 +12,7 @@ typedef _SeccionBuilder = Widget Function(ReporteFinancieroData data, bool esMov
 
 const _tabs = <(String, IconData, _SeccionBuilder)>[
   ('Utilidad', Icons.trending_up_outlined, seccionUtilidad),
+  ('Inteligencia de Negocios', Icons.insights_outlined, seccionInteligenciaNegocio),
   ('Flujo de Efectivo', Icons.account_balance_wallet_outlined, seccionFlujoEfectivo),
   ('Comparación Mensual', Icons.calendar_month_outlined, seccionComparacionMensual),
   ('Ranking de Productos', Icons.leaderboard_outlined, seccionRankingProductos),

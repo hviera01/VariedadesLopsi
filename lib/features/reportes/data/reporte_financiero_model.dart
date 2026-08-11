@@ -64,13 +64,100 @@ class AbonoPorProveedor {
 }
 
 /// Un mes de la serie de comparación (últimos 6 meses, terminando en el
-/// actual).
+/// actual). `costoVentas` alimenta la tendencia de margen bruto mensual de
+/// Inteligencia de Negocios — se calcula junto con el resto de la serie
+/// (ver ReporteFinancieroRepository._calcularSerieMensual) para no repetir
+/// la consulta de detalle.
 class PuntoMensual {
   final DateTime mes;
   final double totalVentas;
   final double totalCompras;
+  final double costoVentas;
 
-  PuntoMensual({required this.mes, required this.totalVentas, required this.totalCompras});
+  PuntoMensual({required this.mes, required this.totalVentas, required this.totalCompras, this.costoVentas = 0});
+
+  double get utilidadBruta => totalVentas - costoVentas;
+  double get margenPorcentaje => totalVentas <= 0 ? 0 : (utilidadBruta / totalVentas) * 100;
+}
+
+/// Proyección de ventas del próximo mes por regresión lineal simple sobre
+/// los meses ya cerrados de [PuntoMensual] (ver
+/// ReporteFinancieroRepository._calcularPronostico): no es Machine Learning,
+/// es la recta que mejor ajusta la tendencia reciente, para dar una idea
+/// razonable de hacia dónde van las ventas sin prometer precisión que el
+/// negocio no necesita.
+class PronosticoVentas {
+  final double proximoMes;
+  final double promedioMensual;
+  // Cuánto sube (positivo) o baja (negativo) el promedio mensual de ventas
+  // de un mes al siguiente, según la tendencia reciente.
+  final double tendenciaMensual;
+
+  PronosticoVentas({required this.proximoMes, required this.promedioMensual, required this.tendenciaMensual});
+
+  bool get tendenciaAlAlza => tendenciaMensual > 0;
+}
+
+/// Un producto candidato a reponer: se calcula sobre una ventana fija de 90
+/// días (independiente del rango elegido en el reporte, ver
+/// ReporteFinancieroRepository._calcularVelocidadYProveedores) para no
+/// sugerir compras en base a un solo día de ventas.
+class ProductoSugerenciaCompra {
+  final String idProducto;
+  final String nombreProducto;
+  final double stock;
+  final double ventaDiariaPromedio;
+  final double diasDeStock;
+  final String nombreProveedor;
+  final bool proveedorConDeudaVencida;
+  final double montoVencidoProveedor;
+
+  ProductoSugerenciaCompra({
+    required this.idProducto,
+    required this.nombreProducto,
+    required this.stock,
+    required this.ventaDiariaPromedio,
+    required this.diasDeStock,
+    required this.nombreProveedor,
+    required this.proveedorConDeudaVencida,
+    required this.montoVencidoProveedor,
+  });
+}
+
+/// Un cliente identificado (con DNI o al menos nombre) dentro del rango del
+/// reporte — "Consumidor Final" sin datos no cuenta como cliente recurrente,
+/// ver ReporteFinancieroRepository._calcularTopClientes.
+class ClienteTop {
+  final String nombre;
+  final String documento;
+  final double totalComprado;
+  final int cantidadCompras;
+
+  ClienteTop({required this.nombre, required this.documento, required this.totalComprado, required this.cantidadCompras});
+}
+
+/// Analítica agregada para la sección "Inteligencia de Negocios": todo se
+/// deriva de datos que el reporte financiero ya necesita (ventas, compras,
+/// inventario, cuentas por pagar), sin colecciones ni consultas nuevas por
+/// fuera del patrón ya usado en el resto de este archivo.
+class InteligenciaNegocioData {
+  final PronosticoVentas pronostico;
+  final RankingProducto? productoMasRentable;
+  final List<ProductoSugerenciaCompra> sugerenciasCompra;
+  // Veces al año que se estima que rota el inventario, al ritmo de venta
+  // del rango elegido en el reporte.
+  final double rotacionInventarioAnual;
+  final double diasInventario;
+  final List<ClienteTop> topClientes;
+
+  InteligenciaNegocioData({
+    required this.pronostico,
+    required this.productoMasRentable,
+    required this.sugerenciasCompra,
+    required this.rotacionInventarioAnual,
+    required this.diasInventario,
+    required this.topClientes,
+  });
 }
 
 class FlujoEfectivo {
@@ -152,6 +239,7 @@ class ReporteFinancieroData {
 
   final List<CierreCajaModel> cierresCaja;
   final BalanceGeneral balanceGeneral;
+  final InteligenciaNegocioData inteligencia;
 
   ReporteFinancieroData({
     required this.inicio,
@@ -176,6 +264,7 @@ class ReporteFinancieroData {
     required this.abonosPorProveedor,
     required this.cierresCaja,
     required this.balanceGeneral,
+    required this.inteligencia,
   });
 
   double get margenBrutoPorcentaje => ventasPeriodo <= 0 ? 0 : (utilidadBruta / ventasPeriodo) * 100;

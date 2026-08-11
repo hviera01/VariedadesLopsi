@@ -10,6 +10,7 @@ import '../../egresos/data/egreso_repository.dart';
 import '../../egresos/data/egreso_model.dart';
 import '../../compras_credito/data/compra_credito_repository.dart';
 import '../../compras_credito/data/abono_compra_model.dart';
+import '../../compras_credito/data/compra_credito_model.dart';
 import '../../ventas_credito/data/venta_credito_repository.dart';
 import '../../ventas_credito/data/abono_model.dart';
 import '../../caja/data/cierre_caja_repository.dart';
@@ -401,6 +402,33 @@ class ReporteFinancieroRepository {
       cuentasPorPagar: cuentasPorPagar,
     );
 
+    // Inteligencia de Negocios: todo se arma con datos que ya se pidieron
+    // arriba para el resto del reporte, salvo la velocidad de venta/
+    // proveedor por producto (cacheada 5 min, ver
+    // _obtenerVelocidadYProveedoresCacheado) que necesita su propia ventana
+    // fija de 90 días.
+    final sugerenciasCompra = await _calcularSugerenciasCompra(productos, comprasCreditoSnap);
+    final pronostico = _calcularPronostico(serieMensual);
+    final topClientes = _calcularTopClientes(ventasValidas);
+    // Rotación anualizada: se proyecta el costo de ventas del rango elegido
+    // a un año completo y se compara contra el inventario a costo actual —
+    // mismo criterio que un índice de rotación de inventario clásico
+    // (costo de ventas anual / inventario), adaptado a que el usuario puede
+    // elegir cualquier rango de fechas.
+    final diasEnRango = finInclusive.difference(inicio).inDays + 1;
+    final costoVentasAnualizado = diasEnRango > 0 ? costoVentas / diasEnRango * 365 : 0.0;
+    final rotacionInventarioAnual = inventarioACosto > 0 ? costoVentasAnualizado / inventarioACosto : 0.0;
+    final diasInventario = rotacionInventarioAnual > 0 ? 365 / rotacionInventarioAnual : 0.0;
+
+    final inteligencia = InteligenciaNegocioData(
+      pronostico: pronostico,
+      productoMasRentable: topGananciaPorProducto.isEmpty ? null : topGananciaPorProducto.first,
+      sugerenciasCompra: sugerenciasCompra,
+      rotacionInventarioAnual: rotacionInventarioAnual,
+      diasInventario: diasInventario,
+      topClientes: topClientes,
+    );
+
     return ReporteFinancieroData(
       inicio: inicio,
       fin: finInclusive,
@@ -424,6 +452,7 @@ class ReporteFinancieroRepository {
       abonosPorProveedor: abonosPorProveedor,
       cierresCaja: cierresCaja,
       balanceGeneral: balanceGeneral,
+      inteligencia: inteligencia,
     );
   }
 
@@ -545,12 +574,18 @@ class ReporteFinancieroRepository {
     final finRango = DateTime(hoy.year, hoy.month + 1, 1).subtract(const Duration(seconds: 1));
 
     // Independientes entre sí: en paralelo en vez de esperar una para recién
-    // pedir la otra.
+    // pedir la otra. detalleFuture (una sola consulta collectionGroup, mismo
+    // criterio que _detallePorRango) trae el costo de cada venta del rango
+    // para poder calcular el margen bruto mes a mes (Inteligencia de
+    // Negocios), sin repetir la consulta de detalle que ya hace el resto del
+    // reporte para el rango elegido por el usuario.
     final ventasFuture = _reporteRepository.obtenerReporteVentas(primerMesDeLaSerie, finRango);
     final comprasFuture = _reporteRepository.obtenerReporteCompras(primerMesDeLaSerie, finRango);
+    final detalleFuture = _detallePorRango(primerMesDeLaSerie, finRango);
     final ventas = await ventasFuture;
     final compras = await comprasFuture;
-    final ventasValidas = ventas.where((v) => v.esActiva && !v.esCotizacion && !v.esCanje);
+    final detalle = await detalleFuture;
+    final ventasValidas = ventas.where((v) => v.esActiva && !v.esCotizacion && !v.esCanje).toList();
     final comprasValidas = compras.where((c) => c.esActiva);
 
     final ventasPorMes = <String, double>{};
@@ -567,13 +602,183 @@ class ReporteFinancieroRepository {
       final clave = '${fecha.year}-${fecha.month}';
       comprasPorMes[clave] = (comprasPorMes[clave] ?? 0) + c.montoTotal;
     }
+    final detalleVentasPorVenta = await _resolverDetalleVentas(ventasValidas, detalle.ventas);
+    final costoPorMes = <String, double>{};
+    for (var i = 0; i < ventasValidas.length; i++) {
+      final fecha = ventasValidas[i].fechaRegistro;
+      if (fecha == null) continue;
+      final clave = '${fecha.year}-${fecha.month}';
+      final costo = detalleVentasPorVenta[i].fold<double>(0, (s, item) => s + item.precioCompraUsado * item.cantidad);
+      costoPorMes[clave] = (costoPorMes[clave] ?? 0) + costo;
+    }
 
     final serie = <PuntoMensual>[];
     for (var i = 0; i < 6; i++) {
       final mes = DateTime(primerMesDeLaSerie.year, primerMesDeLaSerie.month + i, 1);
       final clave = '${mes.year}-${mes.month}';
-      serie.add(PuntoMensual(mes: mes, totalVentas: ventasPorMes[clave] ?? 0, totalCompras: comprasPorMes[clave] ?? 0));
+      serie.add(PuntoMensual(mes: mes, totalVentas: ventasPorMes[clave] ?? 0, totalCompras: comprasPorMes[clave] ?? 0, costoVentas: costoPorMes[clave] ?? 0));
     }
     return serie;
+  }
+
+  // ---------- Inteligencia de Negocios ----------
+
+  // Ventana fija de 90 días (independiente del rango que el usuario haya
+  // elegido en el reporte, mismo criterio que la serie mensual/efectivo
+  // estimado de arriba): cuánto se vendió de cada producto recientemente
+  // (para estimar cuántos días de stock quedan) y de qué proveedor vino su
+  // compra más reciente (para poder avisar si ese proveedor tiene cuentas
+  // vencidas antes de sugerir comprarle más). Cacheada con el mismo criterio
+  // corto que el resto de este archivo.
+  ({Map<String, double> ventasPorProducto, Map<String, (String idProveedor, String nombreProveedor)> proveedorPorProducto})? _velocidadCache;
+  DateTime? _velocidadCacheEn;
+
+  Future<({Map<String, double> ventasPorProducto, Map<String, (String idProveedor, String nombreProveedor)> proveedorPorProducto})> _obtenerVelocidadYProveedoresCacheado() async {
+    final ahora = DateTime.now();
+    final cacheEn = _velocidadCacheEn;
+    if (_velocidadCache != null && cacheEn != null && ahora.difference(cacheEn) < _vigenciaCache) {
+      return _velocidadCache!;
+    }
+    final resultado = await _calcularVelocidadYProveedores();
+    _velocidadCache = resultado;
+    _velocidadCacheEn = ahora;
+    return resultado;
+  }
+
+  static const _diasVentanaOperativa = 90;
+
+  Future<({Map<String, double> ventasPorProducto, Map<String, (String idProveedor, String nombreProveedor)> proveedorPorProducto})> _calcularVelocidadYProveedores() async {
+    final ahora = DateTime.now();
+    final inicio = ahora.subtract(const Duration(days: _diasVentanaOperativa));
+
+    final ventasHeadersFuture = _reporteRepository.obtenerReporteVentas(inicio, ahora);
+    final comprasHeadersFuture = _reporteRepository.obtenerReporteCompras(inicio, ahora);
+    final detalleFuture = _detallePorRango(inicio, ahora);
+    final ventasHeaders = await ventasHeadersFuture;
+    final comprasHeaders = await comprasHeadersFuture;
+    final detalle = await detalleFuture;
+
+    final ventasPorProducto = <String, double>{};
+    for (final v in ventasHeaders.where((v) => v.esActiva && !v.esCotizacion && !v.esCanje)) {
+      for (final item in detalle.ventas[v.id] ?? const []) {
+        ventasPorProducto[item.idProducto] = (ventasPorProducto[item.idProducto] ?? 0) + item.cantidad;
+      }
+    }
+
+    // Ordenadas de más vieja a más nueva para que, al recorrerlas, la
+    // proveedora que quede guardada por producto sea siempre la de la
+    // compra más reciente.
+    final comprasValidas = comprasHeaders.where((c) => c.esActiva).toList()
+      ..sort((a, b) => (a.fechaRegistro ?? DateTime(2000)).compareTo(b.fechaRegistro ?? DateTime(2000)));
+    final proveedorPorProducto = <String, (String, String)>{};
+    for (final c in comprasValidas) {
+      for (final item in detalle.compras[c.id] ?? const []) {
+        proveedorPorProducto[item.idProducto] = (c.idProveedor, c.razonSocial);
+      }
+    }
+
+    return (ventasPorProducto: ventasPorProducto, proveedorPorProducto: proveedorPorProducto);
+  }
+
+  /// Productos a reponer: solo entran los que tuvieron venta real en los
+  /// últimos [_diasVentanaOperativa] días (sin venta reciente no hay
+  /// velocidad que estimar) y a quienes el stock actual les alcanza para
+  /// menos de dos semanas a ese ritmo. Se ordenan por urgencia (menos días
+  /// de stock primero) y, a igual urgencia, se prioriza el producto cuyo
+  /// proveedor está al día sobre el que tiene saldo vencido — no se oculta
+  /// la sugerencia (el negocio igual necesita reponer), solo se avisa y se
+  /// pospone frente a las que no tienen ese riesgo.
+  Future<List<ProductoSugerenciaCompra>> _calcularSugerenciasCompra(
+    List<ProductoModel> productos,
+    QuerySnapshot<Map<String, dynamic>> comprasCreditoAbiertasSnap,
+  ) async {
+    final velocidad = await _obtenerVelocidadYProveedoresCacheado();
+
+    final vencidoPorProveedor = <String, double>{};
+    for (final d in comprasCreditoAbiertasSnap.docs) {
+      final cc = CompraCreditoModel.fromMap(d.id, d.data());
+      if (cc.vencida) vencidoPorProveedor[cc.idProveedor] = (vencidoPorProveedor[cc.idProveedor] ?? 0) + cc.saldoPendiente;
+    }
+
+    final sugerencias = <ProductoSugerenciaCompra>[];
+    for (final p in productos) {
+      if (!p.estado) continue;
+      final vendidos = velocidad.ventasPorProducto[p.id] ?? 0;
+      if (vendidos <= 0) continue;
+      final velocidadDiaria = vendidos / _diasVentanaOperativa;
+      final diasDeStock = p.stock / velocidadDiaria;
+      if (diasDeStock > 14) continue;
+      final infoProveedor = velocidad.proveedorPorProducto[p.id];
+      final montoVencido = infoProveedor == null ? 0.0 : (vencidoPorProveedor[infoProveedor.$1] ?? 0);
+      sugerencias.add(ProductoSugerenciaCompra(
+        idProducto: p.id,
+        nombreProducto: p.nombre,
+        stock: p.stock,
+        ventaDiariaPromedio: velocidadDiaria,
+        diasDeStock: diasDeStock,
+        nombreProveedor: infoProveedor?.$2 ?? '',
+        proveedorConDeudaVencida: montoVencido > 0,
+        montoVencidoProveedor: montoVencido,
+      ));
+    }
+    sugerencias.sort((a, b) {
+      final porUrgencia = a.diasDeStock.compareTo(b.diasDeStock);
+      if (porUrgencia != 0) return porUrgencia;
+      return (a.proveedorConDeudaVencida ? 1 : 0).compareTo(b.proveedorConDeudaVencida ? 1 : 0);
+    });
+    return sugerencias.take(15).toList();
+  }
+
+  /// Regresión lineal simple sobre los meses ya cerrados de la serie mensual
+  /// (se descarta el último punto: es el mes en curso, todavía incompleto,
+  /// y usarlo como dato de entrenamiento sesgaría la proyección a la baja).
+  /// Con menos de dos meses cerrados no hay tendencia que calcular: se
+  /// proyecta plano, igual al promedio disponible.
+  PronosticoVentas _calcularPronostico(List<PuntoMensual> serieMensual) {
+    if (serieMensual.isEmpty) {
+      return PronosticoVentas(proximoMes: 0, promedioMensual: 0, tendenciaMensual: 0);
+    }
+    final cerrados = serieMensual.length > 1 ? serieMensual.sublist(0, serieMensual.length - 1) : serieMensual;
+    final valores = [for (final p in cerrados) p.totalVentas];
+    final n = valores.length;
+    final promedio = valores.fold<double>(0, (s, v) => s + v) / n;
+    if (n < 2) {
+      return PronosticoVentas(proximoMes: promedio, promedioMensual: promedio, tendenciaMensual: 0);
+    }
+
+    final xMedia = (n - 1) / 2.0;
+    var numerador = 0.0, denominador = 0.0;
+    for (var i = 0; i < n; i++) {
+      numerador += (i - xMedia) * (valores[i] - promedio);
+      denominador += (i - xMedia) * (i - xMedia);
+    }
+    final pendiente = denominador == 0 ? 0.0 : numerador / denominador;
+    final interseccion = promedio - pendiente * xMedia;
+    // Los meses cerrados ocupan las posiciones 0..n-1; la posición n es el
+    // mes en curso (excluido del entrenamiento); el próximo mes a proyectar
+    // es la posición n+1.
+    final proyeccion = interseccion + pendiente * (n + 1);
+    return PronosticoVentas(proximoMes: proyeccion < 0 ? 0 : proyeccion, promedioMensual: promedio, tendenciaMensual: pendiente);
+  }
+
+  /// Clientes identificados (con DNI o al menos nombre) que más compraron en
+  /// el rango del reporte. "Consumidor Final" sin ningún dato no cuenta como
+  /// cliente recurrente para este ranking.
+  List<ClienteTop> _calcularTopClientes(List<ReporteVentaModel> ventas) {
+    final totalPorClave = <String, double>{};
+    final conteoPorClave = <String, int>{};
+    final nombrePorClave = <String, String>{};
+    for (final v in ventas) {
+      final clave = v.documentoCliente.isNotEmpty ? v.documentoCliente : v.nombreCliente;
+      if (clave.isEmpty) continue;
+      totalPorClave[clave] = (totalPorClave[clave] ?? 0) + v.totalAPagar;
+      conteoPorClave[clave] = (conteoPorClave[clave] ?? 0) + 1;
+      nombrePorClave[clave] = v.nombreCliente.isEmpty ? 'CONSUMIDOR FINAL' : v.nombreCliente;
+    }
+    final lista = totalPorClave.keys
+        .map((k) => ClienteTop(nombre: nombrePorClave[k]!, documento: k, totalComprado: totalPorClave[k]!, cantidadCompras: conteoPorClave[k] ?? 0))
+        .toList()
+      ..sort((a, b) => b.totalComprado.compareTo(a.totalComprado));
+    return lista.take(10).toList();
   }
 }

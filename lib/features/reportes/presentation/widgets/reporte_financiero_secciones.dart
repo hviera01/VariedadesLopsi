@@ -195,6 +195,282 @@ Widget _tabaGananciaPorVenta(List<GananciaPorVenta> lista, bool esMovil) {
 
 TextStyle _estiloHeaderTabla() => GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.grey.shade500, letterSpacing: 0.3);
 
+// ---------- Inteligencia de Negocios ----------
+
+Widget seccionInteligenciaNegocio(ReporteFinancieroData data, bool esMovil) {
+  final inteligencia = data.inteligencia;
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _explicacion('Analítica calculada sobre los mismos datos de ventas, compras, inventario y cuentas por pagar del sistema — pensada para decidir, no solo para mirar números del período.'),
+      _filaStatsInteligencia(inteligencia),
+      const SizedBox(height: 20),
+      _graficoPronostico(data.serieMensual, inteligencia.pronostico),
+      const SizedBox(height: 20),
+      _graficoMargenMensual(data.serieMensual),
+      const SizedBox(height: 20),
+      _tarjetaSugerenciasCompra(inteligencia.sugerenciasCompra),
+      const SizedBox(height: 20),
+      _tarjetaTopClientes(inteligencia.topClientes),
+    ],
+  );
+}
+
+Widget _filaStatsInteligencia(InteligenciaNegocioData inteligencia) {
+  final pronostico = inteligencia.pronostico;
+  final masRentable = inteligencia.productoMasRentable;
+  final flechaTendencia = pronostico.tendenciaMensual == 0 ? 'Sin tendencia clara' : (pronostico.tendenciaAlAlza ? '▲ Tendencia al alza' : '▼ Tendencia a la baja');
+  return Wrap(
+    spacing: 12,
+    runSpacing: 12,
+    children: [
+      _stat('Pronóstico próximo mes', pronostico.proximoMes, colorVentasFinanciero, sub: flechaTendencia),
+      _stat('Producto más rentable', masRentable?.monto ?? 0, const Color(0xFF16A34A), sub: masRentable == null ? 'Sin ventas en el rango' : masRentable.nombreProducto),
+      Container(
+        width: 210,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: BoxDecoration(color: const Color(0xFF0EA5A4), borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: const Color(0xFF0EA5A4).withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 8))]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('ROTACIÓN DE INVENTARIO', style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white.withOpacity(0.85), letterSpacing: 0.5)),
+            const SizedBox(height: 6),
+            Text(
+              inteligencia.rotacionInventarioAnual <= 0 ? '—' : '${inteligencia.rotacionInventarioAnual.toStringAsFixed(1)}x / año',
+              style: GoogleFonts.poppins(fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white),
+            ),
+            Text(
+              inteligencia.rotacionInventarioAnual <= 0 ? 'Sin datos suficientes' : '≈ ${inteligencia.diasInventario.toStringAsFixed(0)} días de inventario',
+              style: GoogleFonts.poppins(fontSize: 11, color: Colors.white.withOpacity(0.85)),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+Widget _graficoPronostico(List<PuntoMensual> serie, PronosticoVentas pronostico) {
+  final formatoMes = DateFormat('MMM yy', 'es');
+  final valores = [for (final p in serie) p.totalVentas, pronostico.proximoMes];
+  final maximo = valores.fold<double>(0, (m, v) => v > m ? v : m);
+  return _tarjeta(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Pronóstico de Ventas', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 3),
+        Text('Regresión lineal simple sobre los meses ya cerrados — una proyección razonable, no una promesa.', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade500)),
+        const SizedBox(height: 16),
+        Row(children: [_leyenda('Ventas reales', colorVentasFinanciero), const SizedBox(width: 16), _leyenda('Proyectado', const Color(0xFFB6BCC7))]),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 200,
+          child: BarChart(
+            BarChartData(
+              maxY: maximo <= 0 ? 100 : maximo * 1.15,
+              barTouchData: BarTouchData(
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) => BarTooltipItem(formatearMoneda(rod.toY), GoogleFonts.poppins(color: Colors.white, fontSize: 11)),
+                ),
+              ),
+              titlesData: FlTitlesData(
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, meta) {
+                      final i = value.toInt();
+                      if (i < 0 || i >= valores.length) return const SizedBox();
+                      final esProyeccion = i == valores.length - 1;
+                      final texto = esProyeccion ? 'Próx.' : formatoMes.format(serie[i].mes);
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(texto, style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: esProyeccion ? FontWeight.w700 : FontWeight.w400, color: esProyeccion ? colorVentasFinanciero : Colors.grey.shade600)),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              gridData: const FlGridData(show: false),
+              borderData: FlBorderData(show: false),
+              barGroups: [
+                for (var i = 0; i < valores.length; i++)
+                  BarChartGroupData(x: i, barRods: [
+                    BarChartRodData(
+                      toY: valores[i],
+                      color: i == valores.length - 1 ? const Color(0xFFB6BCC7) : colorVentasFinanciero,
+                      width: 18,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ]),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _graficoMargenMensual(List<PuntoMensual> serie) {
+  final formatoMes = DateFormat('MMM yy', 'es');
+  final spots = [for (var i = 0; i < serie.length; i++) FlSpot(i.toDouble(), serie[i].margenPorcentaje)];
+  final valores = [for (final p in serie) p.margenPorcentaje];
+  final minimo = valores.isEmpty ? 0.0 : valores.reduce((a, b) => a < b ? a : b);
+  final maximo = valores.isEmpty ? 100.0 : valores.reduce((a, b) => a > b ? a : b);
+  return _tarjeta(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Tendencia de Margen Bruto', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 3),
+        Text('Margen bruto (% sobre ventas) de los últimos 6 meses.', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade500)),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 180,
+          child: LineChart(
+            LineChartData(
+              minY: (minimo < 0 ? minimo : 0) - 5,
+              maxY: maximo + 5,
+              lineTouchData: LineTouchData(
+                touchTooltipData: LineTouchTooltipData(
+                  getTooltipItems: (spots) => [for (final s in spots) LineTooltipItem('${s.y.toStringAsFixed(1)}%', GoogleFonts.poppins(color: Colors.white, fontSize: 11))],
+                ),
+              ),
+              titlesData: FlTitlesData(
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, meta) {
+                      final i = value.toInt();
+                      if (i < 0 || i >= serie.length) return const SizedBox();
+                      return Padding(padding: const EdgeInsets.only(top: 8), child: Text(formatoMes.format(serie[i].mes), style: GoogleFonts.poppins(fontSize: 10.5, color: Colors.grey.shade600)));
+                    },
+                  ),
+                ),
+              ),
+              gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: 10, getDrawingHorizontalLine: (v) => FlLine(color: Colors.grey.shade200, strokeWidth: 1)),
+              borderData: FlBorderData(show: false),
+              lineBarsData: [
+                LineChartBarData(
+                  spots: spots,
+                  isCurved: true,
+                  color: const Color(0xFF16A34A),
+                  barWidth: 2.5,
+                  dotData: const FlDotData(show: true),
+                  belowBarData: BarAreaData(show: true, color: const Color(0xFF16A34A).withOpacity(0.08)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _tarjetaSugerenciasCompra(List<ProductoSugerenciaCompra> lista) {
+  return _tarjeta(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Sugerencia de Compras', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 3),
+        Text('Productos con menos de 2 semanas de stock al ritmo de venta de los últimos 90 días, priorizando primero al proveedor que está al día.', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade500)),
+        const SizedBox(height: 12),
+        if (lista.isEmpty)
+          Text('Ningún producto con venta reciente está por quedarse sin stock.', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600))
+        else
+          for (final s in lista) ...[_filaSugerenciaCompra(s), Divider(height: 18, color: Colors.grey.shade200)],
+      ],
+    ),
+  );
+}
+
+Widget _filaSugerenciaCompra(ProductoSugerenciaCompra s) {
+  final agotado = s.stock <= 0;
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(s.nombreProducto, style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 3),
+            Wrap(
+              spacing: 10,
+              runSpacing: 2,
+              children: [
+                Text('Stock: ${formatoCantidadFinanciero(s.stock)}', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500)),
+                Text('Venta: ${s.ventaDiariaPromedio.toStringAsFixed(1)}/día', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500)),
+                if (s.nombreProveedor.isNotEmpty) Text('Proveedor: ${s.nombreProveedor}', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500)),
+              ],
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(width: 10),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(color: agotado ? const Color(0xFFFCE4E4) : const Color(0xFFFFF4E0), borderRadius: BorderRadius.circular(8)),
+            child: Text(
+              agotado ? 'Sin stock' : '${s.diasDeStock.toStringAsFixed(0)} días',
+              style: GoogleFonts.poppins(fontSize: 11.5, fontWeight: FontWeight.w700, color: agotado ? const Color(0xFFDC2626) : const Color(0xFFB45309)),
+            ),
+          ),
+          if (s.nombreProveedor.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              s.proveedorConDeudaVencida ? 'Proveedor con saldo vencido' : 'Proveedor al día',
+              style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w600, color: s.proveedorConDeudaVencida ? const Color(0xFFDC2626) : const Color(0xFF16A34A)),
+            ),
+          ],
+        ],
+      ),
+    ],
+  );
+}
+
+Widget _tarjetaTopClientes(List<ClienteTop> lista) {
+  return _tarjeta(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Clientes que Más Compran', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 3),
+        Text('Top 10 del rango seleccionado, sin contar Consumidor Final sin identificar.', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade500)),
+        const SizedBox(height: 12),
+        if (lista.isEmpty)
+          Text('Sin clientes identificados en el rango.', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600))
+        else
+          for (var i = 0; i < lista.length; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  SizedBox(width: 22, child: Text('${i + 1}', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.grey.shade400))),
+                  Expanded(child: Text(lista[i].nombre, style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                  Text('${lista[i].cantidadCompras} compra(s)', style: GoogleFonts.poppins(fontSize: 11.5, color: Colors.grey.shade500)),
+                  const SizedBox(width: 12),
+                  SizedBox(width: 100, child: Text(formatearMoneda(lista[i].totalComprado), textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700))),
+                ],
+              ),
+            ),
+      ],
+    ),
+  );
+}
+
 // ---------- Flujo de Efectivo ----------
 
 Widget seccionFlujoEfectivo(ReporteFinancieroData data, bool esMovil) {
