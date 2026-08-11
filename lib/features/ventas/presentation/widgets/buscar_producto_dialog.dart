@@ -7,6 +7,9 @@ import '../../../productos/data/producto_model.dart';
 import '../../../productos/providers/productos_provider.dart';
 import '../../../productos/presentation/widgets/producto_form_dialog.dart';
 import '../../../categorias/providers/categorias_provider.dart';
+import '../../../promociones/data/promocion_model.dart';
+import '../../../promociones/data/promocion_evaluador.dart';
+import '../../../promociones/providers/promociones_provider.dart';
 import '../../../../core/utils/texto_utils.dart';
 import '../../../../core/utils/formato_moneda.dart';
 import '../../../../core/utils/codigo_barras_utils.dart';
@@ -32,7 +35,12 @@ class BuscarProductoDialog extends ConsumerStatefulWidget {
   // esta búsqueda puntual sin afectar el nivel de cabecera.
   final int nivelInicial;
 
-  const BuscarProductoDialog({super.key, this.nivelInicial = 1});
+  // Condición de pago (Contado/Crédito) ya elegida en la venta en curso:
+  // decide qué promociones son aplicables para el badge de "Promo" de cada
+  // fila (ver PromocionModel.aplicaACondicion).
+  final String condicionVenta;
+
+  const BuscarProductoDialog({super.key, this.nivelInicial = 1, this.condicionVenta = 'Contado'});
 
   @override
   ConsumerState<BuscarProductoDialog> createState() => _BuscarProductoDialogState();
@@ -247,6 +255,17 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
 
   bool _coincideCategoria(ProductoModel p) => _categoriaFiltro == null || p.idCategoria == _categoriaFiltro;
 
+  /// Promoción vigente y aplicable (por fecha y método de pago) de mayor
+  /// beneficio para [p] en este momento, o null si no tiene ninguna. Se usa
+  /// para el badge "Promo" de la fila — la decisión de aplicarla de verdad
+  /// (aceptar/rechazar) se pregunta recién al agregar el producto al
+  /// carrito, ver RegistrarVentaScreen._procesarProductoSeleccionado.
+  PromocionModel? _promoParaProducto(ProductoModel p, List<PromocionModel> promociones, Map<String, ProductoModel> productosPorId) {
+    final aplicables = promocionesAplicables(promociones, p.id, widget.condicionVenta);
+    if (aplicables.isEmpty) return null;
+    return elegirMejorPromocion(aplicables, p, productosPorId);
+  }
+
   Future<void> _crearProductoNuevo() async {
     final nuevo = await showDialog<ProductoModel>(context: context, builder: (context) => const ProductoFormDialog());
     if (nuevo == null || !mounted) return;
@@ -276,6 +295,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
     final categoriasAsync = ref.watch(categoriasStreamProvider);
     final categoriasLista = categoriasAsync.value ?? <dynamic>[];
     final mapaCategorias = {for (final c in categoriasLista) c.id as String: c.descripcion as String};
+    final promociones = ref.watch(promocionesStreamProvider).value ?? const <PromocionModel>[];
 
     final tamano = MediaQuery.of(context).size;
     final esMovil = tamano.width < 720;
@@ -429,6 +449,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                           child: Text('No se encontraron productos', style: GoogleFonts.poppins(color: Colors.grey.shade500)),
                         );
                       }
+                      final productosPorId = {for (final p in productos) p.id: p};
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -444,7 +465,8 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                               separatorBuilder: (context, i) => Divider(height: 1, color: Colors.grey.shade200),
                               itemBuilder: (context, i) {
                                 final p = lista[i];
-                                return esMovil ? _tarjetaMovil(p, mapaCategorias) : _filaTabla(p, mapaCategorias);
+                                final promo = _promoParaProducto(p, promociones, productosPorId);
+                                return esMovil ? _tarjetaMovil(p, mapaCategorias, promo) : _filaTabla(p, mapaCategorias, promo);
                               },
                             ),
                           ),
@@ -563,7 +585,26 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
     );
   }
 
-  Widget _filaTabla(ProductoModel p, Map<String, String> mapaCategorias) {
+  Widget _badgePromo(PromocionModel promo) {
+    return Tooltip(
+      message: '${promo.nombre} · ${descripcionCortaPromocion(promo)}',
+      child: Container(
+        margin: const EdgeInsets.only(top: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(color: const Color(0xFFE8F8EE), borderRadius: BorderRadius.circular(7), border: Border.all(color: const Color(0xFF16A34A).withOpacity(0.4))),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.local_offer_outlined, size: 11, color: Color(0xFF16A34A)),
+            const SizedBox(width: 3),
+            Text('Promo', style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF16A34A))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _filaTabla(ProductoModel p, Map<String, String> mapaCategorias, PromocionModel? promo) {
     final bajoStock = p.stock <= 0;
     final seleccionada = _filaSeleccionada == p.id;
     // Container simple con solo un cambio de color de fondo (sin Material
@@ -589,7 +630,14 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
               flex: 5,
               child: Padding(
                 padding: const EdgeInsets.only(right: 10),
-                child: Text(p.nombre, softWrap: true, style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(p.nombre, softWrap: true, style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                    if (promo != null) _badgePromo(promo),
+                  ],
+                ),
               ),
             ),
             Expanded(
@@ -632,7 +680,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
     );
   }
 
-  Widget _tarjetaMovil(ProductoModel p, Map<String, String> mapaCategorias) {
+  Widget _tarjetaMovil(ProductoModel p, Map<String, String> mapaCategorias, PromocionModel? promo) {
     final bajoStock = p.stock <= 0;
     final seleccionada = _filaSeleccionada == p.id;
     return Material(
@@ -664,6 +712,7 @@ class _BuscarProductoDialogState extends ConsumerState<BuscarProductoDialog> {
                         Text(p.nombre, softWrap: true, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 2),
                         Text('${p.codigo} · ${mapaCategorias[p.idCategoria] ?? '-'}', softWrap: true, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade500)),
+                        if (promo != null) _badgePromo(promo),
                       ],
                     ),
                   ),

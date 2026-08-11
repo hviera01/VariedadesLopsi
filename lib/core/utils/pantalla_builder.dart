@@ -16,6 +16,7 @@ import '../../features/reportes/presentation/screens/reporte_financiero_screen.d
 import '../../features/ventas/presentation/screens/registrar_venta_screen.dart';
 import '../../features/ventas/presentation/screens/detalle_venta_screen.dart';
 import '../../features/ventas/providers/carrito_provider.dart';
+import '../../features/ventas/providers/usuario_venta_provider.dart';
 import '../../features/compras/presentation/screens/registrar_compra_screen.dart';
 import '../../features/compras/presentation/screens/detalle_compra_screen.dart';
 import '../../features/compras/presentation/screens/hacer_pedido_screen.dart';
@@ -24,6 +25,7 @@ import '../../features/caja/presentation/screens/cierre_caja_screen.dart';
 import '../../features/egresos/presentation/screens/ingresos_egresos_screen.dart';
 import '../../features/celulares/presentation/screens/celulares_screen.dart';
 import '../../features/dispositivos/presentation/screens/dispositivos_screen.dart';
+import '../../features/promociones/presentation/screens/promociones_screen.dart';
 
 Widget construirPantalla(String moduleKey, String titulo, IconData icono, String tabId) {
   switch (moduleKey) {
@@ -36,8 +38,15 @@ Widget construirPantalla(String moduleKey, String titulo, IconData icono, String
       // mismo, para que los atajos de teclado (F10/F12) solo respondan ahí
       // y no en las demás pestañas de venta/compra que sigan abiertas de
       // fondo.
+      // usuarioVentaOverrideProvider recibe el mismo aislamiento por
+      // pestaña: permite que "cambiar usuario de esta venta" (ver
+      // registrar_venta_screen) solo afecte a la pestaña donde se tocó el
+      // botón, sin tocar la sesión principal ni las demás pestañas.
       return ProviderScope(
-        overrides: [carritoVentaProvider.overrideWith(() => CarritoVentaNotifier())],
+        overrides: [
+          carritoVentaProvider.overrideWith(() => CarritoVentaNotifier()),
+          usuarioVentaOverrideProvider,
+        ],
         child: RegistrarVentaScreen(tabId: tabId),
       );
     case 'ventas_detalle':
@@ -65,6 +74,8 @@ Widget construirPantalla(String moduleKey, String titulo, IconData icono, String
       return const NegocioScreen();
     case 'dispositivos':
       return const DispositivosScreen();
+    case 'promociones':
+      return const PromocionesScreen();
     case 'colores':
       return const ColoresScreen();
     case 'clientes':

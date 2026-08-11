@@ -48,6 +48,7 @@ List<ModuloMenu> obtenerModulos() {
         SubModulo(titulo: 'Inventario', icono: Icons.inventory_2_outlined, moduleKey: 'inventario', nivelMinimo: Roles.semiAdministrador),
         SubModulo(titulo: 'Negocio', icono: Icons.store_outlined, moduleKey: 'negocio', nivelMinimo: Roles.administrador),
         SubModulo(titulo: 'Dispositivos', icono: Icons.devices_outlined, moduleKey: 'dispositivos', nivelMinimo: Roles.administrador),
+        SubModulo(titulo: 'Descuentos y Promociones', icono: Icons.sell_outlined, moduleKey: 'promociones', nivelMinimo: Roles.semiAdministrador),
       ],
     ),
     ModuloMenu(
