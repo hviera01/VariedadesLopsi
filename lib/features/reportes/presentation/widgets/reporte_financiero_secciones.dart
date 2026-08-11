@@ -202,12 +202,22 @@ Widget seccionInteligenciaNegocio(ReporteFinancieroData data, bool esMovil) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      _explicacion('Analítica calculada sobre los mismos datos de ventas, compras, inventario y cuentas por pagar del sistema — pensada para decidir, no solo para mirar números del período.'),
-      _filaStatsInteligencia(inteligencia),
+      _explicacion(
+        'Analítica calculada sobre los mismos datos de ventas, compras, inventario y cuentas por pagar del sistema — pensada para decidir, no solo para mirar números del período. El ranking de productos por rentabilidad está en la pestaña "Ranking de Productos".',
+      ),
+      _filaStatsInteligencia(inteligencia, data),
       const SizedBox(height: 20),
-      _graficoPronostico(data.serieMensual, inteligencia.pronostico),
+      _tarjetaComparacionMesAnterior(data.serieMensual),
+      const SizedBox(height: 20),
+      _graficoPronostico(data.serieMensual, inteligencia.pronostico, data),
       const SizedBox(height: 20),
       _graficoMargenMensual(data.serieMensual),
+      const SizedBox(height: 20),
+      Text('Composición de la Venta', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700)),
+      const SizedBox(height: 3),
+      Text('De cada Lempira de venta neta del período, cuánto se fue en costo, cuánto en gastos y cuánto quedó de utilidad neta.', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade500)),
+      const SizedBox(height: 10),
+      _graficoComposicionVenta(data, esMovil),
       const SizedBox(height: 20),
       _tarjetaSugerenciasCompra(inteligencia.sugerenciasCompra),
       const SizedBox(height: 20),
@@ -216,16 +226,19 @@ Widget seccionInteligenciaNegocio(ReporteFinancieroData data, bool esMovil) {
   );
 }
 
-Widget _filaStatsInteligencia(InteligenciaNegocioData inteligencia) {
+Widget _filaStatsInteligencia(InteligenciaNegocioData inteligencia, ReporteFinancieroData data) {
   final pronostico = inteligencia.pronostico;
-  final masRentable = inteligencia.productoMasRentable;
   final flechaTendencia = pronostico.tendenciaMensual == 0 ? 'Sin tendencia clara' : (pronostico.tendenciaAlAlza ? '▲ Tendencia al alza' : '▼ Tendencia a la baja');
+  final cantidadVentas = data.gananciaPorVenta.length;
+  final ticketPromedio = cantidadVentas == 0 ? 0.0 : data.ventasPeriodo / cantidadVentas;
+  final valorStockMuerto = data.productosSinVenta.fold<double>(0, (s, p) => s + p.valorInventario);
   return Wrap(
     spacing: 12,
     runSpacing: 12,
     children: [
       _stat('Pronóstico próximo mes', pronostico.proximoMes, colorVentasFinanciero, sub: flechaTendencia),
-      _stat('Producto más rentable', masRentable?.monto ?? 0, const Color(0xFF16A34A), sub: masRentable == null ? 'Sin ventas en el rango' : masRentable.nombreProducto),
+      _stat('Ticket promedio', ticketPromedio, const Color(0xFF3B82F6), sub: '$cantidadVentas venta(s) en el período'),
+      _stat('Valor de stock muerto', valorStockMuerto, const Color(0xFF64748B), sub: '${data.productosSinVenta.length} producto(s) sin venta'),
       Container(
         width: 210,
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
@@ -250,10 +263,147 @@ Widget _filaStatsInteligencia(InteligenciaNegocioData inteligencia) {
   );
 }
 
-Widget _graficoPronostico(List<PuntoMensual> serie, PronosticoVentas pronostico) {
+/// Compara el último mes cerrado de [serie] contra el anterior (ventas y
+/// compras), con variación porcentual — distinto del gráfico de pronóstico,
+/// que mira hacia adelante, y de "Comparación mensual", que muestra el
+/// histórico completo sin resaltar el cambio mes a mes.
+Widget _tarjetaComparacionMesAnterior(List<PuntoMensual> serie) {
+  if (serie.length < 2) {
+    return _tarjeta(child: Text('Se necesitan al menos 2 meses de historial para comparar.', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600)));
+  }
+  final actual = serie[serie.length - 1];
+  final anterior = serie[serie.length - 2];
+  final formatoMes = DateFormat('MMMM yyyy', 'es');
+  return _tarjeta(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('${_capitalizar(formatoMes.format(actual.mes))} vs. ${_capitalizar(formatoMes.format(anterior.mes))}', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade500, letterSpacing: 0.4)),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 24,
+          runSpacing: 12,
+          children: [
+            _comparacionVariacion('Ventas', actual.totalVentas, anterior.totalVentas, colorVentasFinanciero),
+            _comparacionVariacion('Compras', actual.totalCompras, anterior.totalCompras, colorComprasFinanciero),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+String _capitalizar(String texto) => texto.isEmpty ? texto : '${texto[0].toUpperCase()}${texto.substring(1)}';
+
+Widget _comparacionVariacion(String etiqueta, double actual, double anterior, Color color) {
+  final variacion = anterior <= 0 ? null : ((actual - anterior) / anterior) * 100;
+  final subio = variacion != null && variacion >= 0;
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(etiqueta.toUpperCase(), style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.4)),
+      const SizedBox(height: 4),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(formatearMoneda(actual), style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF1A1A1A))),
+          if (variacion != null) ...[
+            const SizedBox(width: 8),
+            Icon(subio ? Icons.arrow_upward : Icons.arrow_downward, size: 13, color: subio ? const Color(0xFF16A34A) : const Color(0xFFC62828)),
+            Text('${variacion.abs().toStringAsFixed(1)}%', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: subio ? const Color(0xFF16A34A) : const Color(0xFFC62828))),
+          ],
+        ],
+      ),
+    ],
+  );
+}
+
+/// Dona con la composición de cada Lempira de venta neta del período: costo,
+/// gastos operativos y lo que queda de utilidad neta -misma base que usa
+/// utilidadNeta (ventasNeta/costoNeta), no ventasPeriodo/costoVentas (esos
+/// incluyen crédito activo sin cobrar, ver ReporteFinancieroData).
+Widget _graficoComposicionVenta(ReporteFinancieroData data, bool esMovil) {
+  final ventas = data.ventasNeta;
+  if (ventas <= 0) {
+    return _tarjeta(child: Text('Sin ventas netas en el periodo para calcular la composición.', style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey.shade600)));
+  }
+  final costo = data.costoNeta.clamp(0, ventas).toDouble();
+  final gastos = data.gastosPeriodo.clamp(0, ventas).toDouble();
+  final utilidad = (ventas - costo - gastos).clamp(0, ventas).toDouble();
+  final segmentos = [
+    ('Costo', costo, const Color(0xFFF59E0B)),
+    ('Gastos', gastos, const Color(0xFF8B5CF6)),
+    ('Utilidad neta', utilidad, const Color(0xFF16A34A)),
+  ].where((s) => s.$2 > 0).toList();
+
+  return _tarjeta(
+    child: esMovil
+        ? Column(children: [_donaComposicion(segmentos, ventas), const SizedBox(height: 16), _leyendaComposicion(segmentos, ventas)])
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _donaComposicion(segmentos, ventas),
+              const SizedBox(width: 24),
+              Expanded(child: _leyendaComposicion(segmentos, ventas)),
+            ],
+          ),
+  );
+}
+
+Widget _donaComposicion(List<(String, double, Color)> segmentos, double total) {
+  return SizedBox(
+    height: 170,
+    width: 170,
+    child: PieChart(
+      PieChartData(
+        sectionsSpace: 2,
+        centerSpaceRadius: 45,
+        sections: [
+          for (final s in segmentos)
+            PieChartSectionData(
+              value: s.$2,
+              color: s.$3,
+              title: '${(s.$2 / total * 100).toStringAsFixed(0)}%',
+              titleStyle: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+              radius: 50,
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _leyendaComposicion(List<(String, double, Color)> segmentos, double total) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      for (final s in segmentos)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          child: Row(
+            children: [
+              Container(width: 10, height: 10, decoration: BoxDecoration(color: s.$3, borderRadius: BorderRadius.circular(3))),
+              const SizedBox(width: 8),
+              Expanded(child: Text(s.$1, style: GoogleFonts.poppins(fontSize: 12.5))),
+              Text(formatearMoneda(s.$2), style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+    ],
+  );
+}
+
+Widget _graficoPronostico(List<PuntoMensual> serie, PronosticoVentas pronostico, ReporteFinancieroData data) {
   final formatoMes = DateFormat('MMM yy', 'es');
   final valores = [for (final p in serie) p.totalVentas, pronostico.proximoMes];
   final maximo = valores.fold<double>(0, (m, v) => v > m ? v : m);
+  // Utilidad neta proyectada: aplica el margen neto real de este periodo
+  // (utilidadNeta / ventasNeta) al monto de ventas pronosticado. Es una
+  // extrapolación simple -asume que gastos y costos guardan la misma
+  // proporción el próximo mes-, no una proyección contable formal.
+  final margenNetoActual = data.ventasNeta <= 0 ? 0.0 : data.utilidadNeta / data.ventasNeta;
+  final utilidadProyectada = pronostico.proximoMes * margenNetoActual;
   return _tarjeta(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,6 +460,12 @@ Widget _graficoPronostico(List<PuntoMensual> serie, PronosticoVentas pronostico)
             ),
           ),
         ),
+        const Divider(height: 28),
+        Text('UTILIDAD NETA PROYECTADA', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade500, letterSpacing: 0.4)),
+        const SizedBox(height: 6),
+        Text(formatearMoneda(utilidadProyectada), style: GoogleFonts.poppins(fontSize: 19, fontWeight: FontWeight.w800, color: const Color(0xFF16A34A))),
+        const SizedBox(height: 4),
+        Text('Aplica el margen neto de este periodo (${(margenNetoActual * 100).toStringAsFixed(1)}%) al pronóstico de ventas. Estimado, no proyección contable.', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500)),
       ],
     ),
   );
