@@ -9,7 +9,10 @@ final clientesStreamProvider = StreamProvider<List<ClienteModel>>((ref) {
   return ref.watch(clienteRepositoryProvider).obtenerClientes();
 });
 
-final movimientosPuntosProvider = StreamProvider.family<List<MovimientoPuntosModel>, String>((ref, idCliente) {
+// autoDispose: se abre en un diálogo para consultar el historial de puntos
+// de un cliente y se cierra; sin autoDispose quedaría un provider vivo por
+// cada cliente distinto revisado en la sesión.
+final movimientosPuntosProvider = FutureProvider.autoDispose.family<List<MovimientoPuntosModel>, String>((ref, idCliente) {
   return ref.watch(clienteRepositoryProvider).obtenerMovimientosPuntos(idCliente);
 });
 

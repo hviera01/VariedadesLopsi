@@ -62,10 +62,13 @@ class ClienteRepository {
     await _col.doc(id).delete();
   }
 
-  Stream<List<MovimientoPuntosModel>> obtenerMovimientosPuntos(String idCliente) {
-    return _col.doc(idCliente).collection('puntos_movimientos').orderBy('fecha', descending: true).snapshots().map((snap) {
-      return snap.docs.map((d) => MovimientoPuntosModel.fromMap(d.id, d.data())).toList();
-    });
+  // Lectura puntual (antes era .snapshots()): el historial de puntos se abre
+  // en un diálogo para consultarlo una vez, no necesita quedar escuchando en
+  // tiempo real (y acumulando un listener por cada cliente revisado en la
+  // sesión).
+  Future<List<MovimientoPuntosModel>> obtenerMovimientosPuntos(String idCliente) async {
+    final snap = await _col.doc(idCliente).collection('puntos_movimientos').orderBy('fecha', descending: true).get();
+    return snap.docs.map((d) => MovimientoPuntosModel.fromMap(d.id, d.data())).toList();
   }
 
   /// Registra un movimiento de puntos (positivo = acumulación, negativo =
