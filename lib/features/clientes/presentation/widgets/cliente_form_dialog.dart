@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/cliente_model.dart';
 import '../../providers/clientes_provider.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 
 class ClienteFormDialog extends ConsumerStatefulWidget {
   final ClienteModel? cliente;
@@ -74,7 +75,10 @@ class _ClienteFormDialogState extends ConsumerState<ClienteFormDialog> {
           estado: _activo,
         );
       }
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');
@@ -104,7 +108,10 @@ class _ClienteFormDialogState extends ConsumerState<ClienteFormDialog> {
     setState(() => _guardando = true);
     try {
       await ref.read(clienteRepositoryProvider).eliminar(widget.cliente!.id);
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');

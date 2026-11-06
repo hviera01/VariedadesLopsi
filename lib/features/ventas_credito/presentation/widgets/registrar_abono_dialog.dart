@@ -6,6 +6,7 @@ import '../../data/venta_credito_model.dart';
 import '../../data/abono_model.dart';
 import '../../providers/ventas_credito_provider.dart';
 import '../../../../core/utils/formato_moneda.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 import '../../../auth/providers/auth_provider.dart';
 
 class RegistrarAbonoDialog extends ConsumerStatefulWidget {
@@ -72,6 +73,7 @@ class _RegistrarAbonoDialogState extends ConsumerState<RegistrarAbonoDialog> {
             fecha: _fecha,
           );
       if (!mounted) return;
+      mostrarExitoTransaccion(context);
       Navigator.pop(
         context,
         AbonoModel(

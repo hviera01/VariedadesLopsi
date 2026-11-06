@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/categoria_model.dart';
 import '../../providers/categorias_provider.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 
 class CategoriaFormDialog extends ConsumerStatefulWidget {
   final CategoriaModel? categoria;
@@ -53,7 +54,10 @@ class _CategoriaFormDialogState extends ConsumerState<CategoriaFormDialog> {
       } else {
         await repo.actualizar(widget.categoria!.id, descripcion, _activo, controlaStock: _controlaStock);
       }
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');
@@ -83,7 +87,10 @@ class _CategoriaFormDialogState extends ConsumerState<CategoriaFormDialog> {
     setState(() => _guardando = true);
     try {
       await ref.read(categoriaRepositoryProvider).eliminar(widget.categoria!.id);
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');

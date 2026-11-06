@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../data/celular_model.dart';
 import '../../providers/celulares_provider.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 
 class CelularFormDialog extends ConsumerStatefulWidget {
   final CelularModel? celular;
@@ -97,7 +98,10 @@ class _CelularFormDialogState extends ConsumerState<CelularFormDialog> {
           fechaCompra: _fechaCompra,
         );
       }
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');

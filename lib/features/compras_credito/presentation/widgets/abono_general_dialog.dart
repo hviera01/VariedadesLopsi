@@ -5,6 +5,7 @@ import '../../data/compra_credito_model.dart';
 import '../../data/compra_credito_repository.dart';
 import '../../providers/compras_credito_provider.dart';
 import '../../../../core/utils/formato_moneda.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 import '../../../auth/providers/auth_provider.dart';
 
 class _ProveedorConDeuda {
@@ -95,7 +96,10 @@ class _AbonoGeneralDialogState extends ConsumerState<AbonoGeneralDialog> {
             metodoPago: _metodoPago,
             usuario: usuario,
           );
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context, true);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');

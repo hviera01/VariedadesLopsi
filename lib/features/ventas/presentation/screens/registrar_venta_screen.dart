@@ -28,6 +28,7 @@ import '../../../../core/services/impresora_red_service.dart';
 import '../../../../core/utils/codigo_barras_utils.dart';
 import '../../../../core/utils/formato_moneda.dart';
 import '../../../../core/widgets/barcode_scanner_screen.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 import '../../../../core/widgets/pdf_preview_dialog.dart';
 import '../widgets/buscar_producto_dialog.dart';
 import '../widgets/buscar_cliente_dialog.dart';
@@ -963,6 +964,7 @@ class _RegistrarVentaScreenState extends ConsumerState<RegistrarVentaScreen> {
     // ese caso la venta NO quedó registrada — con opción de reintentar sin
     // tener que cargar todo de nuevo.
     _limpiarTodo();
+    if (!esCotizacion) mostrarExitoTransaccion(context);
 
     unawaited(_guardarVentaEnSegundoPlano(
       ventaRepo: ventaRepo,

@@ -6,6 +6,7 @@ import '../../data/lote_costo_model.dart';
 import '../../providers/productos_provider.dart';
 import '../../../../core/utils/formato_moneda.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 
 enum _ModoAjuste { ingreso, salida }
 
@@ -108,7 +109,10 @@ class _AjusteStockDialogState extends ConsumerState<AjusteStockDialog> {
           usuarioAutoriza: widget.usuarioAutoriza,
         );
       }
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../data/color_model.dart';
 import '../../providers/colores_provider.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 
 class ColorFormDialog extends ConsumerStatefulWidget {
   final ColorModel? color;
@@ -99,7 +100,10 @@ class _ColorFormDialogState extends ConsumerState<ColorFormDialog> {
           observaciones: _observacionesController.text.trim(),
         );
       }
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');
@@ -129,7 +133,10 @@ class _ColorFormDialogState extends ConsumerState<ColorFormDialog> {
     setState(() => _guardando = true);
     try {
       await ref.read(colorRepositoryProvider).eliminar(widget.color!.id);
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');

@@ -13,6 +13,7 @@ import '../../../../core/widgets/reintentar_dialog.dart';
 import '../../../../core/widgets/pdf_preview_dialog.dart';
 import '../../../../core/services/firebase_storage_service.dart';
 import '../../../../core/widgets/imagen_producto_network.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 
 class ProductoFormDialog extends ConsumerStatefulWidget {
   final ProductoModel? producto;
@@ -244,6 +245,7 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
       }
       await _preguntarImprimirCodigoBarras(creado);
       if (!mounted) return;
+      mostrarExitoTransaccion(context);
       Navigator.pop(context, creado);
       return;
     }
@@ -276,6 +278,7 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
       setState(() => _guardando = false);
       return;
     }
+    mostrarExitoTransaccion(context);
     Navigator.pop(context);
   }
 
@@ -304,6 +307,7 @@ class _ProductoFormDialogState extends ConsumerState<ProductoFormDialog> {
     });
     if (!mounted) return;
     if (ok == true) {
+      mostrarExitoTransaccion(context);
       Navigator.pop(context);
     } else {
       setState(() => _guardando = false);

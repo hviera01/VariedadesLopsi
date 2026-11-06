@@ -6,6 +6,7 @@ import '../../providers/usuarios_provider.dart';
 import '../../../../core/constants/roles.dart';
 import '../../../../core/data/modulos_menu.dart';
 import '../../../negocio/data/negocio_model.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 
 class UsuarioFormDialog extends ConsumerStatefulWidget {
   final UsuarioModel? usuario;
@@ -78,7 +79,10 @@ class _UsuarioFormDialogState extends ConsumerState<UsuarioFormDialog> {
       } else {
         await repo.actualizar(widget.usuario!.id, documento, nombre, correo, _rol, _activo, clave.isEmpty ? null : clave, _pantallasPermitidas, _accionesPermitidas);
       }
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');
@@ -108,7 +112,10 @@ class _UsuarioFormDialogState extends ConsumerState<UsuarioFormDialog> {
     setState(() => _guardando = true);
     try {
       await ref.read(usuarioRepositoryProvider).eliminar(widget.usuario!.id);
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');

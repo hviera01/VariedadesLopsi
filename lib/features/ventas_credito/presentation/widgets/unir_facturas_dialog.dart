@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../data/venta_credito_model.dart';
 import '../../providers/ventas_credito_provider.dart';
 import '../../../../core/utils/formato_moneda.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 
 class UnirFacturasDialog extends ConsumerStatefulWidget {
   final List<VentaCreditoModel> facturas;
@@ -68,7 +69,10 @@ class _UnirFacturasDialogState extends ConsumerState<UnirFacturasDialog> {
             nombreCliente: nombre,
             fechaVencimiento: _fechaVencimiento,
           );
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context, true);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');

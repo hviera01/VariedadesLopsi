@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../providers/compras_credito_provider.dart';
 import '../../../proveedores/providers/proveedores_provider.dart';
 import '../../../proveedores/data/proveedor_model.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 
 class RegistrarCreditoCompraDialog extends ConsumerStatefulWidget {
   const RegistrarCreditoCompraDialog({super.key});
@@ -74,7 +75,10 @@ class _RegistrarCreditoCompraDialogState extends ConsumerState<RegistrarCreditoC
             saldoPendiente: saldoPendiente,
             fechaVencimiento: _fechaVencimiento,
           );
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');

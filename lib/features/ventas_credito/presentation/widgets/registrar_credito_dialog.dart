@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../providers/ventas_credito_provider.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 
 class RegistrarCreditoDialog extends ConsumerStatefulWidget {
   const RegistrarCreditoDialog({super.key});
@@ -71,7 +72,10 @@ class _RegistrarCreditoDialogState extends ConsumerState<RegistrarCreditoDialog>
             saldoPendiente: saldoPendiente,
             fechaVencimiento: _fechaVencimiento,
           );
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');

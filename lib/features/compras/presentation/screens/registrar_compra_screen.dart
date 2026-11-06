@@ -16,6 +16,7 @@ import '../../../../core/providers/tabs_provider.dart';
 import '../../../../core/utils/codigo_barras_utils.dart';
 import '../../../../core/utils/formato_moneda.dart';
 import '../../../../core/widgets/barcode_scanner_screen.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 import '../../../../core/utils/permisos_usuario.dart';
 import '../../../negocio/data/negocio_model.dart';
 import '../../../ventas/presentation/widgets/teclado_numerico_dialog.dart';
@@ -487,7 +488,7 @@ class _RegistrarCompraScreenState extends ConsumerState<RegistrarCompraScreen> {
 
       if (!mounted) return;
       _limpiarTodo();
-      _mostrarMensaje('Compra registrada: ${compra.numeroDocumento}');
+      mostrarExitoTransaccion(context, mensaje: 'Compra registrada: ${compra.numeroDocumento}');
     } catch (e) {
       _mostrarMensaje(e is TimeoutException
           ? 'No se pudo guardar: se agotó el tiempo de espera. Revisá la conexión a internet e intentá de nuevo.'

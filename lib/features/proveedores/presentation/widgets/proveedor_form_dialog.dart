@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/proveedor_model.dart';
 import '../../providers/proveedores_provider.dart';
+import '../../../../core/widgets/exito_transaccion_overlay.dart';
 
 class ProveedorFormDialog extends ConsumerStatefulWidget {
   final ProveedorModel? proveedor;
@@ -74,7 +75,10 @@ class _ProveedorFormDialogState extends ConsumerState<ProveedorFormDialog> {
           estado: _activo,
         );
       }
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');
@@ -104,7 +108,10 @@ class _ProveedorFormDialogState extends ConsumerState<ProveedorFormDialog> {
     setState(() => _guardando = true);
     try {
       await ref.read(proveedorRepositoryProvider).eliminar(widget.proveedor!.id);
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        mostrarExitoTransaccion(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');
