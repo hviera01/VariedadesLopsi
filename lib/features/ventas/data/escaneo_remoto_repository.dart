@@ -62,9 +62,11 @@ class EscaneoRemotoRepository {
   /// sus eventos para no dejar basura acumulándose en Firestore.
   Future<void> eliminarSesion(String codigo) async {
     final eventos = await _col.doc(codigo).collection('eventos').get();
+    final batch = FirebaseFirestore.instance.batch();
     for (final doc in eventos.docs) {
-      await doc.reference.delete();
+      batch.delete(doc.reference);
     }
-    await _col.doc(codigo).delete();
+    batch.delete(_col.doc(codigo));
+    await batch.commit();
   }
 }
