@@ -9,7 +9,10 @@ final celularesStreamProvider = StreamProvider<List<CelularModel>>((ref) {
   return ref.watch(celularRepositoryProvider).obtenerCelulares();
 });
 
-final historialCelularProvider = StreamProvider.family<List<HistorialCelularModel>, String>((ref, idCelular) {
+// autoDispose: es un historial que se consulta una vez en un diálogo y se
+// cierra; sin autoDispose el cache de Riverpod quedaría con un provider vivo
+// por cada celular distinto que se haya revisado en la sesión.
+final historialCelularProvider = FutureProvider.autoDispose.family<List<HistorialCelularModel>, String>((ref, idCelular) {
   return ref.watch(celularRepositoryProvider).obtenerHistorial(idCelular);
 });
 

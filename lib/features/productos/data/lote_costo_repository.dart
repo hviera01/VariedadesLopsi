@@ -72,12 +72,15 @@ class LoteCostoRepository {
   /// mano con [reordenarLotes], en cuyo caso manda esa prioridad manual.
   /// Sirve para ver de un vistazo cuántas unidades quedan a cada costo y
   /// cuál va a salir primero.
-  Stream<List<LoteCostoModel>> obtenerLotes(String idProducto) {
-    return colLotes(idProducto).orderBy('fecha').snapshots().map((snap) {
-      final lotes = snap.docs.map((d) => LoteCostoModel.fromMap(d.id, d.data())).toList();
-      lotes.sort(_compararPorPrioridad);
-      return lotes;
-    });
+  // Lectura puntual (antes era .snapshots()): se usa para mostrar "Costos
+  // por Lote" en un diálogo puntual (historial e ingreso/salida de stock),
+  // no necesita quedar escuchando cambios en vivo — ver mismo criterio en
+  // ProductoRepository.obtenerHistorial*.
+  Future<List<LoteCostoModel>> obtenerLotes(String idProducto) async {
+    final snap = await colLotes(idProducto).orderBy('fecha').get();
+    final lotes = snap.docs.map((d) => LoteCostoModel.fromMap(d.id, d.data())).toList();
+    lotes.sort(_compararPorPrioridad);
+    return lotes;
   }
 
   int _compararPorPrioridad(LoteCostoModel a, LoteCostoModel b) {

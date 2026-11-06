@@ -27,10 +27,13 @@ class VentaCreditoRepository {
     return VentaCreditoModel.fromMap(snap.id, snap.data()!);
   }
 
-  Stream<List<AbonoModel>> obtenerAbonos(String idCredito) {
-    return _col.doc(idCredito).collection('abonos').orderBy('fecha', descending: true).snapshots().map((snap) {
-      return snap.docs.map((d) => AbonoModel.fromMap(d.id, d.data())).toList();
-    });
+  // Lectura puntual (antes era .snapshots()): el historial de abonos se abre
+  // en un diálogo para consultarlo una vez, no necesita quedar escuchando en
+  // tiempo real (y acumulando un listener por cada crédito revisado en la
+  // sesión).
+  Future<List<AbonoModel>> obtenerAbonos(String idCredito) async {
+    final snap = await _col.doc(idCredito).collection('abonos').orderBy('fecha', descending: true).get();
+    return snap.docs.map((d) => AbonoModel.fromMap(d.id, d.data())).toList();
   }
 
   Future<void> crearCreditoManual({

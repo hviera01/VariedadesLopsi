@@ -348,25 +348,28 @@ class ProductoRepository {
     }
   }
 
-  Stream<List<HistorialStockModel>> obtenerHistorialStock(String idProducto) {
-    return _col.doc(idProducto).collection('historial').orderBy('fecha', descending: true).snapshots().map((snap) {
-      return snap.docs.map((d) => HistorialStockModel.fromMap(d.id, d.data())).toList();
-    });
+  // Lecturas puntuales (antes eran .snapshots()): estos tres historiales se
+  // abren en diálogos de "ver historial" para consultar el pasado de un
+  // producto puntual, no para seguir cambios en vivo. Con .snapshots() y sin
+  // autoDispose (ver productos_provider.dart) cada producto revisado en la
+  // sesión dejaba un listener abierto para siempre; con .get() es una sola
+  // lectura por apertura del diálogo.
+  Future<List<HistorialStockModel>> obtenerHistorialStock(String idProducto) async {
+    final snap = await _col.doc(idProducto).collection('historial').orderBy('fecha', descending: true).get();
+    return snap.docs.map((d) => HistorialStockModel.fromMap(d.id, d.data())).toList();
   }
 
   /// Historial de costos del producto, en el orden en que se fueron
   /// registrando las compras que los generaron (más antiguo primero).
-  Stream<List<HistorialPrecioCompraModel>> obtenerHistorialPreciosCompra(String idProducto) {
-    return _col.doc(idProducto).collection('historialPreciosCompra').orderBy('fecha').snapshots().map((snap) {
-      return snap.docs.map((d) => HistorialPrecioCompraModel.fromMap(d.id, d.data())).toList();
-    });
+  Future<List<HistorialPrecioCompraModel>> obtenerHistorialPreciosCompra(String idProducto) async {
+    final snap = await _col.doc(idProducto).collection('historialPreciosCompra').orderBy('fecha').get();
+    return snap.docs.map((d) => HistorialPrecioCompraModel.fromMap(d.id, d.data())).toList();
   }
 
   /// Historial de ventas del producto, en el orden en que se fueron
   /// registrando (más antiguo primero).
-  Stream<List<HistorialVentaProductoModel>> obtenerHistorialVentas(String idProducto) {
-    return _col.doc(idProducto).collection('historialVentas').orderBy('fecha').snapshots().map((snap) {
-      return snap.docs.map((d) => HistorialVentaProductoModel.fromMap(d.id, d.data())).toList();
-    });
+  Future<List<HistorialVentaProductoModel>> obtenerHistorialVentas(String idProducto) async {
+    final snap = await _col.doc(idProducto).collection('historialVentas').orderBy('fecha').get();
+    return snap.docs.map((d) => HistorialVentaProductoModel.fromMap(d.id, d.data())).toList();
   }
 }

@@ -94,10 +94,14 @@ class CelularRepository {
     });
   }
 
-  Stream<List<HistorialCelularModel>> obtenerHistorial(String idCelular) {
-    return _col.doc(idCelular).collection('historial').orderBy('fecha', descending: true).snapshots().map((snap) {
-      return snap.docs.map((d) => HistorialCelularModel.fromMap(d.id, d.data())).toList();
-    });
+  // Lectura puntual (antes era .snapshots()): es el historial de un celular
+  // ya vendido/en trámite, se abre en un diálogo para consultarlo una vez y
+  // se cierra — no hace falta un listener en tiempo real que se quede
+  // escuchando indefinidamente (y sumando lecturas) por cada celular que se
+  // haya revisado en la sesión.
+  Future<List<HistorialCelularModel>> obtenerHistorial(String idCelular) async {
+    final snap = await _col.doc(idCelular).collection('historial').orderBy('fecha', descending: true).get();
+    return snap.docs.map((d) => HistorialCelularModel.fromMap(d.id, d.data())).toList();
   }
 
   /// Cambia el estado de un celular de forma atómica: actualiza el doc y
