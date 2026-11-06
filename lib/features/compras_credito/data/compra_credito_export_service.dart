@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:excel/excel.dart' as xls;
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -10,86 +11,16 @@ import '../../../core/utils/logo_pdf.dart';
 import '../../negocio/data/negocio_model.dart';
 
 class CompraCreditoExportService {
-  Uint8List generarExcel(List<CompraCreditoModel> lista) {
-    final formato = DateFormat('dd/MM/yyyy');
-    final libro = xls.Excel.createExcel();
-    final hoja = libro['ComprasCredito'];
-    libro.delete('Sheet1');
-
-    hoja.appendRow([
-      xls.TextCellValue('Fecha de Registro'),
-      xls.TextCellValue('Número de Documento'),
-      xls.TextCellValue('Número de Factura'),
-      xls.TextCellValue('Proveedor'),
-      xls.TextCellValue('Monto Total'),
-      xls.TextCellValue('Saldo Pendiente'),
-      xls.TextCellValue('Fecha de Vencimiento'),
-      xls.TextCellValue('Estado'),
-      xls.TextCellValue('Vencida'),
-    ]);
-
-    for (final c in lista) {
-      hoja.appendRow([
-        xls.TextCellValue(c.fechaRegistro != null ? formato.format(c.fechaRegistro!) : '-'),
-        xls.TextCellValue(c.numeroDocumento),
-        xls.TextCellValue(c.noFactura),
-        xls.TextCellValue(c.nombreProveedor),
-        xls.TextCellValue(formatearMoneda(c.montoTotal)),
-        xls.TextCellValue(formatearMoneda(c.saldoPendiente)),
-        xls.TextCellValue(c.fechaVencimiento != null ? formato.format(c.fechaVencimiento!) : '-'),
-        xls.TextCellValue(c.liquidada ? 'Liquidada' : 'Deuda'),
-        xls.TextCellValue(c.vencida ? 'Vencida' : 'Vigente'),
-      ]);
-    }
-
-    final bytes = libro.save();
-    return Uint8List.fromList(bytes ?? []);
+  // compute() manda la generación a un isolate aparte: con muchos créditos
+  // esto tarda igual, pero sin esto esos segundos congelaban la app entera
+  // en vez de solo tardar con la UI respondiendo. generarPdfRecibo (abajo)
+  // queda tal cual: es UN solo recibo, rápido de por sí.
+  Future<Uint8List> generarExcel(List<CompraCreditoModel> lista) {
+    return compute(_generarExcel, lista);
   }
 
-  Future<Uint8List> generarPdfListado(List<CompraCreditoModel> lista) async {
-    final formato = DateFormat('dd/MM/yyyy');
-    final doc = pw.Document();
-    doc.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4.landscape,
-        margin: const pw.EdgeInsets.all(28),
-        header: (context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('Compras a Crédito', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF0F1B3D))),
-            pw.SizedBox(height: 4),
-            pw.Text('Total de créditos: ${lista.length}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-            pw.SizedBox(height: 14),
-          ],
-        ),
-        build: (context) => [
-          pw.TableHelper.fromTextArray(
-            headers: ['Fecha Registro', 'No. Documento', 'No. Factura', 'Proveedor', 'Monto Total', 'Saldo Pendiente', 'Vencimiento', 'Estado', 'Vencida'],
-            data: lista.map((c) {
-              return [
-                c.fechaRegistro != null ? formato.format(c.fechaRegistro!) : '-',
-                c.numeroDocumento,
-                c.noFactura,
-                c.nombreProveedor,
-                formatearMoneda(c.montoTotal),
-                formatearMoneda(c.saldoPendiente),
-                c.fechaVencimiento != null ? formato.format(c.fechaVencimiento!) : '-',
-                c.liquidada ? 'Liquidada' : 'Deuda',
-                c.vencida ? 'Vencida' : 'Vigente',
-              ];
-            }).toList(),
-            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: PdfColors.white),
-            headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF0F1B3D)),
-            cellStyle: const pw.TextStyle(fontSize: 8.5),
-            cellAlignment: pw.Alignment.centerLeft,
-            cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 7),
-            oddRowDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFE8EAF0)),
-            border: null,
-          ),
-        ],
-      ),
-    );
-    return doc.save();
+  Future<Uint8List> generarPdfListado(List<CompraCreditoModel> lista) {
+    return compute(_generarPdfListado, lista);
   }
 
   Future<Uint8List> generarPdfRecibo(CompraCreditoModel compra, AbonoCompraModel abono, NegocioModel negocio) async {
@@ -153,4 +84,86 @@ class CompraCreditoExportService {
       ),
     );
   }
+}
+
+Uint8List _generarExcel(List<CompraCreditoModel> lista) {
+  final formato = DateFormat('dd/MM/yyyy');
+  final libro = xls.Excel.createExcel();
+  final hoja = libro['ComprasCredito'];
+  libro.delete('Sheet1');
+
+  hoja.appendRow([
+    xls.TextCellValue('Fecha de Registro'),
+    xls.TextCellValue('Número de Documento'),
+    xls.TextCellValue('Número de Factura'),
+    xls.TextCellValue('Proveedor'),
+    xls.TextCellValue('Monto Total'),
+    xls.TextCellValue('Saldo Pendiente'),
+    xls.TextCellValue('Fecha de Vencimiento'),
+    xls.TextCellValue('Estado'),
+    xls.TextCellValue('Vencida'),
+  ]);
+
+  for (final c in lista) {
+    hoja.appendRow([
+      xls.TextCellValue(c.fechaRegistro != null ? formato.format(c.fechaRegistro!) : '-'),
+      xls.TextCellValue(c.numeroDocumento),
+      xls.TextCellValue(c.noFactura),
+      xls.TextCellValue(c.nombreProveedor),
+      xls.TextCellValue(formatearMoneda(c.montoTotal)),
+      xls.TextCellValue(formatearMoneda(c.saldoPendiente)),
+      xls.TextCellValue(c.fechaVencimiento != null ? formato.format(c.fechaVencimiento!) : '-'),
+      xls.TextCellValue(c.liquidada ? 'Liquidada' : 'Deuda'),
+      xls.TextCellValue(c.vencida ? 'Vencida' : 'Vigente'),
+    ]);
+  }
+
+  final bytes = libro.save();
+  return Uint8List.fromList(bytes ?? []);
+}
+
+Future<Uint8List> _generarPdfListado(List<CompraCreditoModel> lista) async {
+  final formato = DateFormat('dd/MM/yyyy');
+  final doc = pw.Document();
+  doc.addPage(
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.a4.landscape,
+      margin: const pw.EdgeInsets.all(28),
+      header: (context) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('Compras a Crédito', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF0F1B3D))),
+          pw.SizedBox(height: 4),
+          pw.Text('Total de créditos: ${lista.length}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+          pw.SizedBox(height: 14),
+        ],
+      ),
+      build: (context) => [
+        pw.TableHelper.fromTextArray(
+          headers: ['Fecha Registro', 'No. Documento', 'No. Factura', 'Proveedor', 'Monto Total', 'Saldo Pendiente', 'Vencimiento', 'Estado', 'Vencida'],
+          data: lista.map((c) {
+            return [
+              c.fechaRegistro != null ? formato.format(c.fechaRegistro!) : '-',
+              c.numeroDocumento,
+              c.noFactura,
+              c.nombreProveedor,
+              formatearMoneda(c.montoTotal),
+              formatearMoneda(c.saldoPendiente),
+              c.fechaVencimiento != null ? formato.format(c.fechaVencimiento!) : '-',
+              c.liquidada ? 'Liquidada' : 'Deuda',
+              c.vencida ? 'Vencida' : 'Vigente',
+            ];
+          }).toList(),
+          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: PdfColors.white),
+          headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF0F1B3D)),
+          cellStyle: const pw.TextStyle(fontSize: 8.5),
+          cellAlignment: pw.Alignment.centerLeft,
+          cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+          oddRowDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFE8EAF0)),
+          border: null,
+        ),
+      ],
+    ),
+  );
+  return doc.save();
 }

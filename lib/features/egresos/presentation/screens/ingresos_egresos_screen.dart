@@ -213,7 +213,7 @@ class _IngresosEgresosScreenState extends ConsumerState<IngresosEgresosScreen> {
   Future<void> _exportarExcel() async {
     final lista = _listaFiltrada;
     if (lista.isEmpty) return;
-    final bytes = _servicioExport.generarExcelLibro(lista);
+    final bytes = await _servicioExport.generarExcelLibro(lista);
     final fecha = DateFormat('dd-MM-yyyy').format(DateTime.now());
     await guardarOCompartirArchivo(bytes, 'Libro_Financiero_$fecha.xlsx');
   }

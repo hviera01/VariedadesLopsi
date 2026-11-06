@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:excel/excel.dart' as xls;
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -11,83 +12,21 @@ import '../../../core/utils/pdf_fuente.dart';
 import '../../negocio/data/negocio_model.dart';
 
 class VentaCreditoExportService {
-  Uint8List generarExcel(List<VentaCreditoModel> lista) {
-    final formato = DateFormat('dd/MM/yyyy');
-    final libro = xls.Excel.createExcel();
-    final hoja = libro['VentasCredito'];
-    libro.delete('Sheet1');
-
-    hoja.appendRow([
-      xls.TextCellValue('Fecha de Registro'),
-      xls.TextCellValue('No. Factura'),
-      xls.TextCellValue('Cliente'),
-      xls.TextCellValue('Monto Total'),
-      xls.TextCellValue('Saldo Pendiente'),
-      xls.TextCellValue('Fecha de Vencimiento'),
-      xls.TextCellValue('Estado'),
-      xls.TextCellValue('Vencida'),
-    ]);
-
-    for (final c in lista) {
-      hoja.appendRow([
-        xls.TextCellValue(c.fechaRegistro != null ? formato.format(c.fechaRegistro!) : '-'),
-        xls.TextCellValue(c.numeroDocumento),
-        xls.TextCellValue(c.nombreCliente),
-        xls.TextCellValue(formatearMoneda(c.montoTotal)),
-        xls.TextCellValue(formatearMoneda(c.saldoPendiente)),
-        xls.TextCellValue(c.fechaVencimiento != null ? formato.format(c.fechaVencimiento!) : '-'),
-        xls.TextCellValue(c.liquidada ? 'Liquidada' : 'Debe'),
-        xls.TextCellValue(c.vencida ? 'Vencida' : 'Vigente'),
-      ]);
-    }
-
-    final bytes = libro.save();
-    return Uint8List.fromList(bytes ?? []);
+  // compute() manda la generación a un isolate aparte: con muchos créditos
+  // esto tarda igual, pero sin esto esos segundos congelaban la app entera
+  // en vez de solo tardar con la UI respondiendo. generarPdfRecibo (abajo)
+  // queda tal cual: es UN solo recibo, rápido de por sí, y usa el logo del
+  // negocio que no vale la pena mandar entero a otro isolate.
+  Future<Uint8List> generarExcel(List<VentaCreditoModel> lista) {
+    return compute(_generarExcel, lista);
   }
 
   Future<Uint8List> generarPdfListado(List<VentaCreditoModel> lista) async {
-    final formato = DateFormat('dd/MM/yyyy');
-    final doc = pw.Document(theme: await obtenerTemaPdfConFuenteEmbebida());
-    doc.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4.landscape,
-        margin: const pw.EdgeInsets.all(28),
-        header: (context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('Ventas a Crédito', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF0F1B3D))),
-            pw.SizedBox(height: 4),
-            pw.Text('Total de créditos: ${lista.length}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-            pw.SizedBox(height: 14),
-          ],
-        ),
-        build: (context) => [
-          pw.TableHelper.fromTextArray(
-            headers: ['Fecha Registro', 'No. Factura', 'Cliente', 'Monto Total', 'Saldo Pendiente', 'Vencimiento', 'Estado', 'Vencida'],
-            data: lista.map((c) {
-              return [
-                c.fechaRegistro != null ? formato.format(c.fechaRegistro!) : '-',
-                c.numeroDocumento,
-                c.nombreCliente,
-                formatearMoneda(c.montoTotal),
-                formatearMoneda(c.saldoPendiente),
-                c.fechaVencimiento != null ? formato.format(c.fechaVencimiento!) : '-',
-                c.liquidada ? 'Liquidada' : 'Debe',
-                c.vencida ? 'Vencida' : 'Vigente',
-              ];
-            }).toList(),
-            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: PdfColors.white),
-            headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF0F1B3D)),
-            cellStyle: const pw.TextStyle(fontSize: 8.5),
-            cellAlignment: pw.Alignment.centerLeft,
-            cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 7),
-            oddRowDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFE8EAF0)),
-            border: null,
-          ),
-        ],
-      ),
-    );
-    return doc.save();
+    // rootBundle (de donde sale la fuente embebida) no funciona dentro de un
+    // isolate de compute() -- se cargan los bytes acá, en el hilo principal,
+    // y se arma el ThemeData ya adentro del isolate (ver pdf_fuente.dart).
+    final fuente = await obtenerBytesFuenteEmbebida();
+    return compute(_generarPdfListado, (lista, fuente));
   }
 
   double? _anchoValidoDesdeFormato(PdfPageFormat? formato) {
@@ -195,4 +134,84 @@ class VentaCreditoExportService {
       ),
     );
   }
+}
+
+Uint8List _generarExcel(List<VentaCreditoModel> lista) {
+  final formato = DateFormat('dd/MM/yyyy');
+  final libro = xls.Excel.createExcel();
+  final hoja = libro['VentasCredito'];
+  libro.delete('Sheet1');
+
+  hoja.appendRow([
+    xls.TextCellValue('Fecha de Registro'),
+    xls.TextCellValue('No. Factura'),
+    xls.TextCellValue('Cliente'),
+    xls.TextCellValue('Monto Total'),
+    xls.TextCellValue('Saldo Pendiente'),
+    xls.TextCellValue('Fecha de Vencimiento'),
+    xls.TextCellValue('Estado'),
+    xls.TextCellValue('Vencida'),
+  ]);
+
+  for (final c in lista) {
+    hoja.appendRow([
+      xls.TextCellValue(c.fechaRegistro != null ? formato.format(c.fechaRegistro!) : '-'),
+      xls.TextCellValue(c.numeroDocumento),
+      xls.TextCellValue(c.nombreCliente),
+      xls.TextCellValue(formatearMoneda(c.montoTotal)),
+      xls.TextCellValue(formatearMoneda(c.saldoPendiente)),
+      xls.TextCellValue(c.fechaVencimiento != null ? formato.format(c.fechaVencimiento!) : '-'),
+      xls.TextCellValue(c.liquidada ? 'Liquidada' : 'Debe'),
+      xls.TextCellValue(c.vencida ? 'Vencida' : 'Vigente'),
+    ]);
+  }
+
+  final bytes = libro.save();
+  return Uint8List.fromList(bytes ?? []);
+}
+
+Future<Uint8List> _generarPdfListado((List<VentaCreditoModel>, (Uint8List, Uint8List)) args) async {
+  final (lista, fuente) = args;
+  final formato = DateFormat('dd/MM/yyyy');
+  final doc = pw.Document(theme: construirTemaPdfDesdeBytes(fuente));
+  doc.addPage(
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.a4.landscape,
+      margin: const pw.EdgeInsets.all(28),
+      header: (context) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('Ventas a Crédito', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF0F1B3D))),
+          pw.SizedBox(height: 4),
+          pw.Text('Total de créditos: ${lista.length}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+          pw.SizedBox(height: 14),
+        ],
+      ),
+      build: (context) => [
+        pw.TableHelper.fromTextArray(
+          headers: ['Fecha Registro', 'No. Factura', 'Cliente', 'Monto Total', 'Saldo Pendiente', 'Vencimiento', 'Estado', 'Vencida'],
+          data: lista.map((c) {
+            return [
+              c.fechaRegistro != null ? formato.format(c.fechaRegistro!) : '-',
+              c.numeroDocumento,
+              c.nombreCliente,
+              formatearMoneda(c.montoTotal),
+              formatearMoneda(c.saldoPendiente),
+              c.fechaVencimiento != null ? formato.format(c.fechaVencimiento!) : '-',
+              c.liquidada ? 'Liquidada' : 'Debe',
+              c.vencida ? 'Vencida' : 'Vigente',
+            ];
+          }).toList(),
+          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: PdfColors.white),
+          headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF0F1B3D)),
+          cellStyle: const pw.TextStyle(fontSize: 8.5),
+          cellAlignment: pw.Alignment.centerLeft,
+          cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+          oddRowDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFE8EAF0)),
+          border: null,
+        ),
+      ],
+    ),
+  );
+  return doc.save();
 }

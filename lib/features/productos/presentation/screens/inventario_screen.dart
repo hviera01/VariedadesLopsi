@@ -155,7 +155,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
 
   Future<void> _exportarExcel(Map<String, String> mapaCategorias) async {
     if (_listaActual.isEmpty) return;
-    final bytes = _servicioExport.generarExcel(_listaActual, mapaCategorias);
+    final bytes = await _servicioExport.generarExcel(_listaActual, mapaCategorias);
     await guardarOCompartirArchivo(bytes, 'inventario.xlsx');
   }
 

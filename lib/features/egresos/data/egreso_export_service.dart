@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:excel/excel.dart' as xls;
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -44,44 +45,58 @@ class EgresoExportService {
   static const _colorMarca = PdfColor.fromInt(0xFF0F1B3D);
   static const _colorGrisClaro = PdfColor.fromInt(0xFFF2F3F7);
 
-  Uint8List generarExcelLibro(List<MovimientoFinanciero> movimientos) {
-    final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
-    final libro = xls.Excel.createExcel();
-    final hoja = libro['Libro Financiero'];
-    libro.delete('Sheet1');
-
-    hoja.appendRow([
-      xls.TextCellValue('Fecha'),
-      xls.TextCellValue('Movimiento'),
-      xls.TextCellValue('Descripción'),
-      xls.TextCellValue('Ingreso'),
-      xls.TextCellValue('Egreso'),
-      xls.TextCellValue('Método'),
-      xls.TextCellValue('Categoría'),
-      xls.TextCellValue('Estado'),
-      xls.TextCellValue('Usuario'),
-    ]);
-
-    for (final m in movimientos) {
-      hoja.appendRow([
-        xls.TextCellValue(formatoFecha.format(m.fecha)),
-        xls.TextCellValue(m.tipoMovimiento),
-        xls.TextCellValue(m.descripcion),
-        xls.DoubleCellValue(m.ingreso),
-        xls.DoubleCellValue(m.egreso),
-        xls.TextCellValue(m.metodoPago),
-        xls.TextCellValue(m.categoria),
-        xls.TextCellValue(m.esEgresoManual ? (m.esPagado ? 'Pagado' : 'No pagado') : ''),
-        xls.TextCellValue(m.usuario),
-      ]);
-    }
-
-    final bytes = libro.save();
-    return Uint8List.fromList(bytes ?? []);
+  // compute() manda cada generación a un isolate aparte: un reporte con
+  // muchas filas tarda igual, pero sin esto esos segundos congelaban la app
+  // entera (hilo principal ocupado armando el PDF/Excel, sin poder redibujar
+  // nada) en vez de solo tardar con la UI respondiendo.
+  Future<Uint8List> generarExcelLibro(List<MovimientoFinanciero> movimientos) {
+    return compute(_generarExcelLibro, movimientos);
   }
 
-  Future<Uint8List> generarPdfLibro(List<MovimientoFinanciero> movimientos, DateTime inicio, DateTime fin) async {
-    final doc = pw.Document();
+  Future<Uint8List> generarPdfLibro(List<MovimientoFinanciero> movimientos, DateTime inicio, DateTime fin) {
+    return compute(_generarPdfLibro, (movimientos, inicio, fin));
+  }
+}
+
+Uint8List _generarExcelLibro(List<MovimientoFinanciero> movimientos) {
+  final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
+  final libro = xls.Excel.createExcel();
+  final hoja = libro['Libro Financiero'];
+  libro.delete('Sheet1');
+
+  hoja.appendRow([
+    xls.TextCellValue('Fecha'),
+    xls.TextCellValue('Movimiento'),
+    xls.TextCellValue('Descripción'),
+    xls.TextCellValue('Ingreso'),
+    xls.TextCellValue('Egreso'),
+    xls.TextCellValue('Método'),
+    xls.TextCellValue('Categoría'),
+    xls.TextCellValue('Estado'),
+    xls.TextCellValue('Usuario'),
+  ]);
+
+  for (final m in movimientos) {
+    hoja.appendRow([
+      xls.TextCellValue(formatoFecha.format(m.fecha)),
+      xls.TextCellValue(m.tipoMovimiento),
+      xls.TextCellValue(m.descripcion),
+      xls.DoubleCellValue(m.ingreso),
+      xls.DoubleCellValue(m.egreso),
+      xls.TextCellValue(m.metodoPago),
+      xls.TextCellValue(m.categoria),
+      xls.TextCellValue(m.esEgresoManual ? (m.esPagado ? 'Pagado' : 'No pagado') : ''),
+      xls.TextCellValue(m.usuario),
+    ]);
+  }
+
+  final bytes = libro.save();
+  return Uint8List.fromList(bytes ?? []);
+}
+
+Future<Uint8List> _generarPdfLibro((List<MovimientoFinanciero>, DateTime, DateTime) args) async {
+  final (movimientos, inicio, fin) = args;
+  final doc = pw.Document();
     final formatoDia = DateFormat('dd/MM/yyyy');
     final formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
     final totales = TotalesLibro.desde(movimientos);
@@ -96,7 +111,7 @@ class EgresoExportService {
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text('Libro Financiero', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: _colorMarca)),
+                pw.Text('Libro Financiero', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: EgresoExportService._colorMarca)),
                 pw.Text('${formatoDia.format(inicio)} — ${formatoDia.format(fin)}', style: const pw.TextStyle(fontSize: 10)),
               ],
             ),
@@ -121,7 +136,7 @@ class EgresoExportService {
             },
             children: [
               pw.TableRow(
-                decoration: const pw.BoxDecoration(color: _colorGrisClaro),
+                decoration: const pw.BoxDecoration(color: EgresoExportService._colorGrisClaro),
                 children: [
                   _celdaHeader('Fecha'),
                   _celdaHeader('Movimiento'),
@@ -160,23 +175,22 @@ class EgresoExportService {
       ),
     );
     return doc.save();
-  }
+}
 
-  pw.Widget _celdaHeader(String texto) => pw.Padding(
-        padding: const pw.EdgeInsets.all(5),
-        child: pw.Text(texto, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
-      );
+pw.Widget _celdaHeader(String texto) => pw.Padding(
+      padding: const pw.EdgeInsets.all(5),
+      child: pw.Text(texto, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
+    );
 
-  pw.Widget _celda(String texto) => pw.Padding(
-        padding: const pw.EdgeInsets.all(5),
-        child: pw.Text(texto, style: const pw.TextStyle(fontSize: 8)),
-      );
+pw.Widget _celda(String texto) => pw.Padding(
+      padding: const pw.EdgeInsets.all(5),
+      child: pw.Text(texto, style: const pw.TextStyle(fontSize: 8)),
+    );
 
-  pw.TableRow _filaTotal(String etiqueta, double valor, {bool negrita = false}) {
-    final estilo = pw.TextStyle(fontSize: 10, fontWeight: negrita ? pw.FontWeight.bold : pw.FontWeight.normal);
-    return pw.TableRow(children: [
-      pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 3), child: pw.Text(etiqueta, style: estilo, textAlign: pw.TextAlign.right)),
-      pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 3), child: pw.Text(formatearMoneda(valor), style: estilo, textAlign: pw.TextAlign.right)),
-    ]);
-  }
+pw.TableRow _filaTotal(String etiqueta, double valor, {bool negrita = false}) {
+  final estilo = pw.TextStyle(fontSize: 10, fontWeight: negrita ? pw.FontWeight.bold : pw.FontWeight.normal);
+  return pw.TableRow(children: [
+    pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 3), child: pw.Text(etiqueta, style: estilo, textAlign: pw.TextAlign.right)),
+    pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 3), child: pw.Text(formatearMoneda(valor), style: estilo, textAlign: pw.TextAlign.right)),
+  ]);
 }

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:excel/excel.dart' as xls;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -787,37 +788,45 @@ class VentaExportService {
     return cantidad.toStringAsFixed(2);
   }
 
-  Uint8List generarExcel(List<VentaModel> lista) {
-    final formato = DateFormat('dd/MM/yyyy');
-    final libro = xls.Excel.createExcel();
-    final hoja = libro['Ventas'];
-    libro.delete('Sheet1');
-
-    hoja.appendRow([
-      xls.TextCellValue('Fecha'),
-      xls.TextCellValue('Tipo Documento'),
-      xls.TextCellValue('No. Documento'),
-      xls.TextCellValue('Cliente'),
-      xls.TextCellValue('Total'),
-      xls.TextCellValue('Método de Pago'),
-      xls.TextCellValue('Condición'),
-      xls.TextCellValue('Usuario'),
-    ]);
-
-    for (final v in lista) {
-      hoja.appendRow([
-        xls.TextCellValue(v.fechaRegistro != null ? formato.format(v.fechaRegistro!) : '-'),
-        xls.TextCellValue(v.tipoDocumento),
-        xls.TextCellValue(v.numeroDocumento),
-        xls.TextCellValue(v.nombreCliente),
-        xls.TextCellValue(formatearMoneda(v.totalAPagar)),
-        xls.TextCellValue(v.metodoPago),
-        xls.TextCellValue(v.condicion),
-        xls.TextCellValue(v.usuarioRegistro),
-      ]);
-    }
-
-    final bytes = libro.save();
-    return Uint8List.fromList(bytes ?? []);
+  // compute() manda cada generación a un isolate aparte: un reporte con
+  // muchas filas tarda igual, pero sin esto esos segundos congelaban la app
+  // entera (hilo principal ocupado armando el PDF/Excel, sin poder redibujar
+  // nada) en vez de solo tardar con la UI respondiendo.
+  Future<Uint8List> generarExcel(List<VentaModel> lista) {
+    return compute(_generarExcel, lista);
   }
+}
+
+Uint8List _generarExcel(List<VentaModel> lista) {
+  final formato = DateFormat('dd/MM/yyyy');
+  final libro = xls.Excel.createExcel();
+  final hoja = libro['Ventas'];
+  libro.delete('Sheet1');
+
+  hoja.appendRow([
+    xls.TextCellValue('Fecha'),
+    xls.TextCellValue('Tipo Documento'),
+    xls.TextCellValue('No. Documento'),
+    xls.TextCellValue('Cliente'),
+    xls.TextCellValue('Total'),
+    xls.TextCellValue('Método de Pago'),
+    xls.TextCellValue('Condición'),
+    xls.TextCellValue('Usuario'),
+  ]);
+
+  for (final v in lista) {
+    hoja.appendRow([
+      xls.TextCellValue(v.fechaRegistro != null ? formato.format(v.fechaRegistro!) : '-'),
+      xls.TextCellValue(v.tipoDocumento),
+      xls.TextCellValue(v.numeroDocumento),
+      xls.TextCellValue(v.nombreCliente),
+      xls.TextCellValue(formatearMoneda(v.totalAPagar)),
+      xls.TextCellValue(v.metodoPago),
+      xls.TextCellValue(v.condicion),
+      xls.TextCellValue(v.usuarioRegistro),
+    ]);
+  }
+
+  final bytes = libro.save();
+  return Uint8List.fromList(bytes ?? []);
 }

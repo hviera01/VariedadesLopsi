@@ -135,7 +135,7 @@ class _ReporteComprasScreenState extends ConsumerState<ReporteComprasScreen> {
   Future<void> _exportarExcel() async {
     final lista = _listaFiltrada;
     if (lista.isEmpty) return;
-    final bytes = _servicioExport.generarExcelCompras(lista);
+    final bytes = await _servicioExport.generarExcelCompras(lista);
     final fecha = DateFormat('dd-MM-yyyy').format(DateTime.now());
     await guardarOCompartirArchivo(bytes, 'Reporte_Compras_$fecha.xlsx');
   }

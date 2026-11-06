@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:excel/excel.dart' as xls;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -19,91 +20,12 @@ class ProductoExportService {
     _cacheIconoPulgar = imagen;
     return imagen;
   }
-  Uint8List generarExcel(List<ProductoModel> lista, Map<String, String> mapaCategorias) {
-    final libro = xls.Excel.createExcel();
-    final hoja = libro['Inventario'];
-    libro.delete('Sheet1');
-
-    hoja.appendRow([
-      xls.TextCellValue('Código'),
-      xls.TextCellValue('Nombre'),
-      xls.TextCellValue('Descripción'),
-      xls.TextCellValue('Categoría'),
-      xls.TextCellValue('Existencia'),
-      xls.TextCellValue('Precio Venta'),
-      xls.TextCellValue('Precio Compra'),
-      xls.TextCellValue('Estado'),
-    ]);
-
-    for (final p in lista) {
-      hoja.appendRow([
-        xls.TextCellValue(p.codigo),
-        xls.TextCellValue(p.nombre),
-        xls.TextCellValue(p.descripcion),
-        xls.TextCellValue(mapaCategorias[p.idCategoria] ?? '-'),
-        xls.TextCellValue(p.stock.toString()),
-        xls.TextCellValue(formatearMoneda(p.precioVenta)),
-        xls.TextCellValue(formatearMoneda(p.precioCompra)),
-        xls.TextCellValue(p.estado ? 'Activo' : 'Inactivo'),
-      ]);
-    }
-
-    final bytes = libro.save();
-    return Uint8List.fromList(bytes ?? []);
+  Future<Uint8List> generarExcel(List<ProductoModel> lista, Map<String, String> mapaCategorias) {
+    return compute(_generarExcel, (lista, mapaCategorias));
   }
 
-  Future<Uint8List> generarPdfInventario(List<ProductoModel> lista, Map<String, String> mapaCategorias) async {
-    final doc = pw.Document();
-    doc.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4.landscape,
-        margin: const pw.EdgeInsets.all(28),
-        header: (context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('Inventario · VARIEDADES LOPSI', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF0F1B3D))),
-            pw.SizedBox(height: 4),
-            pw.Text('Total de productos: ${lista.length}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-            pw.SizedBox(height: 14),
-          ],
-        ),
-        build: (context) => [
-          pw.TableHelper.fromTextArray(
-            headers: ['Código', 'Nombre', 'Descripción', 'Categoría', 'Existencia', 'P. Venta', 'P. Compra', 'Estado'],
-            data: lista.map((p) {
-              return [
-                p.codigo,
-                p.nombre,
-                p.descripcion.isEmpty ? '-' : p.descripcion,
-                mapaCategorias[p.idCategoria] ?? '-',
-                p.stock.toString(),
-                formatearMoneda(p.precioVenta),
-                formatearMoneda(p.precioCompra),
-                p.estado ? 'Activo' : 'Inactivo',
-              ];
-            }).toList(),
-            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: PdfColors.white),
-            headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF0F1B3D)),
-            cellStyle: const pw.TextStyle(fontSize: 8.5),
-            cellAlignment: pw.Alignment.centerLeft,
-            cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 7),
-            oddRowDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFE8EAF0)),
-            border: null,
-            columnWidths: {
-              0: const pw.FlexColumnWidth(1.2),
-              1: const pw.FlexColumnWidth(2.4),
-              2: const pw.FlexColumnWidth(2.4),
-              3: const pw.FlexColumnWidth(1.6),
-              4: const pw.FlexColumnWidth(1.1),
-              5: const pw.FlexColumnWidth(1.3),
-              6: const pw.FlexColumnWidth(1.3),
-              7: const pw.FlexColumnWidth(1.1),
-            },
-          ),
-        ],
-      ),
-    );
-    return doc.save();
+  Future<Uint8List> generarPdfInventario(List<ProductoModel> lista, Map<String, String> mapaCategorias) {
+    return compute(_generarPdfInventario, (lista, mapaCategorias));
   }
 
   Future<Uint8List> generarPdfTicket(
@@ -228,4 +150,93 @@ class ProductoExportService {
     }
     return doc.save();
   }
+}
+
+Uint8List _generarExcel((List<ProductoModel>, Map<String, String>) args) {
+  final (lista, mapaCategorias) = args;
+  final libro = xls.Excel.createExcel();
+  final hoja = libro['Inventario'];
+  libro.delete('Sheet1');
+
+  hoja.appendRow([
+    xls.TextCellValue('Código'),
+    xls.TextCellValue('Nombre'),
+    xls.TextCellValue('Descripción'),
+    xls.TextCellValue('Categoría'),
+    xls.TextCellValue('Existencia'),
+    xls.TextCellValue('Precio Venta'),
+    xls.TextCellValue('Precio Compra'),
+    xls.TextCellValue('Estado'),
+  ]);
+
+  for (final p in lista) {
+    hoja.appendRow([
+      xls.TextCellValue(p.codigo),
+      xls.TextCellValue(p.nombre),
+      xls.TextCellValue(p.descripcion),
+      xls.TextCellValue(mapaCategorias[p.idCategoria] ?? '-'),
+      xls.TextCellValue(p.stock.toString()),
+      xls.TextCellValue(formatearMoneda(p.precioVenta)),
+      xls.TextCellValue(formatearMoneda(p.precioCompra)),
+      xls.TextCellValue(p.estado ? 'Activo' : 'Inactivo'),
+    ]);
+  }
+
+  final bytes = libro.save();
+  return Uint8List.fromList(bytes ?? []);
+}
+
+Future<Uint8List> _generarPdfInventario((List<ProductoModel>, Map<String, String>) args) async {
+  final (lista, mapaCategorias) = args;
+  final doc = pw.Document();
+  doc.addPage(
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.a4.landscape,
+      margin: const pw.EdgeInsets.all(28),
+      header: (context) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('Inventario · VARIEDADES LOPSI', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF0F1B3D))),
+          pw.SizedBox(height: 4),
+          pw.Text('Total de productos: ${lista.length}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+          pw.SizedBox(height: 14),
+        ],
+      ),
+      build: (context) => [
+        pw.TableHelper.fromTextArray(
+          headers: ['Código', 'Nombre', 'Descripción', 'Categoría', 'Existencia', 'P. Venta', 'P. Compra', 'Estado'],
+          data: lista.map((p) {
+            return [
+              p.codigo,
+              p.nombre,
+              p.descripcion.isEmpty ? '-' : p.descripcion,
+              mapaCategorias[p.idCategoria] ?? '-',
+              p.stock.toString(),
+              formatearMoneda(p.precioVenta),
+              formatearMoneda(p.precioCompra),
+              p.estado ? 'Activo' : 'Inactivo',
+            ];
+          }).toList(),
+          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: PdfColors.white),
+          headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF0F1B3D)),
+          cellStyle: const pw.TextStyle(fontSize: 8.5),
+          cellAlignment: pw.Alignment.centerLeft,
+          cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+          oddRowDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFE8EAF0)),
+          border: null,
+          columnWidths: {
+            0: const pw.FlexColumnWidth(1.2),
+            1: const pw.FlexColumnWidth(2.4),
+            2: const pw.FlexColumnWidth(2.4),
+            3: const pw.FlexColumnWidth(1.6),
+            4: const pw.FlexColumnWidth(1.1),
+            5: const pw.FlexColumnWidth(1.3),
+            6: const pw.FlexColumnWidth(1.3),
+            7: const pw.FlexColumnWidth(1.1),
+          },
+        ),
+      ],
+    ),
+  );
+  return doc.save();
 }

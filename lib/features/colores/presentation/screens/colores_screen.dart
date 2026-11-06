@@ -95,7 +95,7 @@ class _ColoresScreenState extends ConsumerState<ColoresScreen> {
 
   Future<void> _exportarExcel() async {
     if (_listaActual.isEmpty) return;
-    final bytes = _servicioExport.generarExcel(_listaActual);
+    final bytes = await _servicioExport.generarExcel(_listaActual);
     final fecha = DateFormat('dd-MM-yyyy').format(DateTime.now());
     await guardarOCompartirArchivo(bytes, 'Registro_Colores_$fecha.xlsx');
   }

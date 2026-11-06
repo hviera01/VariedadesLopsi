@@ -161,7 +161,7 @@ class _ComprasCreditoScreenState extends ConsumerState<ComprasCreditoScreen> {
 
   Future<void> _exportarExcel() async {
     if (_listaActual.isEmpty) return;
-    final bytes = _servicioExport.generarExcel(_listaActual);
+    final bytes = await _servicioExport.generarExcel(_listaActual);
     final fecha = DateFormat('dd-MM-yyyy').format(DateTime.now());
     await guardarOCompartirArchivo(bytes, 'Compras_Credito_$fecha.xlsx');
   }
